@@ -1,0 +1,369 @@
+"""
+Bayesian-PEFT Dataset Integration with Local Caching for CLM
+===========================================================
+
+This module leverages Bayesian-PEFT's dataset classes while ensuring
+data is downloaded and cached locally (e.g., Google Drive) for 
+persistent access across training runs.
+
+Strategy:
+1. Clone Bayesian-PEFT repo for dataset utilities
+2. Download datasets using their loaders
+3. Cache processed datasets locally 
+4. Provide ARD-LoRA compatible interface
+"""
+
+import os
+import sys
+import json
+import pickle
+import subprocess
+from pathlib import Path
+from typing import Dict, Any, Tuple, Optional
+import torch
+from torch.utils.data import DataLoader, Dataset
+from datasets import Dataset as HFDataset
+from transformers import AutoTokenizer
+
+
+class BayesianPEFTDataManager:
+    """
+    Manager for Bayesian-PEFT datasets with local caching.
+    Downloads data once and caches for future use.
+    """
+    
+    def __init__(self, cache_root: str = "./data_cache", repo_path: str = "./external/bayesian-peft"):
+        self.cache_root = Path(cache_root)
+        self.repo_path = Path(repo_path)
+        self.cache_root.mkdir(parents=True, exist_ok=True)
+        
+        # Ensure Bayesian-PEFT repo is available
+        self._setup_repo()
+    
+    def _setup_repo(self):
+        """Clone Bayesian-PEFT repo if not exists"""
+        if not self.repo_path.exists():
+            print(f"[INFO] Cloning Bayesian-PEFT repo to {self.repo_path}")
+            self.repo_path.parent.mkdir(parents=True, exist_ok=True)
+            subprocess.run([
+                "git", "clone", 
+                "https://github.com/Wang-ML-Lab/bayesian-peft",
+                str(self.repo_path)
+            ], check=True)
+        
+        # Add to Python path for imports
+        if str(self.repo_path) not in sys.path:
+            sys.path.insert(0, str(self.repo_path))
+    
+    def get_dataset_cache_path(self, dataset_name: str, split: str = "train") -> Path:
+        """Get cache path for a specific dataset split"""
+        return self.cache_root / f"{dataset_name}_{split}.json"
+    
+    def is_cached(self, dataset_name: str) -> bool:
+        """Check if dataset is already cached"""
+        train_cache = self.get_dataset_cache_path(dataset_name, "train")
+        return train_cache.exists()
+    
+    def cache_dataset(self, dataset_name: str, data: Dict[str, Any]):
+        """Cache dataset to local storage"""
+        for split, dataset in data.items():
+            cache_path = self.get_dataset_cache_path(dataset_name, split)
+            
+            if hasattr(dataset, 'to_dict'):
+                # HuggingFace Dataset
+                dataset_dict = dataset.to_dict()
+            elif isinstance(dataset, list):
+                # List of examples
+                dataset_dict = {"examples": dataset}
+            else:
+                # Custom dataset - extract examples
+                dataset_dict = {"examples": list(dataset)}
+            
+            with open(cache_path, 'w', encoding='utf-8') as f:
+                json.dump(dataset_dict, f, ensure_ascii=False, indent=2)
+            
+            print(f"[CACHE] Saved {len(dataset_dict.get('examples', dataset_dict.get('input_ids', [])))} examples to {cache_path}")
+    
+    def load_cached_dataset(self, dataset_name: str) -> Dict[str, HFDataset]:
+        """Load dataset from cache"""
+        cached_data = {}
+        
+        for split in ["train", "validation", "test"]:
+            cache_path = self.get_dataset_cache_path(dataset_name, split)
+            if cache_path.exists():
+                with open(cache_path, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+                
+                if "examples" in data:
+                    # Convert back to HuggingFace Dataset
+                    cached_data[split] = HFDataset.from_list(data["examples"])
+                else:
+                    # Direct HF Dataset format
+                    cached_data[split] = HFDataset.from_dict(data)
+                
+                print(f"[CACHE] Loaded {len(cached_data[split])} examples from {cache_path}")
+        
+        return cached_data
+    
+    def download_and_cache_dataset(self, dataset_name: str, config: Dict[str, Any]) -> Dict[str, HFDataset]:
+        """
+        Download dataset using Bayesian-PEFT loaders and cache locally.
+        This is where we leverage their dataset classes.
+        """
+        print(f"[DOWNLOAD] Fetching {dataset_name} using Bayesian-PEFT loaders...")
+        
+        try:
+            # Import their dataset utilities
+            from dataset.utils import get_dataset  # From their repo
+            from dataset.S2SDataset import S2SDataset
+            from dataset.S2ClassDataset import S2ClassDataset
+            
+            # Use their dataset factory based on config
+            dataset_class = config.get("dataset_class", "S2SDataset")
+            
+            if dataset_class == "S2SDataset":
+                dataset_loader = S2SDataset(
+                    dataset_name=dataset_name,
+                    max_length=config.get("max_len", 2048),
+                    **config
+                )
+            elif dataset_class == "S2ClassDataset":
+                dataset_loader = S2ClassDataset(
+                    dataset_name=dataset_name,
+                    max_length=config.get("max_len", 512),
+                    **config
+                )
+            else:
+                raise ValueError(f"Unsupported dataset class: {dataset_class}")
+            
+            # Get train/val splits using their methods
+            train_data = dataset_loader.get_train_data()
+            val_data = dataset_loader.get_validation_data() if hasattr(dataset_loader, 'get_validation_data') else None
+            
+            # Convert to our format
+            datasets = {"train": train_data}
+            if val_data is not None:
+                datasets["validation"] = val_data
+            
+            # Cache for future use
+            self.cache_dataset(dataset_name, datasets)
+            
+            return self.load_cached_dataset(dataset_name)
+            
+        except Exception as e:
+            print(f"[ERROR] Failed to download {dataset_name}: {e}")
+            print("[FALLBACK] Using manual download approach...")
+            return self._fallback_download(dataset_name, config)
+    
+    def _fallback_download(self, dataset_name: str, config: Dict[str, Any]) -> Dict[str, HFDataset]:
+        """Fallback download method if their loaders fail"""
+        # This would implement direct downloads for known datasets
+        if dataset_name.lower() == "alpaca":
+            return self._download_alpaca(config)
+        elif dataset_name.lower() == "dolly":
+            return self._download_dolly(config)
+        else:
+            raise ValueError(f"No fallback available for dataset: {dataset_name}")
+    
+    def _download_alpaca(self, config: Dict[str, Any]) -> Dict[str, HFDataset]:
+        """Download Alpaca dataset directly"""
+        from datasets import load_dataset
+        
+        print("[FALLBACK] Downloading Alpaca dataset from HuggingFace...")
+        dataset = load_dataset("tatsu-lab/alpaca")
+        
+        # Convert to our format
+        def format_alpaca(example):
+            instruction = example["instruction"]
+            input_text = example["input"] if example["input"] else ""
+            output_text = example["output"]
+            
+            prompt = instruction
+            if input_text:
+                prompt += f"\n{input_text}"
+            full_text = prompt + f"\n{output_text}"
+            
+            return {
+                "instruction": instruction,
+                "input": input_text,
+                "output": output_text,
+                "prompt_text": prompt,
+                "full_text": full_text
+            }
+        
+        train_ds = dataset["train"].map(format_alpaca)
+        
+        datasets = {"train": train_ds}
+        self.cache_dataset("alpaca", datasets)
+        
+        return {"train": train_ds}
+    
+    def _download_dolly(self, config: Dict[str, Any]) -> Dict[str, HFDataset]:
+        """Download Dolly dataset directly"""
+        from datasets import load_dataset
+        
+        print("[FALLBACK] Downloading Dolly dataset from HuggingFace...")
+        dataset = load_dataset("databricks/databricks-dolly-15k")
+        
+        def format_dolly(example):
+            instruction = example["instruction"]
+            context = example["context"] if example["context"] else ""
+            response = example["response"]
+            
+            prompt = instruction
+            if context:
+                prompt += f"\nContext: {context}"
+            full_text = prompt + f"\n{response}"
+            
+            return {
+                "instruction": instruction,
+                "context": context,
+                "response": response,
+                "prompt_text": prompt,
+                "full_text": full_text
+            }
+        
+        train_ds = dataset["train"].map(format_dolly)
+        
+        datasets = {"train": train_ds}
+        self.cache_dataset("dolly", datasets)
+        
+        return {"train": train_ds}
+    
+    def get_dataset(self, dataset_name: str, config: Dict[str, Any]) -> Dict[str, HFDataset]:
+        """
+        Main method: Get dataset with caching.
+        Downloads once, then uses cache for subsequent calls.
+        """
+        if self.is_cached(dataset_name):
+            print(f"[INFO] Loading {dataset_name} from cache...")
+            return self.load_cached_dataset(dataset_name)
+        else:
+            print(f"[INFO] Downloading and caching {dataset_name}...")
+            return self.download_and_cache_dataset(dataset_name, config)
+
+
+class ARDLoRADatasetWrapper:
+    """
+    Wrapper that makes Bayesian-PEFT datasets compatible with ARD-LoRA training.
+    Handles tokenization and formatting for causal language modeling.
+    """
+    
+    def __init__(self, dataset_name: str, tokenizer_name: str, config: Dict[str, Any], cache_root: str = "./data_cache"):
+        self.dataset_name = dataset_name
+        self.config = config
+        self.cache_root = cache_root
+        
+        # Initialize tokenizer
+        self.tokenizer = AutoTokenizer.from_pretrained(tokenizer_name)
+        if self.tokenizer.pad_token is None:
+            self.tokenizer.pad_token = self.tokenizer.eos_token
+        
+        # Initialize dataset manager
+        self.data_manager = BayesianPEFTDataManager(cache_root=cache_root)
+        
+        # Load/download dataset
+        self.datasets = self.data_manager.get_dataset(dataset_name, config)
+    
+    def get_processed_datasets(self) -> Tuple[Optional[HFDataset], Optional[HFDataset]]:
+        """
+        Get tokenized datasets ready for ARD-LoRA training.
+        Returns (train_dataset, validation_dataset)
+        """
+        train_ds = self.datasets.get("train")
+        val_ds = self.datasets.get("validation")
+        
+        if train_ds is not None:
+            train_ds = self._process_dataset(train_ds)
+        
+        if val_ds is not None:
+            val_ds = self._process_dataset(val_ds)
+        
+        return train_ds, val_ds
+    
+    def _process_dataset(self, dataset: HFDataset) -> HFDataset:
+        """Process dataset for causal LM with prompt masking"""
+        max_len = self.config.get("max_len", 2048)
+        
+        def tokenize_and_mask(batch):
+            # Handle different input formats
+            if "full_text" in batch:
+                full_texts = batch["full_text"]
+                prompt_texts = batch.get("prompt_text", [""] * len(full_texts))
+            elif "instruction" in batch and "output" in batch:
+                # Create full texts from instruction/output
+                full_texts = []
+                prompt_texts = []
+                for i in range(len(batch["instruction"])):
+                    instruction = batch["instruction"][i]
+                    input_text = batch.get("input", [""] * len(batch["instruction"]))[i]
+                    output = batch["output"][i]
+                    
+                    prompt = instruction
+                    if input_text:
+                        prompt += f"\n{input_text}"
+                    full_text = prompt + f"\n{output}"
+                    
+                    prompt_texts.append(prompt)
+                    full_texts.append(full_text)
+            else:
+                raise ValueError("Unsupported dataset format")
+            
+            # Tokenize full sequences
+            full_tok = self.tokenizer(
+                full_texts,
+                truncation=True,
+                max_length=max_len,
+                padding="max_length"
+            )
+            
+            # Tokenize prompts (for masking)
+            prompt_tok = self.tokenizer(
+                prompt_texts,
+                truncation=True,
+                max_length=max_len
+            )
+            
+            # Create labels with prompt masking
+            labels = []
+            for i, (full_ids, prompt_ids) in enumerate(zip(full_tok["input_ids"], prompt_tok["input_ids"])):
+                label = full_ids.copy()
+                # Mask prompt tokens
+                prompt_len = len(prompt_ids)
+                for j in range(min(prompt_len, len(label))):
+                    label[j] = -100
+                labels.append(label)
+            
+            full_tok["labels"] = labels
+            return full_tok
+        
+        return dataset.map(
+            tokenize_and_mask,
+            batched=True,
+            remove_columns=dataset.column_names
+        )
+
+
+def load_bayesian_peft_with_caching(dataset_name: str, tokenizer_name: str, config: Dict[str, Any], cache_root: str = "./data_cache"):
+    """
+    Main function to load Bayesian-PEFT datasets with local caching.
+    
+    Args:
+        dataset_name: Name of dataset (e.g., "alpaca", "dolly", "gsm8k")
+        tokenizer_name: HuggingFace tokenizer name
+        config: Dataset configuration
+        cache_root: Local cache directory (can be Google Drive path)
+    
+    Returns:
+        (train_dataset, val_dataset, tokenizer)
+    """
+    wrapper = ARDLoRADatasetWrapper(
+        dataset_name=dataset_name,
+        tokenizer_name=tokenizer_name,
+        config=config,
+        cache_root=cache_root
+    )
+    
+    train_ds, val_ds = wrapper.get_processed_datasets()
+    
+    return train_ds, val_ds, wrapper.tokenizer
