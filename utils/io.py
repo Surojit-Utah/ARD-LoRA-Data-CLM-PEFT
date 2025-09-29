@@ -4,10 +4,14 @@ import torch
 
 
 def get_output_dirs(runId=1, base_dir=None):
-    if base_dir is None:
-        base_dir = os.path.join(os.getcwd(), "run_outputs")
+    if runId is None or base_dir is None:
+        raise ValueError("runId and base_dir must be provided")
 
-    log_dir = os.path.join(base_dir, "run_" + str(runId))
+    google_drive = '/content/drive/MyDrive'
+    base_path = os.path.join(google_drive, base_dir)
+    print(f'Path to the base directory: {base_path}')
+
+    log_dir = os.path.join(base_path, "run_" + str(runId))
     os.makedirs(log_dir, exist_ok=True)
 
     output_dir = os.path.join(log_dir, "latent_images")
