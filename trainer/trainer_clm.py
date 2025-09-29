@@ -603,42 +603,94 @@ class HeldoutResampleCallback(TrainerCallback):
             print(f"[HeldoutResampleCallback] Failed to resample held-out data: {e}")
 
 
-def split_validation_dataset(val_dataset, ard_prior_ratio=0.5, seed=42):
+def split_validation_dataset(val_dataset, ard_prior_ratio=0.5, seed=42, train_dataset=None, train_split_ratio=0.1):
     """
     Split validation dataset into two parts:
-    1. ARD prior estimation (first part)
-    2. Uncertainty evaluation (second part)
+    1. ARD prior estimation (first part) - at least 1000 samples
+    2. Uncertainty evaluation (second part) - remaining validation data
+    
+    If val_dataset is None, creates a validation split from train_dataset.
     
     Args:
-        val_dataset: Original validation dataset
+        val_dataset: Original validation dataset (can be None)
         ard_prior_ratio: Fraction to use for ARD prior estimation (default: 0.5)
         seed: Random seed for reproducible splits
+        train_dataset: Training dataset (used if val_dataset is None)
+        train_split_ratio: Fraction of training data to use for validation when val_dataset is None (min 10%)
     
     Returns:
-        ard_dataset: Dataset for ARD prior estimation
-        uncertainty_dataset: Dataset for uncertainty evaluation
+        ard_dataset: Dataset for ARD prior estimation (at least 1000 samples)
+        uncertainty_dataset: Dataset for uncertainty evaluation (remaining validation data)
     """
-    if val_dataset is None:
-        return None, None
+    # If no validation dataset, create one from training data
+    if val_dataset is None or len(val_dataset) == 0:
+        if train_dataset is None or len(train_dataset) == 0:
+            print("[WARNING] No validation or training dataset available")
+            return None, None
+        
+        # Ensure validation split is at least 10% of training data
+        min_split_ratio = max(0.1, train_split_ratio)
+        
+        print(f"[INFO] No validation dataset found. Creating validation split from training data ({min_split_ratio:.1%})")
+        
+        # Create validation split from training data
+        total_train = len(train_dataset)
+        # Calculate validation size: at least 10% of training data and at least 2000 samples (1000 for ARD + 1000 for eval)
+        min_val_size = max(int(total_train * min_split_ratio), 2000)
+        val_size = min(min_val_size, total_train // 2)  # Don't use more than half of training data
+        
+        np.random.seed(seed)
+        val_indices = np.random.choice(total_train, val_size, replace=False)
+        val_dataset = Subset(train_dataset, val_indices)
+        
+        print(f"[INFO] Created validation split with {len(val_dataset)} samples from training data ({len(val_dataset)/total_train:.1%} of training data)")
     
     total_size = len(val_dataset)
-    ard_size = int(total_size * ard_prior_ratio)
+    if total_size == 0:
+        return None, None
+    
+    # Ensure ARD gets at least 1000 samples, but not more than 80% of validation data
+    min_ard_samples = 1000
+    max_ard_ratio = 0.8
+    
+    if total_size < min_ard_samples:
+        print(f"[WARNING] Validation dataset has only {total_size} samples, less than required {min_ard_samples} for ARD")
+        ard_size = total_size
+        uncertainty_size = 0
+    else:
+        # Calculate ARD size: at least 1000, but respect the ratio and max ratio constraints
+        ard_size_by_ratio = int(total_size * ard_prior_ratio)
+        ard_size_by_max = int(total_size * max_ard_ratio)
+        
+        ard_size = max(min_ard_samples, min(ard_size_by_ratio, ard_size_by_max))
+        uncertainty_size = total_size - ard_size
     
     # Create indices for splitting
     np.random.seed(seed)
     indices = np.random.permutation(total_size)
     
     ard_indices = indices[:ard_size]
-    uncertainty_indices = indices[ard_size:]
+    uncertainty_indices = indices[ard_size:ard_size + uncertainty_size] if uncertainty_size > 0 else []
     
     # Create subset datasets
     ard_dataset = Subset(val_dataset, ard_indices)
-    uncertainty_dataset = Subset(val_dataset, uncertainty_indices)
+    uncertainty_dataset = Subset(val_dataset, uncertainty_indices) if len(uncertainty_indices) > 0 else None
+    
+    print(f"[INFO] Split validation dataset:")
+    print(f"   Total validation samples: {total_size}")
+    print(f"   ARD prior estimation: {len(ard_dataset)} samples ({len(ard_dataset)/total_size:.1%})")
+    print(f"   Uncertainty evaluation: {len(uncertainty_dataset) if uncertainty_dataset else 0} samples ({len(uncertainty_indices)/total_size:.1%} if uncertainty_dataset else 0)")
+    
+    return ard_dataset, uncertainty_dataset
+    
+    # Create subset datasets
+    ard_dataset = Subset(val_dataset, ard_indices)
+    uncertainty_dataset = Subset(val_dataset, uncertainty_indices) if len(uncertainty_indices) > 0 else None
     
     print(f"[INFO] Split validation dataset:")
     print(f"   Total samples: {total_size}")
     print(f"   ARD prior estimation: {len(ard_dataset)} samples")
-    print(f"   Uncertainty evaluation: {len(uncertainty_dataset)} samples")
+    print(f"   Uncertainty evaluation: {len(uncertainty_dataset) if uncertainty_dataset else 0} samples")
     
     return ard_dataset, uncertainty_dataset
 
@@ -795,9 +847,12 @@ def build_clm_trainer(model, tokenizer, train_dataset, eval_dataset, cfg, output
     """Build enhanced CLM trainer with uncertainty evaluation, ARD callbacks, and prior estimation."""
     
     # Split validation dataset for ARD and uncertainty evaluation
+    # Pass train_dataset so we can create validation split if needed
     ard_dataset, uncertainty_dataset = split_validation_dataset(
         eval_dataset, 
-        ard_prior_ratio=ard_prior_ratio
+        ard_prior_ratio=ard_prior_ratio,
+        train_dataset=train_dataset,
+        train_split_ratio=cfg.get("validation_split_ratio", 0.1)  # Use 10% of training data by default (minimum)
     )
     
     # Use TensorBoard log directory if provided, otherwise use default
