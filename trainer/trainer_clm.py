@@ -818,7 +818,7 @@ def build_clm_trainer(model, tokenizer, train_dataset, eval_dataset, cfg, output
         warmup_ratio=float(cfg.get("warmup_ratio", 0.03)),
         logging_steps=cfg.get("logging_steps", 50),
         save_strategy="epoch",  # Save after each epoch
-        evaluation_strategy="epoch" if uncertainty_dataset else "no",  # Evaluate after each epoch
+        eval_strategy="epoch" if uncertainty_dataset else "no",  # Evaluate after each epoch
         save_steps=500,
         eval_steps=None,  # Use epoch-based evaluation
         load_best_model_at_end=bool(uncertainty_dataset),

@@ -140,6 +140,46 @@ class BayesianPEFTDataManager:
             train_data = dataset_loader.get_train_data()
             val_data = dataset_loader.get_validation_data() if hasattr(dataset_loader, 'get_validation_data') else None
             
+            # If no validation data, create from train split
+            if val_data is None and train_data is not None:
+                print(f"[INFO] No validation split found for {dataset_name}. Creating from train data...")
+                # Split train data: 90% train, 10% validation
+                train_size = int(0.9 * len(train_data))
+                val_size = len(train_data) - train_size
+                
+                # Create train/val split
+                from datasets import Dataset
+                if isinstance(train_data, Dataset):
+                    # For HuggingFace datasets
+                    split_data = train_data.train_test_split(test_size=0.1, seed=42)
+                    train_data = split_data['train']
+                    val_data = split_data['test']
+                elif hasattr(train_data, '__len__') and hasattr(train_data, '__getitem__'):
+                    # For list-like data
+                    import random
+                    indices = list(range(len(train_data)))
+                    random.seed(42)
+                    random.shuffle(indices)
+                    
+                    train_indices = indices[:train_size]
+                    val_indices = indices[train_size:]
+                    
+                    if hasattr(train_data, 'select'):
+                        train_data = train_data.select(train_indices)
+                        val_data = train_data.select(val_indices)
+                    else:
+                        # Create new lists
+                        original_data = train_data
+                        train_data = [original_data[i] for i in train_indices]
+                        val_data = [original_data[i] for i in val_indices]
+                        
+                        # Convert to HF datasets if possible
+                        from datasets import Dataset
+                        train_data = Dataset.from_list(train_data)
+                        val_data = Dataset.from_list(val_data)
+                
+                print(f"[INFO] Created validation split: {len(train_data)} train, {len(val_data)} validation")
+            
             # Convert to our format
             datasets = {"train": train_data}
             if val_data is not None:
@@ -193,10 +233,18 @@ class BayesianPEFTDataManager:
         
         train_ds = dataset["train"].map(format_alpaca)
         
-        datasets = {"train": train_ds}
+        # Create validation split from train data
+        print("[INFO] Creating train/validation split for Alpaca...")
+        split_data = train_ds.train_test_split(test_size=0.1, seed=42)
+        train_ds = split_data['train']
+        val_ds = split_data['test']
+        
+        print(f"[INFO] Alpaca splits - Train: {len(train_ds)}, Validation: {len(val_ds)}")
+        
+        datasets = {"train": train_ds, "validation": val_ds}
         self.cache_dataset("alpaca", datasets)
         
-        return {"train": train_ds}
+        return datasets
     
     def _download_dolly(self, config: Dict[str, Any]) -> Dict[str, HFDataset]:
         """Download Dolly dataset directly"""
@@ -225,10 +273,18 @@ class BayesianPEFTDataManager:
         
         train_ds = dataset["train"].map(format_dolly)
         
-        datasets = {"train": train_ds}
+        # Create validation split from train data
+        print("[INFO] Creating train/validation split for Dolly...")
+        split_data = train_ds.train_test_split(test_size=0.1, seed=42)
+        train_ds = split_data['train']
+        val_ds = split_data['test']
+        
+        print(f"[INFO] Dolly splits - Train: {len(train_ds)}, Validation: {len(val_ds)}")
+        
+        datasets = {"train": train_ds, "validation": val_ds}
         self.cache_dataset("dolly", datasets)
         
-        return {"train": train_ds}
+        return datasets
     
     def get_dataset(self, dataset_name: str, config: Dict[str, Any]) -> Dict[str, HFDataset]:
         """
