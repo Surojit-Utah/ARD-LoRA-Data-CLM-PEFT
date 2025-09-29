@@ -623,23 +623,23 @@ class HeldoutResampleCallback(TrainerCallback):
             print(f"[HeldoutResampleCallback] Failed to resample held-out data: {e}")
 
 
-def split_validation_dataset(val_dataset, ard_prior_ratio=0.5, seed=42, train_dataset=None, train_split_ratio=0.1):
+def split_validation_dataset(val_dataset, ard_prior_samples=100, seed=42, train_dataset=None, train_split_ratio=0.1):
     """
     Split validation dataset into two parts:
-    1. ARD prior estimation (first part) - at least 1000 samples
+    1. ARD prior estimation (first part) - specified number of samples
     2. Uncertainty evaluation (second part) - remaining validation data
     
     If val_dataset is None, creates a validation split from train_dataset.
     
     Args:
         val_dataset: Original validation dataset (can be None)
-        ard_prior_ratio: Fraction to use for ARD prior estimation (default: 0.5)
+        ard_prior_samples: Absolute number of samples to use for ARD prior estimation (default: 100)
         seed: Random seed for reproducible splits
         train_dataset: Training dataset (used if val_dataset is None)
         train_split_ratio: Fraction of training data to use for validation when val_dataset is None (min 10%)
     
     Returns:
-        ard_dataset: Dataset for ARD prior estimation (at least 1000 samples)
+        ard_dataset: Dataset for ARD prior estimation (exact number of samples requested)
         uncertainty_dataset: Dataset for uncertainty evaluation (remaining validation data)
     """
     # If no validation dataset, create one from training data
@@ -669,20 +669,17 @@ def split_validation_dataset(val_dataset, ard_prior_ratio=0.5, seed=42, train_da
     if total_size == 0:
         return None, None
     
-    # Ensure ARD gets at least 1000 samples, but not more than 80% of validation data
-    min_ard_samples = 1000
+    # Use the requested number of samples, but don't exceed 80% of validation data
     max_ard_ratio = 0.8
+    max_ard_samples = int(total_size * max_ard_ratio)
     
-    if total_size < min_ard_samples:
-        print(f"[WARNING] Validation dataset has only {total_size} samples, less than required {min_ard_samples} for ARD")
+    if total_size < ard_prior_samples:
+        print(f"[WARNING] Validation dataset has only {total_size} samples, less than requested {ard_prior_samples} for ARD")
         ard_size = total_size
         uncertainty_size = 0
     else:
-        # Calculate ARD size: at least 1000, but respect the ratio and max ratio constraints
-        ard_size_by_ratio = int(total_size * ard_prior_ratio)
-        ard_size_by_max = int(total_size * max_ard_ratio)
-        
-        ard_size = max(min_ard_samples, min(ard_size_by_ratio, ard_size_by_max))
+        # Use exactly the requested number of samples, but respect max ratio constraint
+        ard_size = min(ard_prior_samples, max_ard_samples)
         uncertainty_size = total_size - ard_size
     
     # Create indices for splitting
@@ -700,17 +697,6 @@ def split_validation_dataset(val_dataset, ard_prior_ratio=0.5, seed=42, train_da
     print(f"   Total validation samples: {total_size}")
     print(f"   ARD prior estimation: {len(ard_dataset)} samples ({len(ard_dataset)/total_size:.1%})")
     print(f"   Uncertainty evaluation: {len(uncertainty_dataset) if uncertainty_dataset else 0} samples ({len(uncertainty_indices)/total_size:.1%} if uncertainty_dataset else 0)")
-    
-    return ard_dataset, uncertainty_dataset
-    
-    # Create subset datasets
-    ard_dataset = Subset(val_dataset, ard_indices)
-    uncertainty_dataset = Subset(val_dataset, uncertainty_indices) if len(uncertainty_indices) > 0 else None
-    
-    print(f"[INFO] Split validation dataset:")
-    print(f"   Total samples: {total_size}")
-    print(f"   ARD prior estimation: {len(ard_dataset)} samples")
-    print(f"   Uncertainty evaluation: {len(uncertainty_dataset) if uncertainty_dataset else 0} samples")
     
     return ard_dataset, uncertainty_dataset
 
@@ -912,14 +898,14 @@ def create_ard_callbacks(device, output_dir, train_ds=None, val_ds=None,
 
 
 def build_clm_trainer(model, tokenizer, train_dataset, eval_dataset, cfg, output_dir, 
-                     ard_prior_ratio=0.5, enable_callbacks=True, tb_log_dir=None):
+                     ard_prior_samples=100, enable_callbacks=True, tb_log_dir=None):
     """Build enhanced CLM trainer with uncertainty evaluation, ARD callbacks, and prior estimation."""
     
     # Split validation dataset for ARD and uncertainty evaluation
     # Pass train_dataset so we can create validation split if needed
     ard_dataset, uncertainty_dataset = split_validation_dataset(
         eval_dataset, 
-        ard_prior_ratio=ard_prior_ratio,
+        ard_prior_samples=ard_prior_samples,  # Use absolute sample count instead of ratio
         train_dataset=train_dataset,
         train_split_ratio=cfg.get("validation_split_ratio", 0.1)  # Use 10% of training data by default (minimum)
     )

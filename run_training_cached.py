@@ -120,6 +120,10 @@ def create_trainer(model, tokenizer, train_ds, val_ds, config, output_dir, tb_lo
     if tb_log_dir:
         config["logging_dir"] = tb_log_dir
     
+    # Get ARD prior samples directly from config
+    ard_prior_samples = config.get("ard_prior_samples", 100)
+    print(f"[INFO] ARD Prior: Using {ard_prior_samples} samples for ARD prior estimation")
+    
     # Use the enhanced trainer builder that handles dataset splitting and callbacks
     trainer = build_clm_trainer(
         model=model,
@@ -128,7 +132,7 @@ def create_trainer(model, tokenizer, train_ds, val_ds, config, output_dir, tb_lo
         eval_dataset=val_ds,
         cfg=config,
         output_dir=output_dir,
-        ard_prior_ratio=config.get("ard_prior_ratio", 0.5),  # Split ratio for ARD vs uncertainty eval
+        ard_prior_samples=ard_prior_samples,  # Pass absolute sample count directly
         enable_callbacks=config.get("enable_callbacks", True),  # Enable ARD callbacks
         tb_log_dir=tb_log_dir  # Pass TensorBoard log directory
     )
@@ -153,7 +157,7 @@ def main():
         "beta": 0.01,  # Alias for kl_loss_beta
         "prior_var": 1.0,
         "cache_root": "./data_cache",
-        "ard_prior_ratio": 0.5,  # Split ratio: 0.5 for ARD, 0.5 for uncertainty eval
+        "ard_prior_samples": 100,  # Absolute number of samples for ARD prior estimation
         "uncertainty_eval_samples": 1000,  # Number of samples for uncertainty evaluation
         "uncertainty_n_bins": 15,  # Number of bins for ECE calculation
         "train_epochs": 3,  # Multiple epochs to see uncertainty evolution
@@ -163,7 +167,7 @@ def main():
         "report_to": ["tensorboard"],  # Log uncertainty metrics to tensorboard
         # Callback configuration
         "enable_callbacks": True,  # Enable ARD callbacks
-        "ard_prior_samples": 1000,  # Samples for ARD prior estimation
+        "ard_prior_samples": 100,  # Samples for ARD prior estimation
         "enable_plotting": True,  # Enable latent plotting
         "enable_resampling": False,  # Enable held-out resampling (disabled for CLM)
         "plot_start_epoch": 2,  # Start plotting from epoch 2
@@ -178,7 +182,7 @@ def main():
     print(f"[CONFIG] KL Beta: {config.get('kl_loss_beta')}")
     print(f"[CONFIG] Rank: {config.get('rank')}")
     print(f"[CONFIG] Train Epochs: {config.get('train_epochs')}")
-    print(f"[CONFIG] ARD Prior Ratio: {config.get('ard_prior_ratio')}")
+    print(f"[CONFIG] ARD Prior Samples: {config.get('ard_prior_samples')}")
     print(f"[CONFIG] Uncertainty Eval Samples: {config.get('uncertainty_eval_samples')}")
     print(f"[CONFIG] Uncertainty ECE Bins: {config.get('uncertainty_n_bins')}")
     print(f"[CONFIG] Enable Callbacks: {config.get('enable_callbacks')}")
