@@ -43,7 +43,7 @@ class ARDCLMTrainer(Trainer):
         self.last_kl_loss = 0.0
         self.last_total_loss = 0.0
         
-    def compute_loss(self, model, inputs, return_outputs=False):
+    def compute_loss(self, model, inputs, return_outputs=False, num_items_in_batch=None):
         """Enhanced compute_loss with KL regularization from ProbLoRA layers."""
         # Extract labels and handle causal LM loss computation
         labels = inputs.get('labels')
