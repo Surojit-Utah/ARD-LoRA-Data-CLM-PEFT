@@ -103,6 +103,22 @@ class BayesianPEFTDataManager:
                 
                 print(f"[CACHE] Loaded {len(cached_data[split])} examples from {cache_path}")
         
+        # If we have train data but no validation data, create validation split from train
+        if "train" in cached_data and "validation" not in cached_data and len(cached_data["train"]) > 0:
+            print(f"[INFO] No cached validation data found. Creating validation split from cached train data...")
+            
+            train_ds = cached_data["train"]
+            split_data = train_ds.train_test_split(test_size=0.1, seed=42)
+            cached_data["train"] = split_data['train']
+            cached_data["validation"] = split_data['test']
+            
+            print(f"[INFO] Created validation split from cache - Train: {len(cached_data['train'])}, Validation: {len(cached_data['validation'])}")
+            
+            # Cache the new validation split for future use
+            self.cache_dataset(dataset_name, {"validation": cached_data["validation"]})
+            # Update the train cache with the reduced training set
+            self.cache_dataset(dataset_name, {"train": cached_data["train"]})
+        
         return cached_data
     
     def download_and_cache_dataset(self, dataset_name: str, config: Dict[str, Any]) -> Dict[str, HFDataset]:

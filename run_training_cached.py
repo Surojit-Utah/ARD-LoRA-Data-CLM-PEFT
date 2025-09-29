@@ -147,7 +147,7 @@ def main():
         "model_name": "LLaMA2-7B",
         "dataset_name": "BayesianPEFT",
         "runId": 1,
-        "rank": 64,
+        "rank": 16,
         "max_len": 2048,
         "kl_loss_beta": 0.01,
         "beta": 0.01,  # Alias for kl_loss_beta

@@ -138,6 +138,10 @@ class ARDCLMTrainer(Trainer):
         self.last_kl_loss = (kl.item() if torch.is_tensor(kl) else float(kl))
         self.last_total_loss = total_loss.item() if torch.is_tensor(total_loss) else float(total_loss)
         
+        # Memory cleanup after computation
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+        
         if return_outputs:
             return total_loss, outputs
         return total_loss
@@ -191,7 +195,15 @@ class ARDCLMTrainer(Trainer):
         
         print(f"\n🔄 Starting uncertainty evaluation (samples: {num_samples})...")
         
-        # Create evaluation dataloader
+        # Memory optimization: Reduce batch size for evaluation
+        original_eval_batch_size = self.args.per_device_eval_batch_size
+        if torch.cuda.is_available():
+            # Reduce eval batch size to save memory
+            memory_optimized_batch_size = max(1, original_eval_batch_size // 2)
+            self.args.per_device_eval_batch_size = memory_optimized_batch_size
+            print(f"[MEMORY] Reducing eval batch size from {original_eval_batch_size} to {memory_optimized_batch_size}")
+        
+        # Create evaluation dataloader with smaller batch size
         eval_dataloader = self.get_eval_dataloader(eval_dataset)
         
         self.model.eval()
@@ -254,6 +266,14 @@ class ARDCLMTrainer(Trainer):
             return None
             
         print(f"✅ Uncertainty evaluation completed on {len(all_labels)} predictions")
+        
+        # Restore original batch size
+        if torch.cuda.is_available():
+            self.args.per_device_eval_batch_size = original_eval_batch_size
+        
+        # Memory cleanup
+        torch.cuda.empty_cache()
+        gc.collect()
         
         # Convert to numpy arrays
         y_true = np.array(all_labels)
@@ -793,6 +813,55 @@ def estimate_ard_priors_clm(model, eval_dataset, device, num_samples=1000):
     return layer_stats
 
 
+def optimize_memory_settings():
+    """
+    Apply memory optimization settings to reduce CUDA OOM errors.
+    Call this before training starts.
+    """
+    print("[MEMORY] Applying memory optimization settings...")
+    
+    # Set CUDA memory allocation configuration
+    os.environ['PYTORCH_CUDA_ALLOC_CONF'] = 'expandable_segments:True'
+    
+    # Reduce memory fragmentation
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
+        
+        # Set memory fraction to leave some memory for system
+        try:
+            torch.cuda.set_per_process_memory_fraction(0.9)  # Use 90% of GPU memory
+            print("[MEMORY] Set GPU memory fraction to 90%")
+        except:
+            print("[MEMORY] Could not set memory fraction")
+        
+        # Print current memory status
+        total_memory = torch.cuda.get_device_properties(0).total_memory / 1024**3
+        allocated_memory = torch.cuda.memory_allocated() / 1024**3
+        cached_memory = torch.cuda.memory_reserved() / 1024**3
+        
+        print(f"[MEMORY] GPU Total: {total_memory:.2f} GB")
+        print(f"[MEMORY] GPU Allocated: {allocated_memory:.2f} GB")
+        print(f"[MEMORY] GPU Cached: {cached_memory:.2f} GB")
+        print(f"[MEMORY] GPU Free: {total_memory - cached_memory:.2f} GB")
+    
+    # Set environment variables for memory optimization
+    os.environ['TOKENIZERS_PARALLELISM'] = 'false'  # Reduce tokenizer memory usage
+    
+    print("[MEMORY] Memory optimization settings applied")
+
+
+def emergency_memory_cleanup():
+    """
+    Emergency memory cleanup function to call when OOM occurs.
+    """
+    print("[MEMORY] Emergency memory cleanup...")
+    gc.collect()
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
+        torch.cuda.synchronize()
+    print("[MEMORY] Emergency cleanup completed")
+
+
 def create_ard_callbacks(device, output_dir, train_ds=None, val_ds=None, 
                         ard_prior_samples=1000, batch_size=4, tokenizer=None,
                         enable_plotting=True, enable_resampling=True,
@@ -858,13 +927,13 @@ def build_clm_trainer(model, tokenizer, train_dataset, eval_dataset, cfg, output
     # Use TensorBoard log directory if provided, otherwise use default
     logging_dir = tb_log_dir or cfg.get("logging_dir") or f"{output_dir}/tensorboard_logs"
     
-    # Training arguments with enhanced configuration
+    # Training arguments with enhanced configuration and memory optimization
     args = TrainingArguments(
         output_dir=output_dir,
         logging_dir=logging_dir,  # Explicit TensorBoard logging directory
         per_device_train_batch_size=cfg.get("batch_size", 1),
-        per_device_eval_batch_size=cfg.get("batch_size", 1) * 2,  # Larger batch for eval
-        gradient_accumulation_steps=cfg.get("gradient_accumulation_steps", 1),
+        per_device_eval_batch_size=max(1, cfg.get("batch_size", 1)),  # Smaller eval batch to save memory
+        gradient_accumulation_steps=cfg.get("gradient_accumulation_steps", 4),  # Increase to compensate for smaller batch
         num_train_epochs=cfg.get("train_epochs", 1),
         fp16=bool(cfg.get("fp16", True)),
         learning_rate=float(cfg.get("learning_rate", 2e-5)),
@@ -880,7 +949,12 @@ def build_clm_trainer(model, tokenizer, train_dataset, eval_dataset, cfg, output
         metric_for_best_model="eval_loss" if uncertainty_dataset else None,
         report_to=cfg.get("report_to", ["tensorboard"]) if cfg.get("report_to") else None,
         remove_unused_columns=False,
-        dataloader_num_workers=2,
+        dataloader_num_workers=0,  # Reduce to 0 to save memory
+        # Memory optimization settings
+        max_grad_norm=1.0,  # Gradient clipping
+        optim="adamw_torch",  # Use torch AdamW for better memory management
+        # Enable gradient checkpointing if model supports it
+        gradient_checkpointing=cfg.get("gradient_checkpointing", True),
     )
 
     # Data collator for causal language modeling
@@ -903,6 +977,17 @@ def build_clm_trainer(model, tokenizer, train_dataset, eval_dataset, cfg, output
     
     # Set trainer reference on model for callbacks
     model.trainer = trainer
+    
+    # Enable gradient checkpointing for memory efficiency
+    if hasattr(model, 'gradient_checkpointing_enable'):
+        model.gradient_checkpointing_enable()
+        print("[MEMORY] Enabled gradient checkpointing")
+    
+    # Memory optimization: Clear cache and show memory status
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
+        print(f"[MEMORY] GPU memory before training: {torch.cuda.memory_allocated() / 1024**3:.2f} GB allocated")
+        print(f"[MEMORY] GPU memory reserved: {torch.cuda.memory_reserved() / 1024**3:.2f} GB")
     
     # Add ARD callbacks if enabled
     if enable_callbacks:
