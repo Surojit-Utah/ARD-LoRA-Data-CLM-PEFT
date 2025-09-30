@@ -1,51 +1,52 @@
-# LLaMA-2-7B causal LM experimedatasets:
-  BayesianPEFT:
-    dataset_name: "alpaca"  # Specific dataset from Bayesian-PEFT suite
-    dataset_class: "S2SDataset"  # Use their S2S dataset class
-    repo_url: "https://github.com/Wang-ML-Lab/bayesian-peft"
-    cache_root: "./data_cache"  # Local cache directory (can be Google Drive mount)
-    max_len: 2048
-    num_labels: 0
-    
-  # Alternative configurations for other datasets
-  BayesianPEFT_Dolly:
-    dataset_name: "dolly"
-    dataset_class: "S2SDataset"
-    repo_url: "https://github.com/Wang-ML-Lab/bayesian-peft"
-    cache_root: "./data_cache"
-    max_len: 2048
-    num_labels: 0
-    
-  BayesianPEFT_Classification:
-    dataset_name: "glue_cola"
-    dataset_class: "S2ClassDataset"  # Use their classification dataset class
-    repo_url: "https://github.com/Wang-ML-Lab/bayesian-peft"
-    cache_root: "./data_cache"
-    max_len: 512
-    num_labels: 2PEFT datasets)
+# LLaMA-2-7B causal LM experiments with ARD-LoRA and Bayesian-PEFT datasets
 defaults:
   runId: 1
+  # Model configuration
+  model_name: "LLaMA2-7B"
+  train_type: "causal_lm"  # Specify training type for validation
+  dataset_name: "BayesianPEFT"
+  dataset_name_specific: "alpaca"  # Which specific dataset from Bayesian-PEFT
+  
   # Cache configuration
   cache_root: "./data_cache"  # Default local cache
   google_drive_cache: "/content/drive/MyDrive/ARD_LoRA_Data_Cache"  # Google Drive path
   use_google_drive: true  # Enable Google Drive caching
-  # Hyperparameters (adapted from Section 4.1 of BLoB / best-effort)
-  learning_rate: 1e-5
+  
+  # Training hyperparameters (adapted from Section 4.1 of BLoB / best-effort)
+  learning_rate: 0.0001  # 1e-4 as float
   lr_scheduler_type: "linear"
   warmup_ratio: 0.03
   weight_decay: 0.0
-  train_epochs: 1
-  rank: 64
+  train_epochs: 3
+  rank: 16
   max_len: 2048
   ard_prior_samples: 100
   batch_size: 4
-  gradient_accumulation_steps: 32
+  gradient_accumulation_steps: 16
   fp16: false
   bf16: true  # Preferred on A100 GPUs for better performance
   load_in_4bit: true
   prior_var: 1.0
   kl_loss_beta: 0.01  # KL divergence loss strength for ARD-LoRA
   max_validation_samples: 5000  # Cap validation dataset size for memory efficiency
+  
+  # Memory optimization settings for 40GB A100
+  use_cache: false  # Disable KV caching during training to save memory
+  gradient_checkpointing: true  # Enable for memory savings - trade compute for memory
+  
+  # Uncertainty evaluation settings
+  uncertainty_eval_samples: 1000  # Number of samples for uncertainty evaluation
+  uncertainty_n_bins: 15  # Number of bins for ECE calculation
+  
+  # TensorBoard logging
+  report_to: ["tensorboard"]  # Log uncertainty metrics to tensorboard
+  
+  # Callback configuration
+  enable_callbacks: true  # Enable ARD callbacks
+  enable_plotting: true  # Enable latent plotting
+  enable_resampling: false  # Enable held-out resampling (disabled for CLM)
+  plot_start_epoch: 2  # Start plotting from epoch 2
+  plot_interval: 2  # Plot every 2 epochs
 
 models:
   LLaMA2-7B:
@@ -58,6 +59,10 @@ models:
       max_len: 2048
       batch_size: 8
       kl_loss_beta: 0.005  # Lower KL strength for large model
+      learning_rate: 0.0001  # Override learning rate for large model
+      # Memory optimization for 40GB A100
+      use_cache: false  # Disable KV caching
+      gradient_checkpointing: true  # Enable gradient checkpointing
 
 datasets:
   BayesianPEFT:
@@ -68,6 +73,22 @@ datasets:
     max_len: 2048
     num_labels: 0
     cache_dir: "./data_cache"  # Local caching directory
+    # Dataset configurations for different datasets
+    alpaca:
+      dataset_name: "alpaca"  # Specific dataset from Bayesian-PEFT suite
+      dataset_class: "S2SDataset"  # Use their S2S dataset class
+      max_len: 2048
+      num_labels: 0
+    dolly:
+      dataset_name: "dolly"
+      dataset_class: "S2SDataset"
+      max_len: 2048
+      num_labels: 0
+    glue_cola:
+      dataset_name: "glue_cola"
+      dataset_class: "S2ClassDataset"  # Use their classification dataset class
+      max_len: 512
+      num_labels: 2
     
   # Additional datasets that could be used with ARD-LoRA
   Alpaca:

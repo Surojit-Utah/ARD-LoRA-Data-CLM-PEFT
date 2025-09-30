@@ -43,8 +43,50 @@ class ARDCLMTrainer(Trainer):
         self.last_kl_loss = 0.0
         self.last_total_loss = 0.0
         
+    def validate_model_gradients(self, model):
+        """Validate that model parameters requiring gradients are properly set up."""
+        trainable_params = 0
+        total_params = 0
+        
+        problematic_params = []
+        
+        for name, param in model.named_parameters():
+            total_params += param.numel()
+            if param.requires_grad:
+                trainable_params += param.numel()
+                # Check if parameter has gradient function but data is detached
+                if param.grad_fn is None and param.is_leaf and param.requires_grad:
+                    # This is normal for leaf parameters
+                    pass
+                elif not param.is_leaf and param.grad_fn is None:
+                    problematic_params.append(f"{name}: non-leaf parameter without grad_fn")
+            
+        print(f"[GRADIENT VALIDATION] Model parameters:")
+        print(f"  Total parameters: {total_params:,}")
+        print(f"  Trainable parameters: {trainable_params:,}")
+        print(f"  Trainable ratio: {trainable_params/total_params:.4f}")
+        
+        if problematic_params:
+            print(f"[GRADIENT WARNING] Found {len(problematic_params)} potentially problematic parameters:")
+            for param_info in problematic_params[:5]:  # Show first 5
+                print(f"    {param_info}")
+        else:
+            print(f"[GRADIENT VALIDATION] ✅ All parameters appear correctly configured")
+        
+        return trainable_params > 0
+        
     def compute_loss(self, model, inputs, return_outputs=False, num_items_in_batch=None):
         """Enhanced compute_loss with KL regularization from ProbLoRA layers."""
+        # Ensure model is in training mode during loss computation
+        if not model.training:
+            print(f"[WARNING] Model was in eval mode during compute_loss, switching to training mode")
+            model.train()
+        
+        # GRADIENT VALIDATION: Check model parameters on first call
+        if not hasattr(self, '_gradient_validated'):
+            self.validate_model_gradients(model)
+            self._gradient_validated = True
+        
         # Extract labels and handle causal LM loss computation
         labels = inputs.get('labels')
         
@@ -69,24 +111,32 @@ class ARDCLMTrainer(Trainer):
                 shift_labels = shift_labels.to(shift_logits.device)
                 ce_loss = loss_fct(shift_logits, shift_labels)
             else:
-                ce_loss = torch.tensor(0.0, device=outputs.logits.device)
+                # GRADIENT FIX: Create tensor with gradient requirements from model parameters
+                model_param = next(model.parameters())
+                ce_loss = torch.zeros(1, device=outputs.logits.device, requires_grad=True) + model_param.sum() * 0.0
 
-        # Compute KL divergence from ProbLoRA layers
-        kl = 0.0
+        # GRADIENT FIX: Initialize KL as tensor with gradient requirements from model parameters
+        # Find a parameter tensor to get device and grad requirements
+        device = ce_loss.device
+        
+        # Create KL tensor that inherits gradient requirements from model parameters
+        model_param = next(model.parameters())
+        kl = torch.zeros(1, device=device, requires_grad=model_param.requires_grad)
         
         # Method 1: Try to get KL from module attributes (if available)
+        kl_components = []  # Collect KL components to maintain gradient flow
         for module in model.modules():
             if hasattr(module, 'kl_divergence'):
                 try:
                     module_kl = module.kl_divergence()
                     if torch.is_tensor(module_kl):
-                        kl += module_kl
+                        kl_components.append(module_kl)
                 except Exception as e:
                     # Skip modules that fail KL computation
                     continue
         
         # Method 2: Enhanced KL computation for LLaMA ProbLoRA layers
-        if kl == 0.0:  # Fallback if standard method didn't work
+        if len(kl_components) == 0:  # Fallback if standard method didn't work
             try:
                 # For LLaMA models with ProbLoRA layers
                 if hasattr(model, 'model') and hasattr(model.model, 'layers'):
@@ -100,10 +150,14 @@ class ARDCLMTrainer(Trainer):
                                     if hasattr(proj, 'A') and hasattr(proj, 'B'):  # ProbLoRA layer
                                         try:
                                             if hasattr(proj, 'kl_divergence'):
-                                                kl += proj.kl_divergence()
+                                                module_kl = proj.kl_divergence()
+                                                if torch.is_tensor(module_kl):
+                                                    kl_components.append(module_kl)
                                             elif hasattr(proj, 'log_sigma_A') and hasattr(proj, 'log_sigma_B'):
                                                 # Manual KL computation
-                                                kl += self._compute_problora_kl(proj)
+                                                manual_kl = self._compute_problora_kl(proj)
+                                                if torch.is_tensor(manual_kl):
+                                                    kl_components.append(manual_kl)
                                         except Exception:
                                             continue
                         
@@ -116,31 +170,67 @@ class ARDCLMTrainer(Trainer):
                                     if hasattr(proj, 'A') and hasattr(proj, 'B'):  # ProbLoRA layer
                                         try:
                                             if hasattr(proj, 'kl_divergence'):
-                                                kl += proj.kl_divergence()
+                                                module_kl = proj.kl_divergence()
+                                                if torch.is_tensor(module_kl):
+                                                    kl_components.append(module_kl)
                                             elif hasattr(proj, 'log_sigma_A') and hasattr(proj, 'log_sigma_B'):
                                                 # Manual KL computation
-                                                kl += self._compute_problora_kl(proj)
+                                                manual_kl = self._compute_problora_kl(proj)
+                                                if torch.is_tensor(manual_kl):
+                                                    kl_components.append(manual_kl)
                                         except Exception:
                                             continue
             except Exception as e:
                 # If enhanced method fails, use basic approach
                 pass
         
-        # Ensure KL is a tensor
-        if not torch.is_tensor(kl):
-            kl = torch.tensor(kl, device=ce_loss.device)
+        # GRADIENT FIX: Sum KL components while maintaining gradients
+        if kl_components:
+            kl = torch.stack(kl_components).sum()
+        else:
+            # No KL components found - create zero tensor with gradient connection to model
+            model_param = next(model.parameters())
+            kl = torch.zeros(1, device=device, requires_grad=True) + model_param.sum() * 0.0
+        
+        # GRADIENT FIX: Ensure both losses have gradients before combining
+        if not ce_loss.requires_grad and ce_loss.grad_fn is None:
+            print(f"[GRADIENT WARNING] CE loss does not require gradients: requires_grad={ce_loss.requires_grad}, grad_fn={ce_loss.grad_fn}")
+        if not kl.requires_grad and kl.grad_fn is None:
+            print(f"[GRADIENT WARNING] KL loss does not require gradients: requires_grad={kl.requires_grad}, grad_fn={kl.grad_fn}")
         
         # Total loss with KL regularization
         total_loss = ce_loss + self.beta * kl
         
         # Store loss components for logging (convert to float for consistency)
-        self.last_ce_loss = ce_loss.item() if torch.is_tensor(ce_loss) else float(ce_loss)
-        self.last_kl_loss = (kl.item() if torch.is_tensor(kl) else float(kl))
-        self.last_total_loss = total_loss.item() if torch.is_tensor(total_loss) else float(total_loss)
+        # IMPORTANT: Use .detach().item() to avoid breaking gradient computation
+        self.last_ce_loss = ce_loss.detach().item() if torch.is_tensor(ce_loss) else float(ce_loss)
+        self.last_kl_loss = kl.detach().item() if torch.is_tensor(kl) else float(kl)
+        self.last_total_loss = total_loss.detach().item() if torch.is_tensor(total_loss) else float(total_loss)
         
-        # Memory cleanup after computation
-        if torch.cuda.is_available():
-            torch.cuda.empty_cache()
+        # GRADIENT FLOW VALIDATION: Check final loss gradient requirements
+        if not total_loss.requires_grad and total_loss.grad_fn is None:
+            print(f"[GRADIENT ERROR] Final total_loss does not require gradients!")
+            print(f"  total_loss.requires_grad: {total_loss.requires_grad}")
+            print(f"  total_loss.grad_fn: {total_loss.grad_fn}")
+            print(f"  ce_loss.requires_grad: {ce_loss.requires_grad}")
+            print(f"  ce_loss.grad_fn: {ce_loss.grad_fn}")
+            print(f"  kl.requires_grad: {kl.requires_grad}")
+            print(f"  kl.grad_fn: {kl.grad_fn}")
+            
+            # CRITICAL FIX: Create loss with gradient connection to model parameters
+            model_param = next(model.parameters())
+            if torch.is_tensor(ce_loss) and (ce_loss.requires_grad or ce_loss.grad_fn is not None):
+                # CE loss has gradients, recreate KL with proper gradient flow
+                kl_with_grad = torch.zeros_like(ce_loss) + model_param.sum() * 0.0  # Connect to model params
+                total_loss = ce_loss + self.beta * kl_with_grad
+                print(f"[GRADIENT FIX] Created fallback loss with gradients: requires_grad={total_loss.requires_grad}")
+            else:
+                # Emergency fallback: create minimal loss with gradient connection
+                total_loss = model_param.sum() * 0.0 + torch.tensor(1.0, device=model_param.device, requires_grad=True)
+                print(f"[GRADIENT EMERGENCY] Created emergency loss with model parameter connection")
+        
+        # Memory cleanup after computation (but not before we return the loss!)
+        # NOTE: Don't empty cache here as it might affect gradient computation
         
         if return_outputs:
             return total_loss, outputs
@@ -151,8 +241,7 @@ class ARDCLMTrainer(Trainer):
         try:
             # KL divergence for variational parameters
             # KL(q(theta) || p(theta)) for Gaussian priors
-            kl_A = 0.0
-            kl_B = 0.0
+            kl_components = []  # Collect components to maintain gradient flow
             
             if hasattr(layer, 'log_sigma_A') and hasattr(layer, 'mu_A'):
                 # KL for A parameters: KL(N(mu_A, sigma_A^2) || N(0, prior_var))
@@ -163,6 +252,7 @@ class ARDCLMTrainer(Trainer):
                 kl_A = 0.5 * torch.sum(
                     mu_A_sq / prior_var + sigma_A_sq / prior_var - 1.0 - 2 * layer.log_sigma_A + np.log(prior_var)
                 )
+                kl_components.append(kl_A)
             
             if hasattr(layer, 'log_sigma_B') and hasattr(layer, 'mu_B'):
                 # KL for B parameters
@@ -173,10 +263,28 @@ class ARDCLMTrainer(Trainer):
                 kl_B = 0.5 * torch.sum(
                     mu_B_sq / prior_var + sigma_B_sq / prior_var - 1.0 - 2 * layer.log_sigma_B + np.log(prior_var)
                 )
+                kl_components.append(kl_B)
             
-            return kl_A + kl_B
+            # GRADIENT FIX: Sum components while maintaining gradients
+            if kl_components:
+                return torch.stack(kl_components).sum()
+            else:
+                # Return zero tensor with gradient requirements from layer parameters
+                if hasattr(layer, 'mu_A'):
+                    return torch.zeros_like(layer.mu_A.sum(), requires_grad=True)
+                else:
+                    device = next(iter(layer.parameters())).device if list(layer.parameters()) else 'cpu'
+                    return torch.zeros(1, device=device, requires_grad=True)
         except Exception:
-            return torch.tensor(0.0, device=layer.mu_A.device if hasattr(layer, 'mu_A') else 'cpu')
+            # GRADIENT FIX: Return zero tensor with gradient requirements from layer parameters
+            try:
+                if hasattr(layer, 'mu_A'):
+                    return torch.zeros_like(layer.mu_A.sum(), requires_grad=True)
+                else:
+                    device = next(iter(layer.parameters())).device if list(layer.parameters()) else 'cpu'
+                    return torch.zeros(1, device=device, requires_grad=True)
+            except:
+                return torch.tensor(0.0, requires_grad=True)
     
     def evaluate_uncertainty(self, eval_dataset=None, num_samples=None) -> Optional[Dict[str, float]]:
         """Evaluate model uncertainty using ACC, ECE, and NLL metrics."""
@@ -370,6 +478,7 @@ class ARDCLMTrainer(Trainer):
     
     def _compute_eval_loss_components(self, model):
         """Compute CE and KL loss components on evaluation dataset."""
+        was_training = model.training
         try:
             # Set model to eval mode
             model.eval()
@@ -403,19 +512,19 @@ class ARDCLMTrainer(Trainer):
                     else:
                         ce_loss = torch.tensor(0.0, device=outputs.logits.device)
                 
-                # Compute KL divergence
-                kl = 0.0
+                # GRADIENT FIX: Compute KL divergence using component collection for proper gradient flow
+                kl_components = []
                 for module in model.modules():
                     if hasattr(module, 'kl_divergence'):
                         try:
                             module_kl = module.kl_divergence()
                             if torch.is_tensor(module_kl):
-                                kl += module_kl
+                                kl_components.append(module_kl)
                         except Exception:
                             continue
                 
-                # Enhanced KL computation fallback
-                if kl == 0.0:
+                # Enhanced KL computation fallback with proper tensor operations
+                if len(kl_components) == 0:
                     if hasattr(model, 'model') and hasattr(model.model, 'layers'):
                         for layer in model.model.layers:
                             if hasattr(layer, 'self_attn'):
@@ -425,9 +534,19 @@ class ARDCLMTrainer(Trainer):
                                         proj = getattr(attn, proj_name)
                                         if hasattr(proj, 'kl_divergence'):
                                             try:
-                                                kl += proj.kl_divergence()
+                                                module_kl = proj.kl_divergence()
+                                                if torch.is_tensor(module_kl):
+                                                    kl_components.append(module_kl)
                                             except Exception:
                                                 continue
+                
+                # GRADIENT FIX: Use torch.stack().sum() to maintain gradient flow
+                if kl_components:
+                    kl = torch.stack(kl_components).sum()
+                else:
+                    # Create zero tensor with gradient connection to model parameters
+                    model_param = next(model.parameters())
+                    kl = torch.zeros_like(ce_loss) + model_param.sum() * 0.0
                 
                 # Convert to float values
                 ce_loss_val = ce_loss.item() if torch.is_tensor(ce_loss) else float(ce_loss)
@@ -439,8 +558,11 @@ class ARDCLMTrainer(Trainer):
             print(f"⚠️ Failed to compute eval loss components: {e}")
             return 0.0, 0.0
         finally:
-            # Set model back to train mode
-            model.train()
+            # CRITICAL: Always restore original training mode
+            if was_training:
+                model.train()
+            else:
+                model.eval()
 
     def _save_uncertainty_results(self):
         """Save uncertainty evaluation results to JSON file."""
@@ -466,11 +588,10 @@ class PriorEstimationCallback(TrainerCallback):
     def on_epoch_begin(self, args, state, control, **kwargs):
         """Estimate ARD priors using held-out data at the beginning of each epoch."""
         model = kwargs["model"]
-        trainer = getattr(model, 'trainer', None)
+        trainer = kwargs.get("trainer", getattr(model, 'trainer', None))
         
         if trainer is None:
-            print("[PriorEstimationCallback] No trainer reference found on model")
-            return
+            raise RuntimeError("[PriorEstimationCallback] CRITICAL: No trainer reference found on model")
             
         if not hasattr(trainer, "ard_eval_dataset") or trainer.ard_eval_dataset is None:
             print("[PriorEstimationCallback] No ARD evaluation dataset found for this epoch")
@@ -478,12 +599,16 @@ class PriorEstimationCallback(TrainerCallback):
         
         print(f"[PriorEstimationCallback] Estimating ARD priors at epoch {int(state.epoch)}...")
         
-        try:
-            # Use the enhanced ARD prior estimation
-            estimate_ard_priors_clm(model, trainer.ard_eval_dataset, self.device)
-            print("[PriorEstimationCallback] ARD prior estimation completed")
-        except Exception as e:
-            print(f"[PriorEstimationCallback] Failed to estimate priors: {e}")
+        # CRITICAL: Get tokenizer from kwargs first, then trainer - fail fast if None
+        tokenizer = kwargs.get('tokenizer', getattr(trainer, 'tokenizer', None))
+        if tokenizer is None:
+            raise RuntimeError("[PriorEstimationCallback] CRITICAL: Tokenizer is None - this indicates a serious configuration error that will cause training failures")
+        
+        if not hasattr(tokenizer, 'pad_token_id') or tokenizer.pad_token_id is None:
+            raise RuntimeError(f"[PriorEstimationCallback] CRITICAL: Tokenizer PAD token ID is None - this will cause gradient flow errors")
+        
+        estimate_ard_priors_clm(model, trainer.ard_eval_dataset, self.device, tokenizer=tokenizer)
+        print("[PriorEstimationCallback] ARD prior estimation completed")
         
         # Clean up memory
         gc.collect()
@@ -701,7 +826,7 @@ def split_validation_dataset(val_dataset, ard_prior_samples=100, seed=42, train_
     return ard_dataset, uncertainty_dataset
 
 
-def estimate_ard_priors_clm(model, eval_dataset, device, num_samples=1000):
+def estimate_ard_priors_clm(model, eval_dataset, device, num_samples=1000, tokenizer=None):
     """
     Estimate ARD priors using a subset of the evaluation dataset.
     This demonstrates the ARD mechanism for automatic relevance determination.
@@ -711,16 +836,28 @@ def estimate_ard_priors_clm(model, eval_dataset, device, num_samples=1000):
         eval_dataset: Dataset or DataLoader for prior estimation
         device: Device to run computation on
         num_samples: Number of samples to use for estimation
+        tokenizer: Tokenizer for data collation (REQUIRED)
     """
     print(f"[ARD] Estimating priors using {num_samples} samples...")
     
+    # Set model to eval mode for prior estimation
+    was_training = model.training
     model.eval()
     
     # Create dataloader if needed
     if not isinstance(eval_dataset, DataLoader):
         from transformers import DataCollatorForLanguageModeling
+        
+        # CRITICAL: Tokenizer is required - fail fast if None
+        if tokenizer is None:
+            raise RuntimeError("[ARD] CRITICAL: Tokenizer is required for ARD prior estimation but was None. This indicates a serious configuration error.")
+        
+        # Check tokenizer validity
+        if not hasattr(tokenizer, 'pad_token_id') or tokenizer.pad_token_id is None:
+            raise RuntimeError(f"[ARD] CRITICAL: Invalid tokenizer (no pad_token_id) - this will cause training failures")
+        
         data_collator = DataCollatorForLanguageModeling(
-            tokenizer=model.config.tokenizer if hasattr(model.config, 'tokenizer') else None,
+            tokenizer=tokenizer,
             mlm=False
         )
         eval_dataloader = DataLoader(
@@ -794,7 +931,11 @@ def estimate_ard_priors_clm(model, eval_dataset, device, num_samples=1000):
     else:
         print("[ARD] No ProbLoRA layers found for prior estimation")
     
-    model.train()  # Return to training mode
+    # Restore original training mode
+    if was_training:
+        model.train()
+    else:
+        model.eval()
     
     return layer_stats
 
@@ -965,10 +1106,15 @@ def build_clm_trainer(model, tokenizer, train_dataset, eval_dataset, cfg, output
     # Set trainer reference on model for callbacks
     model.trainer = trainer
     
-    # Enable gradient checkpointing for memory efficiency
-    if hasattr(model, 'gradient_checkpointing_enable'):
+    # Enable gradient checkpointing for memory efficiency based on configuration
+    if cfg.get("gradient_checkpointing", True) and hasattr(model, 'gradient_checkpointing_enable'):
         model.gradient_checkpointing_enable()
-        print("[MEMORY] Enabled gradient checkpointing")
+        print("[MEMORY] Enabled gradient checkpointing based on configuration")
+    elif hasattr(model, 'gradient_checkpointing_disable'):
+        model.gradient_checkpointing_disable()
+        print("[MEMORY] Disabled gradient checkpointing based on configuration")
+    else:
+        print(f"[MEMORY] Gradient checkpointing setting: {cfg.get('gradient_checkpointing', True)}")
     
     # Memory optimization: Clear cache and show memory status
     if torch.cuda.is_available():

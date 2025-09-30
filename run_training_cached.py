@@ -42,7 +42,98 @@ def _merge_config(defaults: dict):
         dataset_cfg = cfg["datasets"][dataset_name]
         merged.update(dataset_cfg)
     
+    # Validate and fix data types for critical parameters
+    _validate_config_types(merged)
+    
     return merged
+
+
+def _validate_config_types(config):
+    """Validate and fix data types for critical configuration parameters"""
+    # Ensure numeric parameters are correct types
+    float_params = ["learning_rate", "kl_loss_beta", "prior_var", "warmup_ratio", "weight_decay", "scaling"]
+    int_params = ["rank", "batch_size", "train_epochs", "max_len", "ard_prior_samples", 
+                  "uncertainty_eval_samples", "uncertainty_n_bins", "gradient_accumulation_steps",
+                  "runId", "num_labels", "max_validation_samples", "plot_start_epoch", "plot_interval"]
+    bool_params = ["fp16", "bf16", "load_in_4bit", "use_cache", "gradient_checkpointing", 
+                   "enable_callbacks", "enable_plotting", "enable_resampling", "use_google_drive"]
+    
+    # Convert string numbers to floats
+    for param in float_params:
+        if param in config and isinstance(config[param], str):
+            try:
+                config[param] = float(config[param])
+                print(f"[CONFIG] Converted {param} from string to float: {config[param]}")
+            except ValueError:
+                print(f"[WARNING] Could not convert {param} to float: {config[param]}")
+    
+    # Convert string numbers to ints
+    for param in int_params:
+        if param in config and isinstance(config[param], str):
+            try:
+                config[param] = int(config[param])
+                print(f"[CONFIG] Converted {param} from string to int: {config[param]}")
+            except ValueError:
+                print(f"[WARNING] Could not convert {param} to int: {config[param]}")
+    
+    # Validate CLM-specific settings
+    if config.get("num_labels", 0) != 0:
+        print(f"[WARNING] CLM training should have num_labels=0, but got {config.get('num_labels')}")
+        config["num_labels"] = 0
+        print(f"[CONFIG] Reset num_labels to 0 for CLM training")
+    
+    # Validate memory optimization settings for A100
+    if not config.get("use_cache", True):
+        print(f"[CONFIG] ✅ KV caching disabled for memory optimization")
+    if config.get("gradient_checkpointing", False):
+        print(f"[CONFIG] ✅ Gradient checkpointing enabled for memory optimization")
+    if config.get("bf16", False):
+        print(f"[CONFIG] ✅ BF16 precision enabled for A100 GPU optimization")
+
+
+def _validate_tokenizer_alignment(tokenizer):
+    """Validate tokenizer configuration for CLM training"""
+    print(f"[TOKENIZER] Validation for CLM training:")
+    print(f"[TOKENIZER]   Model: {tokenizer.name_or_path}")
+    print(f"[TOKENIZER]   Vocab size: {tokenizer.vocab_size}")
+    print(f"[TOKENIZER]   BOS token: {repr(tokenizer.bos_token)} (id: {tokenizer.bos_token_id})")
+    print(f"[TOKENIZER]   EOS token: {repr(tokenizer.eos_token)} (id: {tokenizer.eos_token_id})")
+    print(f"[TOKENIZER]   PAD token: {repr(tokenizer.pad_token)} (id: {tokenizer.pad_token_id})")
+    print(f"[TOKENIZER]   UNK token: {repr(tokenizer.unk_token)} (id: {tokenizer.unk_token_id})")
+    
+    # Validate LLaMA-2 specific expectations
+    if "llama" in tokenizer.name_or_path.lower():
+        expected_eos_id = 2
+        expected_bos_id = 1
+        expected_unk_id = 0
+        
+        # Check EOS token (most critical for CLM)
+        if tokenizer.eos_token_id == expected_eos_id:
+            print(f"[TOKENIZER] ✅ EOS token ID correct: {tokenizer.eos_token_id}")
+        else:
+            print(f"[TOKENIZER] ⚠️  EOS token ID unexpected: got {tokenizer.eos_token_id}, expected {expected_eos_id}")
+        
+        # Check PAD token alignment
+        if tokenizer.pad_token_id == tokenizer.eos_token_id:
+            print(f"[TOKENIZER] ✅ PAD token aligned with EOS: {tokenizer.pad_token_id}")
+        else:
+            print(f"[TOKENIZER] ⚠️  PAD token not aligned with EOS: pad={tokenizer.pad_token_id}, eos={tokenizer.eos_token_id}")
+        
+        # Check BOS token
+        if tokenizer.bos_token_id == expected_bos_id:
+            print(f"[TOKENIZER] ✅ BOS token ID correct: {tokenizer.bos_token_id}")
+        else:
+            print(f"[TOKENIZER] ⚠️  BOS token ID unexpected: got {tokenizer.bos_token_id}, expected {expected_bos_id}")
+    
+    # Check for potential issues
+    if tokenizer.pad_token_id is None:
+        print(f"[TOKENIZER] ❌ ERROR: pad_token_id is None - this will cause training issues!")
+        raise ValueError("pad_token_id cannot be None for CLM training")
+    
+    if tokenizer.pad_token_id == tokenizer.unk_token_id:
+        print(f"[TOKENIZER] ⚠️  WARNING: pad_token_id equals unk_token_id - this may cause issues")
+    
+    print(f"[TOKENIZER] ✅ Tokenizer validation complete")
 
 
 def setup_cache_directory(config):
@@ -82,8 +173,25 @@ def load_model_with_problora(config):
     # Load model and tokenizer
     model = AutoModelForCausalLM.from_pretrained(model_name_or_path, **model_kwargs)
     tokenizer = AutoTokenizer.from_pretrained(tokenizer_name)
+    
+    # Configure pad token for CLM training
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
+        print(f"[TOKENIZER] Set pad_token to eos_token: {repr(tokenizer.pad_token)}")
+    
+    # Validate tokenizer configuration for CLM
+    _validate_tokenizer_alignment(tokenizer)
+    
+    # Configure use_cache for memory optimization
+    original_use_cache = getattr(model.config, 'use_cache', None)
+    print(f"[MEMORY] Original model.config.use_cache: {original_use_cache}")
+    
+    # Set use_cache based on configuration (disable for training to save memory)
+    use_cache_setting = config.get("use_cache", False)
+    model.config.use_cache = use_cache_setting
+    print(f"[MEMORY] Set model.config.use_cache to: {model.config.use_cache}")
+    if not use_cache_setting:
+        print(f"[MEMORY] KV caching disabled during training to reduce memory usage on 40GB A100")
     
     # Inject ProbLoRA
     model = inject_problora_llama(
@@ -95,16 +203,54 @@ def load_model_with_problora(config):
         ard_prior_samples=config.get("ard_prior_samples", 1000)
     )
     
-    # Freeze base parameters
+    # Freeze base parameters and unfreeze LoRA parameters
+    trainable_count = 0
+    lora_patterns = ['lora_a', 'lora_b', '.a.', '.b.', 'lora', 'adapter']
+    
+    print("[DEBUG] Analyzing parameter names for LoRA detection...")
+    all_param_names = []
     for name, param in model.named_parameters():
-        if "A" in name or "B" in name:
+        all_param_names.append(name)
+        # More comprehensive LoRA parameter detection
+        is_lora = any(pattern in name.lower() for pattern in lora_patterns)
+        
+        if is_lora:
             param.requires_grad = True
+            trainable_count += 1
+            print(f"[DEBUG] ✅ Trainable LoRA param: {name} (shape: {param.shape})")
         else:
             param.requires_grad = False
+    
+    # If no LoRA parameters found, print all parameter names for debugging
+    if trainable_count == 0:
+        print("[ERROR] No LoRA parameters found! Printing all parameter names for debugging:")
+        for i, name in enumerate(all_param_names[:20]):  # Print first 20 parameter names
+            print(f"[DEBUG] Parameter {i+1}: {name}")
+        if len(all_param_names) > 20:
+            print(f"[DEBUG] ... and {len(all_param_names) - 20} more parameters")
+        
+        print("\n[DEBUG] Trying alternative LoRA detection patterns...")
+        # Try broader patterns if standard ones fail
+        broader_patterns = ['A', 'B', 'weight', 'bias']
+        for name, param in model.named_parameters():
+            if any(pattern in name for pattern in broader_patterns):
+                # Additional checks to avoid unfreezing all weights
+                if 'lora' in name.lower() or 'adapter' in name.lower() or (len(param.shape) == 2 and min(param.shape) <= 64):
+                    param.requires_grad = True
+                    trainable_count += 1
+                    print(f"[DEBUG] ✅ Alternative LoRA param: {name} (shape: {param.shape})")
+    
+    if trainable_count == 0:
+        raise RuntimeError("No trainable LoRA parameters found! Check ProbLoRA injection and parameter naming.")
     
     trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
     total_params = sum(p.numel() for p in model.parameters())
     print(f"[INFO] Trainable: {trainable_params:,} / {total_params:,} ({100*trainable_params/total_params:.1f}%)")
+    print(f"[INFO] Found {trainable_count} trainable LoRA parameter groups")
+    
+    # Ensure model is in training mode
+    model.train()
+    print(f"[INFO] Model set to training mode: {model.training}")
     
     return model, tokenizer
 
@@ -120,10 +266,17 @@ def create_trainer(model, tokenizer, train_ds, val_ds, config, output_dir, tb_lo
     ard_prior_samples = config.get("ard_prior_samples", 100)
     print(f"[INFO] ARD Prior: Using {ard_prior_samples} samples for ARD prior estimation")
     
+    # Ensure tokenizer consistency validation
+    print(f"[TOKENIZER] Trainer Creation - Tokenizer Consistency Check:")
+    print(f"[TOKENIZER]   Tokenizer name: {tokenizer.name_or_path}")
+    print(f"[TOKENIZER]   PAD token ID: {tokenizer.pad_token_id}")
+    print(f"[TOKENIZER]   EOS token ID: {tokenizer.eos_token_id}")
+    print(f"[TOKENIZER]   PAD = EOS alignment: {tokenizer.pad_token_id == tokenizer.eos_token_id}")
+    
     # Use the enhanced trainer builder that handles dataset splitting and callbacks
     trainer = build_clm_trainer(
         model=model,
-        tokenizer=tokenizer,
+        tokenizer=tokenizer,  # Ensure same tokenizer instance is passed
         train_dataset=train_ds,
         eval_dataset=val_ds,
         cfg=config,
@@ -132,6 +285,23 @@ def create_trainer(model, tokenizer, train_ds, val_ds, config, output_dir, tb_lo
         enable_callbacks=config.get("enable_callbacks", True),  # Enable ARD callbacks
         tb_log_dir=tb_log_dir  # Pass TensorBoard log directory
     )
+    
+    # Post-creation validation - ensure trainer uses the same tokenizer
+    if hasattr(trainer, 'tokenizer') and trainer.tokenizer is not tokenizer:
+        print(f"[TOKENIZER] ⚠️  WARNING: Trainer tokenizer differs from input tokenizer!")
+        print(f"[TOKENIZER]   Input tokenizer PAD ID: {tokenizer.pad_token_id}")
+        print(f"[TOKENIZER]   Trainer tokenizer PAD ID: {trainer.tokenizer.pad_token_id}")
+    else:
+        print(f"[TOKENIZER] ✅ Trainer tokenizer consistency verified")
+    
+    # Validate data collator tokenizer consistency
+    if hasattr(trainer, 'data_collator') and hasattr(trainer.data_collator, 'tokenizer'):
+        if trainer.data_collator.tokenizer is not tokenizer:
+            print(f"[TOKENIZER] ⚠️  WARNING: DataCollator tokenizer differs from input tokenizer!")
+            print(f"[TOKENIZER]   Input tokenizer PAD ID: {tokenizer.pad_token_id}")
+            print(f"[TOKENIZER]   DataCollator tokenizer PAD ID: {trainer.data_collator.tokenizer.pad_token_id}")
+        else:
+            print(f"[TOKENIZER] ✅ DataCollator tokenizer consistency verified")
     
     return trainer
 def main():
@@ -142,36 +312,12 @@ def main():
     
     free_memory()
     
-    # Configuration
-    defaults = {
-        "model_name": "LLaMA2-7B",
-        "dataset_name": "BayesianPEFT",
-        "runId": 1,
-        "rank": 16,
-        "max_len": 2048,
-        "kl_loss_beta": 0.01,
-        "prior_var": 1.0,
-        "cache_root": "./data_cache",
-        "uncertainty_eval_samples": 1000,  # Number of samples for uncertainty evaluation
-        "uncertainty_n_bins": 15,  # Number of bins for ECE calculation
-        "max_validation_samples": 5000,  # Cap validation dataset size for memory efficiency
-        "train_epochs": 3,  # Multiple epochs to see uncertainty evolution
-        "batch_size": 4,
-        "gradient_accumulation_steps": 16,
-        "learning_rate": 1e-4,
-        "bf16": True,  # Preferred on A100 GPUs for better performance
-        "fp16": False,  # Disable fp16 when using bf16
-        "report_to": ["tensorboard"],  # Log uncertainty metrics to tensorboard
-        # Callback configuration
-        "enable_callbacks": True,  # Enable ARD callbacks
-        "ard_prior_samples": 100,  # Samples for ARD prior estimation
-        "enable_plotting": True,  # Enable latent plotting
-        "enable_resampling": False,  # Enable held-out resampling (disabled for CLM)
-        "plot_start_epoch": 2,  # Start plotting from epoch 2
-        "plot_interval": 2  # Plot every 2 epochs
-    }
+    # Load configuration from YAML file - no hardcoded defaults
+    config = _merge_config({})  # Start with empty defaults, let YAML be the source of truth
     
-    config = _merge_config(defaults)
+    # Validate required configuration
+    if not config:
+        raise ValueError("No configuration found! Please ensure config.py imports a valid YAML configuration.")
     
     print(f"[CONFIG] Model: {config.get('model_name')}")
     print(f"[CONFIG] Dataset: {config.get('dataset_name')}")
@@ -179,11 +325,20 @@ def main():
     print(f"[CONFIG] KL Beta: {config.get('kl_loss_beta')}")
     print(f"[CONFIG] Rank: {config.get('rank')}")
     print(f"[CONFIG] Train Epochs: {config.get('train_epochs')}")
+    
+    # Memory optimization settings
+    print(f"[CONFIG] Memory Optimizations for 40GB A100:")
+    print(f"[CONFIG]   Use Cache: {config.get('use_cache')}")
+    print(f"[CONFIG]   Gradient Checkpointing: {config.get('gradient_checkpointing')}")
+    print(f"[CONFIG]   BF16: {config.get('bf16')}")
+    print(f"[CONFIG]   Batch Size: {config.get('batch_size')}")
+    print(f"[CONFIG]   Gradient Accumulation: {config.get('gradient_accumulation_steps')}")
+    
+    # ARD and uncertainty settings
     print(f"[CONFIG] ARD Prior Samples: {config.get('ard_prior_samples')}")
     print(f"[CONFIG] Uncertainty Eval Samples: {config.get('uncertainty_eval_samples')}")
     print(f"[CONFIG] Uncertainty ECE Bins: {config.get('uncertainty_n_bins')}")
     print(f"[CONFIG] Enable Callbacks: {config.get('enable_callbacks')}")
-    print(f"[CONFIG] ARD Prior Samples: {config.get('ard_prior_samples')}")
     print(f"[CONFIG] Enable Plotting: {config.get('enable_plotting')}")
     
     # Setup caching (Google Drive if available)
@@ -205,6 +360,15 @@ def main():
             config=config,
             cache_root=cache_root
         )
+        
+        # Validate tokenizer consistency after dataset loading
+        print(f"[TOKENIZER] Post-dataset loading validation:")
+        print(f"[TOKENIZER]   PAD token ID: {tokenizer.pad_token_id}")
+        print(f"[TOKENIZER]   EOS token ID: {tokenizer.eos_token_id}")
+        if tokenizer.pad_token_id != tokenizer.eos_token_id:
+            print(f"[TOKENIZER] ⚠️  WARNING: PAD and EOS token IDs don't match after dataset loading!")
+        else:
+            print(f"[TOKENIZER] ✅ PAD and EOS alignment maintained: {tokenizer.pad_token_id}")
         
         print(f"[INFO] Training samples: {len(train_ds) if train_ds else 0}")
         print(f"[INFO] Validation samples: {len(val_ds) if val_ds else 0}")
@@ -237,6 +401,25 @@ def main():
     
     trainer = create_trainer(model, tokenizer, train_ds, val_ds, config, model_ckpt_dir, tb_log_dir)
     
+    # Final tokenizer consistency validation before training
+    print(f"\n[TOKENIZER] Final Pre-Training Validation:")
+    print(f"[TOKENIZER]   Model tokenizer available: {hasattr(model, 'config') and hasattr(model.config, 'vocab_size')}")
+    print(f"[TOKENIZER]   Main tokenizer PAD ID: {tokenizer.pad_token_id}")
+    print(f"[TOKENIZER]   Trainer tokenizer PAD ID: {trainer.tokenizer.pad_token_id}")
+    print(f"[TOKENIZER]   DataCollator tokenizer PAD ID: {trainer.data_collator.tokenizer.pad_token_id}")
+    
+    # Check if all tokenizers have the same PAD token ID
+    all_pad_ids = [
+        tokenizer.pad_token_id,
+        trainer.tokenizer.pad_token_id,
+        trainer.data_collator.tokenizer.pad_token_id
+    ]
+    if len(set(all_pad_ids)) == 1:
+        print(f"[TOKENIZER] ✅ All components use consistent PAD token ID: {all_pad_ids[0]}")
+    else:
+        print(f"[TOKENIZER] ❌ ERROR: Inconsistent PAD token IDs found: {all_pad_ids}")
+        raise ValueError("Tokenizer PAD token ID mismatch detected - this will cause training issues!")
+    
     # Training with ARD
     print(f"\n[STEP 4] Starting training...")
     print(f"[INFO] Beta (KL strength): {config.get('kl_loss_beta')}")
@@ -244,12 +427,19 @@ def main():
     print(f"[INFO] TensorBoard logs: {tb_log_dir}")
     print(f"[INFO] TensorBoard logging enabled: {'tensorboard' in config.get('report_to', [])}")
     
+    # Ensure model is in training mode before training starts
+    model.train()
+    print(f"[INFO] Model training mode verified: {model.training}")
+    
     try:
         # Initial evaluation
         if val_ds:
             print("\n[EVAL] Initial validation...")
             eval_results = trainer.evaluate()
             print(f"[EVAL] Initial loss: {eval_results.get('eval_loss', 'N/A'):.4f}")
+            # Ensure model is back in training mode after evaluation
+            model.train()
+            print(f"[INFO] Model set back to training mode after evaluation: {model.training}")
         
         # Train with automatic uncertainty evaluation after each epoch
         print("\n[TRAIN] Starting ARD-LoRA training with uncertainty evaluation...")
