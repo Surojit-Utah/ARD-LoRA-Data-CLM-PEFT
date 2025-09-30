@@ -1130,6 +1130,32 @@ def build_clm_trainer(model, tokenizer, train_dataset, eval_dataset, cfg, output
                     pass
             model.model.embed_tokens.register_forward_hook(_embed_forward_hook)
             print('[GRADIENT FIX] Registered embed_tokens forward hook to ensure activations require_grad for checkpointing')
+        # Additionally, register forward-pre-hooks on transformer layers so that the inputs
+        # passed into checkpointed layer functions have requires_grad=True. This addresses
+        # cases where embedding hooks aren't sufficient (different module structure or
+        # intermediate detaches), and ensures torch.utils.checkpoint sees at least one
+        # input with requires_grad.
+        try:
+            if hasattr(model.model, 'layers'):
+                def _make_pre_hook():
+                    def _pre_hook(module, inputs):
+                        try:
+                            if inputs and isinstance(inputs[0], torch.Tensor):
+                                if not inputs[0].requires_grad:
+                                    inputs[0].requires_grad_(True)
+                        except Exception:
+                            pass
+                    return _pre_hook
+
+                for li, lyr in enumerate(model.model.layers):
+                    try:
+                        lyr.register_forward_pre_hook(_make_pre_hook())
+                    except Exception:
+                        # Some layers may not accept pre-hooks in custom models; ignore failures
+                        continue
+                print('[GRADIENT FIX] Registered forward_pre_hooks on transformer layers')
+        except Exception:
+            pass
     except Exception as e:
         print(f"[GRADIENT FIX] Failed to register embed forward hook: {e}")
     
