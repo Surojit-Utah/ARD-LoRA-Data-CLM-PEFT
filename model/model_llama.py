@@ -37,28 +37,35 @@ class ProbLoRALayer(nn.Module):
         # ARD prior parameters
         self.alpha = (self.num_tokens * self.ard_prior_samples) / 2.0
         self.beta = np.zeros(self.rank, dtype=np.float32)
-        self.est_var = torch.ones(self.rank)
+        # Initialize est_var as a buffer (will move with model to device)
+        self.register_buffer('est_var', torch.ones(self.rank))
 
     def forward(self, x):
         """Forward pass - works with any sequence length and masking strategy"""
         base_out = self.base_proj(x)            # shape: [B, S, out_dim]
         mu_A, logvar_A = torch.split(self.A, self.rank, dim=0)
         
+        # Convert LoRA parameters to input dtype and device for computation (BF16/CUDA compatibility)
+        # Keep original parameters in FP32 for precise gradient updates
+        mu_A = mu_A.to(dtype=x.dtype, device=x.device)
+        logvar_A = logvar_A.to(dtype=x.dtype, device=x.device)
+        B_matrix = self.B.to(dtype=x.dtype, device=x.device)
+        
         # Apply variance mask if it exists
         if hasattr(self, 'variance_mask') and self.variance_mask is not None:
             # Apply mask to both mu_A and logvar_A (mask inactive latent dimensions)
             # mu_A and logvar_A shapes: [rank, in_features]
-            mask = self.variance_mask.unsqueeze(1)  # Shape: [rank, 1]
+            mask = self.variance_mask.unsqueeze(1).to(dtype=x.dtype, device=x.device)  # Shape: [rank, 1]
             mu_A_masked = mu_A * mask
             logvar_A_masked = logvar_A * mask
             # Also apply mask to B matrix - B shape: [out_features, rank]
             # Mask the rank dimensions (columns of B)
-            B_masked = self.B * self.variance_mask.unsqueeze(0)  # Shape: [1, rank]
+            B_masked = B_matrix * self.variance_mask.unsqueeze(0).to(dtype=x.dtype, device=x.device)  # Shape: [1, rank]
         else:
             # No mask, use original matrices
             mu_A_masked = mu_A
             logvar_A_masked = logvar_A
-            B_masked = self.B
+            B_masked = B_matrix
         
         B, S, _ = x.size()
         x_flat = x.view(-1, x.size(-1))  # [B*S, in_features]
@@ -69,8 +76,9 @@ class ProbLoRALayer(nn.Module):
         
         # Apply additional masking to latent outputs to ensure inactive dims are zero
         if hasattr(self, 'variance_mask') and self.variance_mask is not None:
-            mu = mu * self.variance_mask.unsqueeze(0)      # [1, rank]
-            logvar = logvar * self.variance_mask.unsqueeze(0)  # [1, rank]
+            mask_latent = self.variance_mask.unsqueeze(0).to(dtype=x.dtype, device=x.device)  # [1, rank]
+            mu = mu * mask_latent
+            logvar = logvar * mask_latent
         
         eps = torch.randn_like(mu)
         z = mu + eps * torch.exp(0.5 * logvar)  # [B*S, rank]
@@ -91,10 +99,14 @@ class ProbLoRALayer(nn.Module):
         B, S, _ = x.size()  # batch_size, seq_len, features
         x_flat = x.view(-1, x.size(-1))
         
+        # Convert to input dtype and device for computation consistency
+        mu_A = mu_A.to(dtype=x.dtype, device=x.device)
+        logvar_A = logvar_A.to(dtype=x.dtype, device=x.device)
+        
         # Apply variance mask if it exists
         if hasattr(self, 'variance_mask') and self.variance_mask is not None:
             # Apply mask to both mu_A and logvar_A
-            mask = self.variance_mask.unsqueeze(1)  # Shape: [rank, 1]
+            mask = self.variance_mask.unsqueeze(1).to(dtype=x.dtype, device=x.device)  # Shape: [rank, 1]
             mu_A_masked = mu_A * mask
             logvar_A_masked = logvar_A * mask
             active_dims = torch.sum(self.variance_mask > 0).item()
@@ -144,10 +156,14 @@ class ProbLoRALayer(nn.Module):
         """Sample from latent distribution for ARD prior estimation"""
         mu_A, logvar_A = torch.split(self.A, self.rank, dim=0)
         
+        # Convert to input dtype and device for computation consistency
+        mu_A = mu_A.to(dtype=x.dtype, device=x.device)
+        logvar_A = logvar_A.to(dtype=x.dtype, device=x.device)
+        
         # Apply variance mask if it exists
         if hasattr(self, 'variance_mask') and self.variance_mask is not None:
             # Mask the latent dimensions (output dims of A matrices)
-            mask = self.variance_mask.unsqueeze(1)  # Shape: [rank, 1]
+            mask = self.variance_mask.unsqueeze(1).to(dtype=x.dtype, device=x.device)  # Shape: [rank, 1]
             mu_A_masked = mu_A * mask
             logvar_A_masked = logvar_A * mask
         else:
@@ -160,8 +176,9 @@ class ProbLoRALayer(nn.Module):
         
         # Apply additional masking to latent outputs
         if hasattr(self, 'variance_mask') and self.variance_mask is not None:
-            mu = mu * self.variance_mask.unsqueeze(0)      # [1, rank]
-            logvar = logvar * self.variance_mask.unsqueeze(0)  # [1, rank]
+            mask_latent = self.variance_mask.unsqueeze(0).to(dtype=x.dtype, device=x.device)  # [1, rank]
+            mu = mu * mask_latent
+            logvar = logvar * mask_latent
             
         eps = torch.randn_like(mu)
         samples = mu + eps * torch.exp(0.5 * logvar)
