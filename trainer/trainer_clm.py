@@ -1116,11 +1116,13 @@ def build_clm_trainer(model, tokenizer, train_dataset, eval_dataset, cfg, output
         output_dir=output_dir
     )
     # GRADIENT-CHECKPOINTING FIX: ensure at least one checkpointed input has requires_grad=True
-    # If the backbone is frozen but gradient checkpointing is enabled, checkpointing may warn that
-    # "None of the inputs have requires_grad=True. Gradients will be None". We attach a small
-    # forward hook on the token embedding layer to mark activations as requiring gradients while
-    # keeping the embedding weights themselves frozen.
+    # Register a small embed forward-hook and per-layer forward_pre_hooks. Track how many
+    # hooks succeeded so we can print a coverage summary. Optionally enable a debug wrapper
+    # for torch.utils.checkpoint.checkpoint via cfg['checkpoint_debug'] to log offending calls.
     try:
+        hook_embed_attached = 0
+        hook_layer_attached = 0
+
         if hasattr(model, 'model') and hasattr(model.model, 'embed_tokens'):
             def _embed_forward_hook(module, inp, out):
                 try:
@@ -1128,36 +1130,93 @@ def build_clm_trainer(model, tokenizer, train_dataset, eval_dataset, cfg, output
                         out.requires_grad_(True)
                 except Exception:
                     pass
-            model.model.embed_tokens.register_forward_hook(_embed_forward_hook)
-            print('[GRADIENT FIX] Registered embed_tokens forward hook to ensure activations require_grad for checkpointing')
-        # Additionally, register forward-pre-hooks on transformer layers so that the inputs
-        # passed into checkpointed layer functions have requires_grad=True. This addresses
-        # cases where embedding hooks aren't sufficient (different module structure or
-        # intermediate detaches), and ensures torch.utils.checkpoint sees at least one
-        # input with requires_grad.
-        try:
-            if hasattr(model.model, 'layers'):
-                def _make_pre_hook():
-                    def _pre_hook(module, inputs):
-                        try:
-                            if inputs and isinstance(inputs[0], torch.Tensor):
-                                if not inputs[0].requires_grad:
-                                    inputs[0].requires_grad_(True)
-                        except Exception:
-                            pass
-                    return _pre_hook
+            try:
+                model.model.embed_tokens.register_forward_hook(_embed_forward_hook)
+                hook_embed_attached = 1
+            except Exception:
+                hook_embed_attached = 0
 
-                for li, lyr in enumerate(model.model.layers):
+        if hasattr(model.model, 'layers'):
+            def _make_pre_hook():
+                def _pre_hook(module, inputs):
                     try:
-                        lyr.register_forward_pre_hook(_make_pre_hook())
+                        if inputs and isinstance(inputs[0], torch.Tensor):
+                            if not inputs[0].requires_grad:
+                                inputs[0].requires_grad_(True)
                     except Exception:
-                        # Some layers may not accept pre-hooks in custom models; ignore failures
-                        continue
-                print('[GRADIENT FIX] Registered forward_pre_hooks on transformer layers')
-        except Exception:
-            pass
+                        pass
+                return _pre_hook
+
+            for lyr in model.model.layers:
+                try:
+                    lyr.register_forward_pre_hook(_make_pre_hook())
+                    hook_layer_attached += 1
+                except Exception:
+                    continue
+
+        print(f"[GRADIENT FIX] Hook coverage: embed_hook={hook_embed_attached}, layer_pre_hooks={hook_layer_attached}/{len(getattr(model.model, 'layers', []))}")
+
+        # Optional debug wrapper for checkpoint to log inputs when no requires_grad present
+        try:
+            debug_flag = False
+            if isinstance(cfg, dict):
+                debug_flag = bool(cfg.get('checkpoint_debug', False))
+            # Fall back to environment variable CHECKPOINT_DEBUG=1 (useful for full training runs)
+            if not debug_flag:
+                try:
+                    import os as _os
+                    if _os.environ.get('CHECKPOINT_DEBUG', '').lower() in ('1', 'true', 'yes'):
+                        debug_flag = True
+                except Exception:
+                    pass
+
+            if debug_flag:
+                import traceback as _traceback
+                _orig_checkpoint = torch.utils.checkpoint.checkpoint
+
+                if not getattr(torch.utils.checkpoint, '_checkpoint_debug_wrapped', False):
+                    def _debug_checkpoint(func, *args, **kwargs):
+                        # gather tensors
+                        tensors = []
+                        def _g(x):
+                            if isinstance(x, torch.Tensor):
+                                tensors.append(x)
+                            elif isinstance(x, (list, tuple)):
+                                for e in x: _g(e)
+                            elif isinstance(x, dict):
+                                for e in x.values(): _g(e)
+                        _g(args)
+                        _g(kwargs)
+
+                        any_req = False
+                        for t in tensors:
+                            try:
+                                if t is not None and t.is_floating_point() and t.requires_grad:
+                                    any_req = True
+                                    break
+                            except Exception:
+                                continue
+
+                        if not any_req:
+                            print('[CHECKPOINT_DEBUG] checkpoint called with NO inputs requiring grad')
+                            for i, t in enumerate(tensors[:12]):
+                                try:
+                                    print(f'  tensor[{i}]: shape={tuple(t.shape) if t is not None else None}, dtype={t.dtype if t is not None else None}, requires_grad={t.requires_grad if t is not None else None}')
+                                except Exception:
+                                    pass
+                            _traceback.print_stack(limit=6)
+
+                        return _orig_checkpoint(func, *args, **kwargs)
+
+                    torch.utils.checkpoint.checkpoint = _debug_checkpoint
+                    torch.utils.checkpoint._checkpoint_debug_wrapped = True
+                    print('[CHECKPOINT_DEBUG] Wrapped torch.utils.checkpoint.checkpoint with debug logger')
+
+        except Exception as e:
+            print(f"[CHECKPOINT_DEBUG] Failed to install debug wrapper: {e}")
+
     except Exception as e:
-        print(f"[GRADIENT FIX] Failed to register embed forward hook: {e}")
+        print(f"[GRADIENT FIX] Failed to register checkpoint hooks: {e}")
     
     # Enable gradient checkpointing for memory efficiency based on configuration
     if cfg.get("gradient_checkpointing", True) and hasattr(model, 'gradient_checkpointing_enable'):
