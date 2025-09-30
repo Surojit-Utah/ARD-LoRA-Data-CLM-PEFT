@@ -182,7 +182,9 @@ class ProbLoRALayer(nn.Module):
             
         eps = torch.randn_like(mu)
         samples = mu + eps * torch.exp(0.5 * logvar)
-        return samples.cpu().detach().numpy()
+        
+        # Convert to float32 before numpy conversion (BFloat16 not supported by numpy)
+        return samples.float().cpu().detach().numpy()
 
 
 
