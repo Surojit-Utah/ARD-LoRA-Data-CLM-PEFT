@@ -25,7 +25,7 @@ defaults:
   gradient_accumulation_steps: 16
   fp16: false
   bf16: true  # Preferred on A100 GPUs for better performance
-  load_in_4bit: true
+  load_in_4bit: false  # Disable quantization - LoRA parameters need to be trainable
   prior_var: 1.0
   kl_loss_beta: 0.01  # KL divergence loss strength for ARD-LoRA
   max_validation_samples: 50  # Cap validation dataset size for memory efficiency
@@ -53,7 +53,7 @@ models:
     model_name_or_path: "meta-llama/Llama-2-7b-hf"
     tokenizer_name: "meta-llama/Llama-2-7b-hf"
     train_type: "causal_lm"
-    load_in_4bit: true
+    load_in_4bit: false  # Disable quantization for LoRA compatibility
     defaults:
       rank: 64
       max_len: 2048

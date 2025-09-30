@@ -269,10 +269,31 @@ def load_model_with_problora(config):
                         print(f"[WARNING] This LoRA parameter is quantized and cannot have gradients!")
     
     if trainable_count == 0:
+        print(f"\n[CRITICAL ERROR] No trainable LoRA parameters found!")
+        print(f"[INFO] Total parameters analyzed: {len(all_param_names)}")
+        print(f"[INFO] Quantized parameters skipped: {quantized_params_skipped}")
+        
+        if quantized_params_skipped > 0:
+            print(f"[DIAGNOSIS] All LoRA parameters appear to be quantized.")
+            print(f"[SOLUTION] Consider one of the following:")
+            print(f"           1. Set load_in_4bit: false in config to disable quantization")
+            print(f"           2. Use different LoRA injection that preserves floating-point parameters")
+            print(f"           3. Check if ProbLoRA injection is compatible with quantization")
+            print(f"[CONFIG] Current quantization setting: load_in_4bit = {config.get('load_in_4bit', False)}")
+        
         raise RuntimeError("No trainable LoRA parameters found! Check ProbLoRA injection and parameter naming.")
     
     trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
     total_params = sum(p.numel() for p in model.parameters())
+    
+    # Final parameter analysis and safety check
+    print(f"\n[PARAMETER ANALYSIS] Final Summary:")
+    print(f"  Total parameters: {total_params:,}")
+    print(f"  Trainable parameters: {trainable_params:,}")
+    print(f"  Trainable parameter groups: {trainable_count}")
+    print(f"  Quantized parameters skipped: {quantized_params_skipped}")
+    print(f"  Trainable percentage: {100*trainable_params/total_params:.1f}%")
+    
     print(f"[INFO] Trainable: {trainable_params:,} / {total_params:,} ({100*trainable_params/total_params:.1f}%)")
     print(f"[INFO] Found {trainable_count} trainable LoRA parameter groups")
     if quantized_params_skipped > 0:
@@ -402,6 +423,17 @@ def main():
         
         print(f"[INFO] Training samples: {len(train_ds) if train_ds else 0}")
         print(f"[INFO] Validation samples: {len(val_ds) if val_ds else 0}")
+        
+        # Check validation dataset size for ARD prior estimation
+        val_size = len(val_ds) if val_ds else 0
+        ard_samples = config.get("ard_prior_samples", 100)
+        if val_size > 0 and val_size < ard_samples:
+            print(f"\n[WARNING] Validation dataset size issue:")
+            print(f"          Validation samples: {val_size}")
+            print(f"          ARD prior samples requested: {ard_samples}")
+            print(f"          This may affect ARD prior estimation quality")
+            print(f"          Consider increasing validation data or reducing ard_prior_samples in config")
+            print(f"          ARD training will use all {val_size} validation samples for prior estimation")
         
     except Exception as e:
         print(f"[ERROR] Failed to load dataset: {e}")
