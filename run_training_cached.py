@@ -494,14 +494,8 @@ def main():
     print(f"[INFO] Model training mode verified: {model.training}")
     
     try:
-        # Initial evaluation
-        if val_ds:
-            print("\n[EVAL] Initial validation...")
-            eval_results = trainer.evaluate()
-            print(f"[EVAL] Initial loss: {eval_results.get('eval_loss', 'N/A'):.4f}")
-            # Ensure model is back in training mode after evaluation
-            model.train()
-            print(f"[INFO] Model set back to training mode after evaluation: {model.training}")
+        # Skip initial evaluation to avoid eval_dataset requirement
+        print("\n[EVAL] Skipping initial evaluation - proceeding directly to training")
         
         # Train with automatic uncertainty evaluation after each epoch
         print("\n[TRAIN] Starting ARD-LoRA training with uncertainty evaluation...")
