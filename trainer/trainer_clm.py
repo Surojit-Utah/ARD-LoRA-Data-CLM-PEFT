@@ -893,7 +893,32 @@ def estimate_ard_priors_clm(model, eval_dataset, device, num_samples=1000, token
             beta_accumulated = beta_accumulators[layer_idx][proj_name]
             # Calculate est_var: beta / alpha + 1e-6 (same as DeBERTa)
             est_var_values = beta_accumulated / proj.alpha + 1e-6
-            proj.est_var = torch.tensor(est_var_values, device=device)
+            # Create a float32 tensor on the target device for est_var
+            est_var_tensor = torch.tensor(est_var_values, dtype=torch.float32, device=device)
+
+            # If the module already has an est_var tensor buffer, try to update it in-place
+            try:
+                if hasattr(proj, 'est_var') and isinstance(proj.est_var, torch.Tensor):
+                    # Attempt an in-place copy while respecting existing dtype/device
+                    try:
+                        proj.est_var.data = est_var_tensor.to(proj.est_var.device, dtype=proj.est_var.dtype).data
+                    except Exception:
+                        # Fallback to re-registering the buffer if in-place update fails
+                        try:
+                            proj.register_buffer('est_var', est_var_tensor)
+                        except Exception:
+                            # As a last resort, set attribute (works but won't move with .to())
+                            setattr(proj, 'est_var', est_var_tensor)
+                else:
+                    # Register as a buffer so it moves with the module's device/state_dict
+                    proj.register_buffer('est_var', est_var_tensor)
+            except Exception:
+                # Be defensive: ensure there's at least an attribute even if register_buffer fails
+                try:
+                    proj.est_var = est_var_tensor
+                except Exception:
+                    # Give up quietly but report
+                    print(f"[ARD] Warning: Could not set est_var for projection {proj_name} in layer {layer_idx}")
             
             # Print statistics
             avg_est_var = np.mean(est_var_values)
@@ -1090,6 +1115,23 @@ def build_clm_trainer(model, tokenizer, train_dataset, eval_dataset, cfg, output
         n_bins=cfg.get("uncertainty_n_bins", 15),
         output_dir=output_dir
     )
+    # GRADIENT-CHECKPOINTING FIX: ensure at least one checkpointed input has requires_grad=True
+    # If the backbone is frozen but gradient checkpointing is enabled, checkpointing may warn that
+    # "None of the inputs have requires_grad=True. Gradients will be None". We attach a small
+    # forward hook on the token embedding layer to mark activations as requiring gradients while
+    # keeping the embedding weights themselves frozen.
+    try:
+        if hasattr(model, 'model') and hasattr(model.model, 'embed_tokens'):
+            def _embed_forward_hook(module, inp, out):
+                try:
+                    if isinstance(out, torch.Tensor):
+                        out.requires_grad_(True)
+                except Exception:
+                    pass
+            model.model.embed_tokens.register_forward_hook(_embed_forward_hook)
+            print('[GRADIENT FIX] Registered embed_tokens forward hook to ensure activations require_grad for checkpointing')
+    except Exception as e:
+        print(f"[GRADIENT FIX] Failed to register embed forward hook: {e}")
     
     # Enable gradient checkpointing for memory efficiency based on configuration
     if cfg.get("gradient_checkpointing", True) and hasattr(model, 'gradient_checkpointing_enable'):
