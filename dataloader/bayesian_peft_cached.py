@@ -438,4 +438,16 @@ def load_bayesian_peft_with_caching(dataset_name: str, tokenizer_name: str, conf
     
     train_ds, val_ds = wrapper.get_processed_datasets()
     
+    # Apply validation dataset size cap
+    max_val_samples = config.get("max_validation_samples", 5000)
+    if val_ds is not None and len(val_ds) > max_val_samples:
+        print(f"[INFO] Capping validation dataset from {len(val_ds)} to {max_val_samples} samples")
+        # Randomly sample to maintain data diversity
+        import random
+        indices = list(range(len(val_ds)))
+        random.seed(42)  # For reproducibility
+        selected_indices = random.sample(indices, max_val_samples)
+        val_ds = val_ds.select(selected_indices)
+        print(f"[INFO] Validation dataset capped to {len(val_ds)} samples")
+    
     return train_ds, val_ds, wrapper.tokenizer

@@ -48,22 +48,15 @@ def _merge_config(defaults: dict):
 def setup_cache_directory(config):
     """
     Setup caching directory based on configuration.
-    Uses cache_root from config or defaults to local cache.
     """
-    cache_root = config.get("cache_root", "./data_cache")
-    
     # Check if Google Drive path is available (for Colab usage)
     drive_cache = "/content/drive/MyDrive/ARD_LoRA_Data_Cache"
-    if os.path.exists("/content/drive/MyDrive"):
-        # Use Google Drive for persistent caching
-        os.makedirs(drive_cache, exist_ok=True)
-        print(f"[INFO] Using Google Drive cache: {drive_cache}")
-        return drive_cache
-    else:
-        # Use local or configured cache directory
-        os.makedirs(cache_root, exist_ok=True)
-        print(f"[INFO] Using cache directory: {cache_root}")
-        return cache_root
+
+    # Use Google Drive for persistent caching
+    os.makedirs(drive_cache, exist_ok=True)
+    print(f"[INFO] Using Google Drive cache: {drive_cache}")
+
+    return drive_cache
 
 
 def load_model_with_problora(config):
@@ -79,8 +72,11 @@ def load_model_with_problora(config):
         from transformers import BitsAndBytesConfig
         model_kwargs["quantization_config"] = BitsAndBytesConfig(load_in_4bit=True)
     
-    if config.get("fp16"):
-        import torch
+    # Set torch dtype based on precision preference (bf16 preferred on A100)
+    import torch
+    if config.get("bf16"):
+        model_kwargs["torch_dtype"] = torch.bfloat16
+    elif config.get("fp16"):
         model_kwargs["torch_dtype"] = torch.float16
     
     # Load model and tokenizer
@@ -154,16 +150,17 @@ def main():
         "rank": 16,
         "max_len": 2048,
         "kl_loss_beta": 0.01,
-        "beta": 0.01,  # Alias for kl_loss_beta
         "prior_var": 1.0,
         "cache_root": "./data_cache",
-        "ard_prior_samples": 100,  # Absolute number of samples for ARD prior estimation
         "uncertainty_eval_samples": 1000,  # Number of samples for uncertainty evaluation
         "uncertainty_n_bins": 15,  # Number of bins for ECE calculation
+        "max_validation_samples": 5000,  # Cap validation dataset size for memory efficiency
         "train_epochs": 3,  # Multiple epochs to see uncertainty evolution
         "batch_size": 4,
-        "gradient_accumulation_steps": 32,
-        "learning_rate": 1e-5,
+        "gradient_accumulation_steps": 16,
+        "learning_rate": 1e-4,
+        "bf16": True,  # Preferred on A100 GPUs for better performance
+        "fp16": False,  # Disable fp16 when using bf16
         "report_to": ["tensorboard"],  # Log uncertainty metrics to tensorboard
         # Callback configuration
         "enable_callbacks": True,  # Enable ARD callbacks
@@ -222,9 +219,7 @@ def main():
     
     # Create run-specific base directory
     base_output_dir = os.path.join(
-        os.getcwd(), 
-        "run_outputs",
-        f"ARD_LoRA_{config.get('model_name')}_{dataset_name}"
+        f"{config.get('model_name')}_ARD_LoRA_CLM_{dataset_name}"
     )
     os.makedirs(base_output_dir, exist_ok=True)
     

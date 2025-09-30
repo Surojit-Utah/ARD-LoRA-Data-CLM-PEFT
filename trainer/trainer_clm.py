@@ -921,7 +921,8 @@ def build_clm_trainer(model, tokenizer, train_dataset, eval_dataset, cfg, output
         per_device_eval_batch_size=max(1, cfg.get("batch_size", 1)),  # Smaller eval batch to save memory
         gradient_accumulation_steps=cfg.get("gradient_accumulation_steps", 4),  # Increase to compensate for smaller batch
         num_train_epochs=cfg.get("train_epochs", 1),
-        fp16=bool(cfg.get("fp16", True)),
+        bf16=bool(cfg.get("bf16", False)),  # BF16 support for A100 GPUs
+        fp16=bool(cfg.get("fp16", True)) if not cfg.get("bf16", False) else False,  # Use fp16 only if bf16 is not enabled
         learning_rate=float(cfg.get("learning_rate", 2e-5)),
         weight_decay=float(cfg.get("weight_decay", 0.0)),
         lr_scheduler_type=cfg.get("lr_scheduler_type", "linear"),
@@ -954,7 +955,7 @@ def build_clm_trainer(model, tokenizer, train_dataset, eval_dataset, cfg, output
         eval_dataset=uncertainty_dataset,  # Use uncertainty dataset for standard evaluation
         data_collator=data_collator,
         tokenizer=tokenizer,
-        beta=float(cfg.get("beta", 0.01)),
+        beta=float(cfg.get("kl_loss_beta", 0.01)),
         ard_eval_dataset=ard_dataset,  # Separate dataset for ARD prior estimation
         uncertainty_eval_samples=cfg.get("uncertainty_eval_samples", 1000),
         n_bins=cfg.get("uncertainty_n_bins", 15),

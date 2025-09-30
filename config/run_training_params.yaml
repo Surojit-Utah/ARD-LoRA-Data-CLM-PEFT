@@ -40,10 +40,12 @@ defaults:
   ard_prior_samples: 100
   batch_size: 4
   gradient_accumulation_steps: 32
-  fp16: true
+  fp16: false
+  bf16: true  # Preferred on A100 GPUs for better performance
   load_in_4bit: true
   prior_var: 1.0
   kl_loss_beta: 0.01  # KL divergence loss strength for ARD-LoRA
+  max_validation_samples: 5000  # Cap validation dataset size for memory efficiency
 
 models:
   LLaMA2-7B:
