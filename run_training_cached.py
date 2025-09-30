@@ -209,17 +209,33 @@ def load_model_with_problora(config):
     
     print("[DEBUG] Analyzing parameter names for LoRA detection...")
     all_param_names = []
+    quantized_params_skipped = 0
+    
     for name, param in model.named_parameters():
         all_param_names.append(name)
         # More comprehensive LoRA parameter detection
         is_lora = any(pattern in name.lower() for pattern in lora_patterns)
         
         if is_lora:
-            param.requires_grad = True
-            trainable_count += 1
-            print(f"[DEBUG] ✅ Trainable LoRA param: {name} (shape: {param.shape})")
+            # CRITICAL: Debug parameter details before setting gradients
+            print(f"[DEBUG] Found LoRA parameter: {name}")
+            print(f"[DEBUG]   Shape: {param.shape}")
+            print(f"[DEBUG]   Dtype: {param.dtype}")
+            print(f"[DEBUG]   Is floating point: {param.dtype.is_floating_point}")
+            
+            # CRITICAL: Only set gradients on floating-point parameters
+            if param.dtype.is_floating_point:
+                param.requires_grad = True
+                trainable_count += 1
+                print(f"[DEBUG] ✅ Trainable LoRA param: {name} (shape: {param.shape}, dtype: {param.dtype})")
+            else:
+                quantized_params_skipped += 1
+                print(f"[WARNING] Skipping quantized LoRA param: {name} (dtype: {param.dtype})")
+                print(f"[WARNING] This LoRA parameter is quantized and cannot have gradients!")
         else:
-            param.requires_grad = False
+            # Never touch quantized base weights - only set requires_grad on floating point
+            if param.dtype.is_floating_point:
+                param.requires_grad = False
     
     # If no LoRA parameters found, print all parameter names for debugging
     if trainable_count == 0:
@@ -236,9 +252,21 @@ def load_model_with_problora(config):
             if any(pattern in name for pattern in broader_patterns):
                 # Additional checks to avoid unfreezing all weights
                 if 'lora' in name.lower() or 'adapter' in name.lower() or (len(param.shape) == 2 and min(param.shape) <= 64):
-                    param.requires_grad = True
-                    trainable_count += 1
-                    print(f"[DEBUG] ✅ Alternative LoRA param: {name} (shape: {param.shape})")
+                    # CRITICAL: Debug parameter details before setting gradients
+                    print(f"[DEBUG] Checking parameter: {name}")
+                    print(f"[DEBUG]   Shape: {param.shape}")
+                    print(f"[DEBUG]   Dtype: {param.dtype}")
+                    print(f"[DEBUG]   Is floating point: {param.dtype.is_floating_point}")
+                    
+                    # CRITICAL: Only set gradients on floating-point parameters
+                    if param.dtype.is_floating_point:
+                        param.requires_grad = True
+                        trainable_count += 1
+                        print(f"[DEBUG] ✅ Alternative LoRA param: {name} (shape: {param.shape}, dtype: {param.dtype})")
+                    else:
+                        quantized_params_skipped += 1
+                        print(f"[WARNING] Skipping quantized alternative param: {name} (dtype: {param.dtype})")
+                        print(f"[WARNING] This LoRA parameter is quantized and cannot have gradients!")
     
     if trainable_count == 0:
         raise RuntimeError("No trainable LoRA parameters found! Check ProbLoRA injection and parameter naming.")
@@ -247,6 +275,8 @@ def load_model_with_problora(config):
     total_params = sum(p.numel() for p in model.parameters())
     print(f"[INFO] Trainable: {trainable_params:,} / {total_params:,} ({100*trainable_params/total_params:.1f}%)")
     print(f"[INFO] Found {trainable_count} trainable LoRA parameter groups")
+    if quantized_params_skipped > 0:
+        print(f"[INFO] Skipped {quantized_params_skipped} quantized parameters (cannot require gradients)")
     
     # Ensure model is in training mode
     model.train()
