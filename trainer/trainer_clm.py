@@ -93,27 +93,24 @@ class ARDCLMTrainer(Trainer):
         # Forward pass
         outputs = model(**inputs)
         
-        # Compute base loss (causal LM loss)
-        if hasattr(outputs, 'loss') and outputs.loss is not None:
-            ce_loss = outputs.loss
+        # Compute base loss (causal LM loss) - ALWAYS use manual computation for proper gradients
+        # Manual causal LM loss computation to ensure gradient flow
+        logits = outputs.logits
+        if labels is not None:
+            # Shift so that tokens < n predict n
+            shift_logits = logits[..., :-1, :].contiguous()
+            shift_labels = labels[..., 1:].contiguous()
+            # Flatten the tokens
+            loss_fct = torch.nn.CrossEntropyLoss()
+            shift_logits = shift_logits.view(-1, shift_logits.size(-1))
+            shift_labels = shift_labels.view(-1)
+            # Enable model parallelism
+            shift_labels = shift_labels.to(shift_logits.device)
+            ce_loss = loss_fct(shift_logits, shift_labels)
         else:
-            # Manual causal LM loss computation
-            logits = outputs.logits
-            if labels is not None:
-                # Shift so that tokens < n predict n
-                shift_logits = logits[..., :-1, :].contiguous()
-                shift_labels = labels[..., 1:].contiguous()
-                # Flatten the tokens
-                loss_fct = torch.nn.CrossEntropyLoss()
-                shift_logits = shift_logits.view(-1, shift_logits.size(-1))
-                shift_labels = shift_labels.view(-1)
-                # Enable model parallelism
-                shift_labels = shift_labels.to(shift_logits.device)
-                ce_loss = loss_fct(shift_logits, shift_labels)
-            else:
-                # GRADIENT FIX: Create tensor with gradient requirements from model parameters
-                model_param = next(model.parameters())
-                ce_loss = torch.zeros(1, device=outputs.logits.device, requires_grad=True) + model_param.sum() * 0.0
+            # GRADIENT FIX: Create tensor with gradient requirements from model parameters
+            model_param = next(model.parameters())
+            ce_loss = torch.zeros(1, device=outputs.logits.device, requires_grad=True) + model_param.sum() * 0.0
 
         # GRADIENT FIX: Initialize KL as tensor with gradient requirements from model parameters
         # Find a parameter tensor to get device and grad requirements
