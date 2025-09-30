@@ -51,7 +51,7 @@ def _merge_config(defaults: dict):
 def _validate_config_types(config):
     """Validate and fix data types for critical configuration parameters"""
     # Ensure numeric parameters are correct types
-    float_params = ["learning_rate", "kl_loss_beta", "prior_var", "warmup_ratio", "weight_decay", "scaling"]
+    float_params = ["learning_rate", "kl_loss_beta", "warmup_ratio", "weight_decay", "scaling"]
     int_params = ["rank", "batch_size", "train_epochs", "max_len", "ard_prior_samples", 
                   "uncertainty_eval_samples", "uncertainty_n_bins", "gradient_accumulation_steps",
                   "runId", "num_labels", "max_validation_samples", "plot_start_epoch", "plot_interval"]
@@ -198,7 +198,6 @@ def load_model_with_problora(config):
         model,
         rank=config.get("rank", 64),
         scaling=config.get("scaling", 1.0),
-        prior_var=config.get("prior_var", 1.0),
         num_tokens=config.get("max_len", 2048),
         ard_prior_samples=config.get("ard_prior_samples", 1000)
     )

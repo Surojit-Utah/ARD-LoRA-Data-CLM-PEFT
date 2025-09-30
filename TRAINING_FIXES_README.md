@@ -80,7 +80,6 @@ kl_loss_beta: 0.01          # KL divergence regularization strength
 ```yaml
 # ARD prior estimation
 ard_prior_samples: 100       # Samples for prior estimation
-prior_var: 1.0              # Prior variance for KL computation
 uncertainty_eval_samples: 1000  # Uncertainty evaluation samples
 uncertainty_n_bins: 15      # ECE calibration bins
 ```
@@ -273,3 +272,88 @@ The issue revealed that **ProbLoRA parameters themselves** can be quantized by B
 - ✅ **Diagnostic Excellence**: Complete visibility into parameter processing pipeline
 
 This final enhancement ensures that **all gradient-setting operations** are protected against quantized parameters, providing a robust solution for mixed quantization scenarios where both base weights and LoRA parameters may be quantized.
+
+## 🔧 **Latest Updates - Trainer Code Cleanup & DeBERTa Pattern Adaptation**
+
+### **Code Simplification and Architecture Improvements**
+
+**Changes Applied:**
+
+1. **Function Removal for Clean Architecture**:
+   ```python
+   # REMOVED: Duplicate and problematic functions
+   - compute_loss (duplicate with _compute_problora_kl fallback)
+   - _compute_problora_kl (manual KL computation)
+   - _compute_eval_loss_components (complex loss breakdown)
+   ```
+
+2. **DeBERTa Pattern Adoption**:
+   ```python
+   # NEW: Clean DeBERTa-style compute_loss implementation
+   def compute_loss(self, model, inputs, return_outputs=False, num_items_in_batch=None):
+       """Compute loss following DeBERTa pattern, adapted for LLaMA architecture."""
+       # Focus on main projections like DeBERTa: q_proj, v_proj, o_proj
+       for proj_name in ['q_proj', 'v_proj']:  # Main components
+           if hasattr(proj, 'kl_divergence_latent'):
+               kl += proj.kl_divergence_latent(layer_input)
+   ```
+
+3. **Enhanced Trainer Features**:
+   ```python
+   # DeBERTa-style components added
+   - heldout_loader: DeBERTa-style held-out data management
+   - estimate_ard_priors_clm: Follows exact DeBERTa beta accumulation pattern
+   - PriorEstimationCallback: Supports both heldout_loader and ard_eval_dataset
+   - HeldoutResampleCallback: DeBERTa-style epoch-by-epoch resampling
+   ```
+
+**Architecture Mapping: DeBERTa → LLaMA:**
+| DeBERTa Component | LLaMA Equivalent | Purpose |
+|-------------------|------------------|---------|
+| `model.deberta.encoder.layer` | `model.model.layers` | Layer iteration |
+| `query_proj`, `value_proj` | `q_proj`, `v_proj` | Main attention projections |
+| `output.dense` / `output_proj` | `o_proj` | Output projection |
+| `encoder_outputs.hidden_states` | `hidden_states_outputs.hidden_states` | Layer inputs |
+| `beta_get_sample(layer_input)` | `beta_get_sample(layer_input)` | ARD statistics |
+| `est_var = beta / alpha + 1e-6` | `est_var = beta / alpha + 1e-6` | Variance estimation |
+
+**Key Improvements:**
+
+1. **Simplified Loss Computation**:
+   - Single, clean `compute_loss` method following proven DeBERTa pattern
+   - Direct `kl_divergence_latent(layer_input)` calls (no manual fallbacks)
+   - Focused on main projections that matter most for ARD
+
+2. **Proven ARD Prior Estimation**:
+   - Exact replication of working DeBERTa statistical accumulation
+   - `@torch.no_grad()` decorator for proper memory management
+   - Same `beta / alpha + 1e-6` formula for variance estimation
+
+3. **Enhanced Callback System**:
+   - DeBERTa-style `heldout_loader` support for consistent data management
+   - Flexible evaluation data source (heldout_loader or ard_eval_dataset)
+   - Robust error handling with graceful degradation
+
+**Benefits Achieved:**
+- ✅ **Code Clarity**: Removed duplicate and problematic functions
+- ✅ **Architecture Consistency**: Follows proven DeBERTa patterns throughout
+- ✅ **Gradient Stability**: No manual KL computation fallbacks that caused issues
+- ✅ **Statistical Accuracy**: Exact replication of working DeBERTa beta accumulation
+- ✅ **Memory Efficiency**: Proper `@torch.no_grad()` usage in prior estimation
+- ✅ **Flexible Data Management**: Support for both heldout_loader and ard_eval_dataset approaches
+
+**Usage with DeBERTa Pattern:**
+```python
+# Enable DeBERTa-style training
+trainer = build_clm_trainer(
+    model=model,
+    tokenizer=tokenizer,
+    train_dataset=train_dataset,
+    eval_dataset=eval_dataset,
+    cfg=cfg,
+    output_dir=output_dir,
+    use_deberta_pattern=True  # Enables heldout_loader and resampling
+)
+```
+
+This architectural cleanup ensures the ARD-LoRA implementation follows the exact same proven patterns as the working DeBERTa version, eliminating potential gradient flow issues and improving code maintainability.

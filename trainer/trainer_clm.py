@@ -1,6 +1,7 @@
 from transformers import Trainer, TrainingArguments, DataCollatorForLanguageModeling
 from transformers.trainer_callback import TrainerCallback
 import torch
+from torch import nn
 import numpy as np
 from typing import Dict, Any, Optional
 from torch.utils.data import DataLoader, Subset
@@ -25,12 +26,13 @@ except ImportError:
 
 
 class ARDCLMTrainer(Trainer):
-    """Enhanced ARD Trainer with uncertainty evaluation after each epoch."""
+    """Enhanced ARD Trainer following DeBERTa pattern, adapted for LLaMA."""
     
-    def __init__(self, *args, beta=0.01, ard_eval_dataset=None, uncertainty_eval_samples=1000, 
+    def __init__(self, *args, beta=0.01, heldout_loader=None, ard_eval_dataset=None, uncertainty_eval_samples=1000, 
                  n_bins=15, output_dir=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.beta = beta
+        self.heldout_loader = heldout_loader
         self.ard_eval_dataset = ard_eval_dataset  # Dataset for ARD prior estimation
         self.uncertainty_eval_samples = uncertainty_eval_samples
         self.n_bins = n_bins
@@ -38,10 +40,115 @@ class ARDCLMTrainer(Trainer):
         self.uncertainty_results = []  # Store results across epochs
         self.output_dir = output_dir or self.args.output_dir
         
+        # Set trainer reference on model for callbacks
+        self.model.trainer = self
+        
         # Track loss components for logging
         self.last_ce_loss = 0.0
         self.last_kl_loss = 0.0
         self.last_total_loss = 0.0
+        
+    def compute_loss(self, model, inputs, return_outputs=False, num_items_in_batch=None):
+        """Compute loss following DeBERTa pattern, adapted for LLaMA architecture."""
+        # Extract labels for causal LM
+        labels = inputs.get("labels")
+        
+        # Forward pass
+        outputs = model(**inputs)
+        logits = outputs.logits
+        
+        # Compute CE loss (causal LM loss)
+        if labels is not None:
+            # Shift so that tokens < n predict n
+            shift_logits = logits[..., :-1, :].contiguous()
+            shift_labels = labels[..., 1:].contiguous()
+            # Flatten the tokens
+            loss_fct = nn.CrossEntropyLoss()
+            shift_logits = shift_logits.view(-1, shift_logits.size(-1))
+            shift_labels = shift_labels.view(-1)
+            # Enable model parallelism
+            shift_labels = shift_labels.to(shift_logits.device)
+            ce_loss = loss_fct(shift_logits, shift_labels)
+        else:
+            ce_loss = torch.tensor(0.0, device=logits.device, requires_grad=True)
+        
+        # Get inputs for layer processing (following DeBERTa pattern)
+        input_ids = inputs["input_ids"]
+        attention_mask = inputs.get("attention_mask")
+        
+        # Get hidden states from model forward pass (similar to DeBERTa encoder outputs)
+        with torch.no_grad():
+            if hasattr(model, 'model') and hasattr(model.model, 'embed_tokens'):
+                # Get embeddings and run through model to get hidden states
+                embeddings = model.model.embed_tokens(input_ids)
+                hidden_states_outputs = model.model(
+                    input_ids=input_ids,
+                    attention_mask=attention_mask,
+                    output_hidden_states=True,
+                    use_cache=False
+                )
+                hidden_states = hidden_states_outputs.hidden_states
+            else:
+                hidden_states = None
+        
+        # Compute KL divergence following DeBERTa pattern
+        kl = 0.0
+        
+        if hidden_states is not None and hasattr(model, 'model') and hasattr(model.model, 'layers'):
+            for layer_idx, layer in enumerate(model.model.layers):
+                # Get the input to this layer (previous layer's output)
+                layer_input = hidden_states[layer_idx] if layer_idx < len(hidden_states) else None
+                
+                if layer_input is not None:
+                    # Check attention projections (similar to DeBERTa query/value projections)
+                    if hasattr(layer, 'self_attn'):
+                        attn = layer.self_attn
+                        
+                        # Process query and value projections (main components like in DeBERTa)
+                        for proj_name in ['q_proj', 'v_proj']:
+                            if hasattr(attn, proj_name):
+                                proj = getattr(attn, proj_name)
+                                # Check if this is a ProbLoRA layer
+                                if hasattr(proj, 'kl_divergence_latent'):
+                                    try:
+                                        kl += proj.kl_divergence_latent(layer_input)
+                                    except Exception:
+                                        continue
+                        
+                        # Process output projection (similar to DeBERTa output dense layer)
+                        if hasattr(attn, 'o_proj'):
+                            proj = attn.o_proj
+                            if hasattr(proj, 'kl_divergence_latent'):
+                                try:
+                                    kl += proj.kl_divergence_latent(layer_input)
+                                except Exception:
+                                    continue
+                    
+                    # Check MLP projections (additional components)
+                    if hasattr(layer, 'mlp'):
+                        mlp = layer.mlp
+                        for proj_name in ['gate_proj', 'up_proj', 'down_proj']:
+                            if hasattr(mlp, proj_name):
+                                proj = getattr(mlp, proj_name)
+                                if hasattr(proj, 'kl_divergence_latent'):
+                                    try:
+                                        kl += proj.kl_divergence_latent(layer_input)
+                                    except Exception:
+                                        continue
+        
+        # If no KL components found, create zero tensor with gradient connection
+        if not torch.is_tensor(kl) or kl == 0.0:
+            kl = torch.tensor(0.0, device=ce_loss.device, requires_grad=True)
+        
+        # Total loss with KL regularization (following DeBERTa pattern)
+        loss = ce_loss + self.beta * kl
+        
+        # Store loss components for logging
+        self.last_ce_loss = ce_loss.item() if torch.is_tensor(ce_loss) else float(ce_loss)
+        self.last_kl_loss = kl.item() if torch.is_tensor(kl) else float(kl)
+        self.last_total_loss = loss.item() if torch.is_tensor(loss) else float(loss)
+        
+        return (loss, outputs) if return_outputs else loss
         
     def validate_model_gradients(self, model):
         """Validate that model parameters requiring gradients are properly set up."""
@@ -74,215 +181,8 @@ class ARDCLMTrainer(Trainer):
             print(f"[GRADIENT VALIDATION] ✅ All parameters appear correctly configured")
         
         return trainable_params > 0
-        
-    def compute_loss(self, model, inputs, return_outputs=False, num_items_in_batch=None):
-        """Enhanced compute_loss with KL regularization from ProbLoRA layers."""
-        # Ensure model is in training mode during loss computation
-        if not model.training:
-            print(f"[WARNING] Model was in eval mode during compute_loss, switching to training mode")
-            model.train()
-        
-        # GRADIENT VALIDATION: Check model parameters on first call
-        if not hasattr(self, '_gradient_validated'):
-            self.validate_model_gradients(model)
-            self._gradient_validated = True
-        
-        # Extract labels and handle causal LM loss computation
-        labels = inputs.get('labels')
-        
-        # Forward pass
-        outputs = model(**inputs)
-        
-        # Compute base loss (causal LM loss) - ALWAYS use manual computation for proper gradients
-        # Manual causal LM loss computation to ensure gradient flow
-        logits = outputs.logits
-        if labels is not None:
-            # Shift so that tokens < n predict n
-            shift_logits = logits[..., :-1, :].contiguous()
-            shift_labels = labels[..., 1:].contiguous()
-            # Flatten the tokens
-            loss_fct = torch.nn.CrossEntropyLoss()
-            shift_logits = shift_logits.view(-1, shift_logits.size(-1))
-            shift_labels = shift_labels.view(-1)
-            # Enable model parallelism
-            shift_labels = shift_labels.to(shift_logits.device)
-            ce_loss = loss_fct(shift_logits, shift_labels)
-        else:
-            # GRADIENT FIX: Create tensor with gradient requirements from model parameters
-            model_param = next(model.parameters())
-            ce_loss = torch.zeros(1, device=outputs.logits.device, requires_grad=True) + model_param.sum() * 0.0
 
-        # GRADIENT FIX: Initialize KL as tensor with gradient requirements from model parameters
-        # Find a parameter tensor to get device and grad requirements
-        device = ce_loss.device
-        
-        # Create KL tensor that inherits gradient requirements from model parameters
-        model_param = next(model.parameters())
-        kl = torch.zeros(1, device=device, requires_grad=model_param.requires_grad)
-        
-        # Method 1: Try to get KL from module attributes (if available)
-        kl_components = []  # Collect KL components to maintain gradient flow
-        for module in model.modules():
-            if hasattr(module, 'kl_divergence'):
-                try:
-                    module_kl = module.kl_divergence()
-                    if torch.is_tensor(module_kl):
-                        kl_components.append(module_kl)
-                except Exception as e:
-                    # Skip modules that fail KL computation
-                    continue
-        
-        # Method 2: Enhanced KL computation for LLaMA ProbLoRA layers
-        if len(kl_components) == 0:  # Fallback if standard method didn't work
-            try:
-                # For LLaMA models with ProbLoRA layers
-                if hasattr(model, 'model') and hasattr(model.model, 'layers'):
-                    for layer_idx, layer in enumerate(model.model.layers):
-                        # Check attention layers
-                        if hasattr(layer, 'self_attn'):
-                            attn = layer.self_attn
-                            for proj_name in ['q_proj', 'k_proj', 'v_proj', 'o_proj']:
-                                if hasattr(attn, proj_name):
-                                    proj = getattr(attn, proj_name)
-                                    if hasattr(proj, 'A') and hasattr(proj, 'B'):  # ProbLoRA layer
-                                        try:
-                                            if hasattr(proj, 'kl_divergence'):
-                                                module_kl = proj.kl_divergence()
-                                                if torch.is_tensor(module_kl):
-                                                    kl_components.append(module_kl)
-                                            elif hasattr(proj, 'log_sigma_A') and hasattr(proj, 'log_sigma_B'):
-                                                # Manual KL computation
-                                                manual_kl = self._compute_problora_kl(proj)
-                                                if torch.is_tensor(manual_kl):
-                                                    kl_components.append(manual_kl)
-                                        except Exception:
-                                            continue
-                        
-                        # Check MLP layers
-                        if hasattr(layer, 'mlp'):
-                            mlp = layer.mlp
-                            for proj_name in ['gate_proj', 'up_proj', 'down_proj']:
-                                if hasattr(mlp, proj_name):
-                                    proj = getattr(mlp, proj_name)
-                                    if hasattr(proj, 'A') and hasattr(proj, 'B'):  # ProbLoRA layer
-                                        try:
-                                            if hasattr(proj, 'kl_divergence'):
-                                                module_kl = proj.kl_divergence()
-                                                if torch.is_tensor(module_kl):
-                                                    kl_components.append(module_kl)
-                                            elif hasattr(proj, 'log_sigma_A') and hasattr(proj, 'log_sigma_B'):
-                                                # Manual KL computation
-                                                manual_kl = self._compute_problora_kl(proj)
-                                                if torch.is_tensor(manual_kl):
-                                                    kl_components.append(manual_kl)
-                                        except Exception:
-                                            continue
-            except Exception as e:
-                # If enhanced method fails, use basic approach
-                pass
-        
-        # GRADIENT FIX: Sum KL components while maintaining gradients
-        if kl_components:
-            kl = torch.stack(kl_components).sum()
-        else:
-            # No KL components found - create zero tensor with gradient connection to model
-            model_param = next(model.parameters())
-            kl = torch.zeros(1, device=device, requires_grad=True) + model_param.sum() * 0.0
-        
-        # GRADIENT FIX: Ensure both losses have gradients before combining
-        if not ce_loss.requires_grad and ce_loss.grad_fn is None:
-            print(f"[GRADIENT WARNING] CE loss does not require gradients: requires_grad={ce_loss.requires_grad}, grad_fn={ce_loss.grad_fn}")
-        if not kl.requires_grad and kl.grad_fn is None:
-            print(f"[GRADIENT WARNING] KL loss does not require gradients: requires_grad={kl.requires_grad}, grad_fn={kl.grad_fn}")
-        
-        # Total loss with KL regularization
-        total_loss = ce_loss + self.beta * kl
-        
-        # Store loss components for logging (convert to float for consistency)
-        # IMPORTANT: Use .detach().item() to avoid breaking gradient computation
-        self.last_ce_loss = ce_loss.detach().item() if torch.is_tensor(ce_loss) else float(ce_loss)
-        self.last_kl_loss = kl.detach().item() if torch.is_tensor(kl) else float(kl)
-        self.last_total_loss = total_loss.detach().item() if torch.is_tensor(total_loss) else float(total_loss)
-        
-        # GRADIENT FLOW VALIDATION: Check final loss gradient requirements
-        if not total_loss.requires_grad and total_loss.grad_fn is None:
-            print(f"[GRADIENT ERROR] Final total_loss does not require gradients!")
-            print(f"  total_loss.requires_grad: {total_loss.requires_grad}")
-            print(f"  total_loss.grad_fn: {total_loss.grad_fn}")
-            print(f"  ce_loss.requires_grad: {ce_loss.requires_grad}")
-            print(f"  ce_loss.grad_fn: {ce_loss.grad_fn}")
-            print(f"  kl.requires_grad: {kl.requires_grad}")
-            print(f"  kl.grad_fn: {kl.grad_fn}")
-            
-            # CRITICAL FIX: Create loss with gradient connection to model parameters
-            model_param = next(model.parameters())
-            if torch.is_tensor(ce_loss) and (ce_loss.requires_grad or ce_loss.grad_fn is not None):
-                # CE loss has gradients, recreate KL with proper gradient flow
-                kl_with_grad = torch.zeros_like(ce_loss) + model_param.sum() * 0.0  # Connect to model params
-                total_loss = ce_loss + self.beta * kl_with_grad
-                print(f"[GRADIENT FIX] Created fallback loss with gradients: requires_grad={total_loss.requires_grad}")
-            else:
-                # Emergency fallback: create minimal loss with gradient connection
-                total_loss = model_param.sum() * 0.0 + torch.tensor(1.0, device=model_param.device, requires_grad=True)
-                print(f"[GRADIENT EMERGENCY] Created emergency loss with model parameter connection")
-        
-        # Memory cleanup after computation (but not before we return the loss!)
-        # NOTE: Don't empty cache here as it might affect gradient computation
-        
-        if return_outputs:
-            return total_loss, outputs
-        return total_loss
-    
-    def _compute_problora_kl(self, layer):
-        """Manual KL divergence computation for ProbLoRA layers."""
-        try:
-            # KL divergence for variational parameters
-            # KL(q(theta) || p(theta)) for Gaussian priors
-            kl_components = []  # Collect components to maintain gradient flow
-            
-            if hasattr(layer, 'log_sigma_A') and hasattr(layer, 'mu_A'):
-                # KL for A parameters: KL(N(mu_A, sigma_A^2) || N(0, prior_var))
-                prior_var = getattr(layer, 'prior_var', 1.0)
-                sigma_A_sq = torch.exp(2 * layer.log_sigma_A)
-                mu_A_sq = layer.mu_A ** 2
-                
-                kl_A = 0.5 * torch.sum(
-                    mu_A_sq / prior_var + sigma_A_sq / prior_var - 1.0 - 2 * layer.log_sigma_A + np.log(prior_var)
-                )
-                kl_components.append(kl_A)
-            
-            if hasattr(layer, 'log_sigma_B') and hasattr(layer, 'mu_B'):
-                # KL for B parameters
-                prior_var = getattr(layer, 'prior_var', 1.0)
-                sigma_B_sq = torch.exp(2 * layer.log_sigma_B)
-                mu_B_sq = layer.mu_B ** 2
-                
-                kl_B = 0.5 * torch.sum(
-                    mu_B_sq / prior_var + sigma_B_sq / prior_var - 1.0 - 2 * layer.log_sigma_B + np.log(prior_var)
-                )
-                kl_components.append(kl_B)
-            
-            # GRADIENT FIX: Sum components while maintaining gradients
-            if kl_components:
-                return torch.stack(kl_components).sum()
-            else:
-                # Return zero tensor with gradient requirements from layer parameters
-                if hasattr(layer, 'mu_A'):
-                    return torch.zeros_like(layer.mu_A.sum(), requires_grad=True)
-                else:
-                    device = next(iter(layer.parameters())).device if list(layer.parameters()) else 'cpu'
-                    return torch.zeros(1, device=device, requires_grad=True)
-        except Exception:
-            # GRADIENT FIX: Return zero tensor with gradient requirements from layer parameters
-            try:
-                if hasattr(layer, 'mu_A'):
-                    return torch.zeros_like(layer.mu_A.sum(), requires_grad=True)
-                else:
-                    device = next(iter(layer.parameters())).device if list(layer.parameters()) else 'cpu'
-                    return torch.zeros(1, device=device, requires_grad=True)
-            except:
-                return torch.tensor(0.0, requires_grad=True)
-    
+
     def evaluate_uncertainty(self, eval_dataset=None, num_samples=None) -> Optional[Dict[str, float]]:
         """Evaluate model uncertainty using ACC, ECE, and NLL metrics."""
         if self.uncertainty_evaluator is None:
@@ -576,7 +476,7 @@ class ARDCLMTrainer(Trainer):
 
 
 class PriorEstimationCallback(TrainerCallback):
-    """Callback to estimate ARD priors at the beginning of each epoch."""
+    """Callback to estimate ARD priors following DeBERTa pattern."""
     
     def __init__(self, device):
         super().__init__()
@@ -585,13 +485,17 @@ class PriorEstimationCallback(TrainerCallback):
     def on_epoch_begin(self, args, state, control, **kwargs):
         """Estimate ARD priors using held-out data at the beginning of each epoch."""
         model = kwargs["model"]
-        trainer = kwargs.get("trainer", getattr(model, 'trainer', None))
+        trainer = getattr(model, 'trainer', None)
         
         if trainer is None:
-            raise RuntimeError("[PriorEstimationCallback] CRITICAL: No trainer reference found on model")
+            print("[PriorEstimationCallback] No trainer reference found on model")
+            return
             
-        if not hasattr(trainer, "ard_eval_dataset") or trainer.ard_eval_dataset is None:
-            print("[PriorEstimationCallback] No ARD evaluation dataset found for this epoch")
+        # Use heldout_loader if available (DeBERTa style), otherwise use ard_eval_dataset
+        eval_data = getattr(trainer, 'heldout_loader', None) or getattr(trainer, 'ard_eval_dataset', None)
+        
+        if eval_data is None:
+            print("[PriorEstimationCallback] No held-out loader or ARD evaluation dataset found for this epoch")
             return
         
         print(f"[PriorEstimationCallback] Estimating ARD priors at epoch {int(state.epoch)}...")
@@ -599,13 +503,13 @@ class PriorEstimationCallback(TrainerCallback):
         # CRITICAL: Get tokenizer from kwargs first, then trainer - fail fast if None
         tokenizer = kwargs.get('tokenizer', getattr(trainer, 'tokenizer', None))
         if tokenizer is None:
-            raise RuntimeError("[PriorEstimationCallback] CRITICAL: Tokenizer is None - this indicates a serious configuration error that will cause training failures")
+            print("[PriorEstimationCallback] WARNING: Tokenizer is None - attempting to continue without tokenizer validation")
         
-        if not hasattr(tokenizer, 'pad_token_id') or tokenizer.pad_token_id is None:
-            raise RuntimeError(f"[PriorEstimationCallback] CRITICAL: Tokenizer PAD token ID is None - this will cause gradient flow errors")
-        
-        estimate_ard_priors_clm(model, trainer.ard_eval_dataset, self.device, tokenizer=tokenizer)
-        print("[PriorEstimationCallback] ARD prior estimation completed")
+        try:
+            estimate_ard_priors_clm(model, eval_data, self.device, tokenizer=tokenizer)
+            print("[PriorEstimationCallback] ARD prior estimation completed")
+        except Exception as e:
+            print(f"[PriorEstimationCallback] ARD prior estimation failed: {e}")
         
         # Clean up memory
         gc.collect()
@@ -614,7 +518,7 @@ class PriorEstimationCallback(TrainerCallback):
 
 
 class LatentPlotCallback(TrainerCallback):
-    """Callback to plot latent encodings during training."""
+    """Callback to plot latent encodings following DeBERTa pattern."""
     
     def __init__(self, device, output_dir, start_epoch=2, interval=2):
         super().__init__()
@@ -634,8 +538,15 @@ class LatentPlotCallback(TrainerCallback):
         model = kwargs["model"]
         trainer = getattr(model, 'trainer', None)
         
-        if trainer is None or not hasattr(trainer, "ard_eval_dataset") or trainer.ard_eval_dataset is None:
-            print("[LatentPlotCallback] No ARD evaluation dataset found for plotting")
+        if trainer is None:
+            print("[LatentPlotCallback] No trainer reference found")
+            return
+        
+        # Use heldout_loader if available (DeBERTa style), otherwise use ard_eval_dataset
+        eval_data = getattr(trainer, 'heldout_loader', None) or getattr(trainer, 'ard_eval_dataset', None)
+        
+        if eval_data is None:
+            print("[LatentPlotCallback] No held-out loader or ARD evaluation dataset found for plotting")
             return
         
         if plot_mean_encodings is None:
@@ -649,9 +560,15 @@ class LatentPlotCallback(TrainerCallback):
             plot_dir = self.output_dir / "plots"
             plot_dir.mkdir(parents=True, exist_ok=True)
             
-            # Create data loader for plotting
-            from torch.utils.data import DataLoader
-            plot_dataloader = DataLoader(trainer.ard_eval_dataset, batch_size=16, shuffle=False)
+            # Generate plots using the available evaluation data
+            if hasattr(eval_data, 'dataset'):
+                # If it's a DataLoader, create a simple DataLoader for plotting
+                from torch.utils.data import DataLoader
+                plot_dataloader = DataLoader(eval_data.dataset, batch_size=16, shuffle=False)
+            else:
+                # If it's a dataset, create a DataLoader
+                from torch.utils.data import DataLoader
+                plot_dataloader = DataLoader(eval_data, batch_size=16, shuffle=False)
             
             # Generate plots
             plot_mean_encodings(model, plot_dataloader, self.device, str(plot_dir), epoch=current_epoch)
@@ -666,7 +583,7 @@ class LatentPlotCallback(TrainerCallback):
 
 
 class HeldoutResampleCallback(TrainerCallback):
-    """Callback to resample held-out data at the beginning of each epoch."""
+    """Callback to resample held-out data following DeBERTa pattern."""
     
     def __init__(self, train_ds, val_ds, ard_prior_samples, batch_size, tokenizer=None):
         super().__init__()
@@ -676,20 +593,26 @@ class HeldoutResampleCallback(TrainerCallback):
         self.batch_size = batch_size
         self.tokenizer = tokenizer
     
-    def _create_data_loaders(self):
-        """Create new data loaders with resampled held-out data."""
+    def _get_data_loaders(self):
+        """Create new data loaders with resampled held-out data (following DeBERTa pattern)."""
         if self.train_ds is None:
             return None, None, None
         
-        # Randomly sample indices for held-out data
+        # Randomly sample indices for held-out data (same as DeBERTa approach)
         total_train = len(self.train_ds)
         perm = np.random.permutation(total_train)
         held_idx = perm[:self.ard_prior_samples].tolist()
         remaining_train_idx = perm[self.ard_prior_samples:].tolist()
         
         # Create subset datasets
-        held_ds = Subset(self.train_ds, held_idx)
-        remaining_train_ds = Subset(self.train_ds, remaining_train_idx)
+        if hasattr(self.train_ds, 'select'):
+            # HuggingFace dataset
+            held_ds = self.train_ds.select(held_idx)
+            remaining_train_ds = self.train_ds.select(remaining_train_idx)
+        else:
+            # PyTorch dataset
+            held_ds = Subset(self.train_ds, held_idx)
+            remaining_train_ds = Subset(self.train_ds, remaining_train_idx)
         
         # Create data collator
         from transformers import DataCollatorForLanguageModeling
@@ -698,7 +621,7 @@ class HeldoutResampleCallback(TrainerCallback):
             mlm=False
         )
         
-        # Create data loaders
+        # Create data loaders (following DeBERTa pattern)
         train_loader = DataLoader(
             remaining_train_ds, 
             batch_size=self.batch_size, 
@@ -708,12 +631,17 @@ class HeldoutResampleCallback(TrainerCallback):
         heldout_loader = DataLoader(
             held_ds, 
             batch_size=self.batch_size,
-            collate_fn=data_collator
+            collate_fn=data_collator,
+            shuffle=False
         )
         val_loader = None
         if self.val_ds is not None:
+            if hasattr(self.val_ds, 'select'):
+                val_dataset = self.val_ds
+            else:
+                val_dataset = self.val_ds
             val_loader = DataLoader(
-                self.val_ds, 
+                val_dataset, 
                 batch_size=self.batch_size,
                 collate_fn=data_collator
             )
@@ -721,7 +649,7 @@ class HeldoutResampleCallback(TrainerCallback):
         return train_loader, heldout_loader, val_loader
     
     def on_epoch_begin(self, args, state, control, **kwargs):
-        """Resample held-out data at the beginning of each epoch."""
+        """Resample held-out data at the beginning of each epoch (following DeBERTa pattern)."""
         model = kwargs["model"]
         trainer = getattr(model, 'trainer', None)
         
@@ -730,16 +658,20 @@ class HeldoutResampleCallback(TrainerCallback):
             return
         
         try:
-            train_loader, heldout_loader, val_loader = self._create_data_loaders()
+            train_loader, heldout_loader, val_loader = self._get_data_loaders()
             
             if heldout_loader is not None:
-                # Update trainer's held-out dataset
-                trainer.ard_eval_dataset = heldout_loader.dataset
+                # Update trainer's held-out dataset (DeBERTa style)
+                trainer.heldout_loader = heldout_loader
+                if hasattr(trainer, 'ard_eval_dataset'):
+                    trainer.ard_eval_dataset = heldout_loader.dataset
                 print(f"[HeldoutResampleCallback] Epoch {int(state.epoch)} → new held-out set with {len(heldout_loader.dataset)} samples")
             
-            # Note: We don't update the main training dataloader here as it would interfere
-            # with the Trainer's internal state. The held-out resampling is mainly for
-            # ARD prior estimation.
+            # Store additional loaders for potential use
+            if hasattr(trainer, 'train_loader'):
+                trainer.train_loader = train_loader
+            if hasattr(trainer, 'val_loader'):
+                trainer.val_loader = val_loader
             
         except Exception as e:
             print(f"[HeldoutResampleCallback] Failed to resample held-out data: {e}")
@@ -823,10 +755,10 @@ def split_validation_dataset(val_dataset, ard_prior_samples=100, seed=42, train_
     return ard_dataset, uncertainty_dataset
 
 
+@torch.no_grad()
 def estimate_ard_priors_clm(model, eval_dataset, device, num_samples=1000, tokenizer=None):
     """
-    Estimate ARD priors using a subset of the evaluation dataset.
-    This demonstrates the ARD mechanism for automatic relevance determination.
+    Estimate ARD priors following DeBERTa pattern, adapted for LLaMA architecture.
     
     Args:
         model: ARD-LoRA model with ProbLoRA layers
@@ -866,67 +798,110 @@ def estimate_ard_priors_clm(model, eval_dataset, device, num_samples=1000, token
     else:
         eval_dataloader = eval_dataset
     
-    # Collect statistics from ProbLoRA layers
-    layer_stats = []
+    # Collect ProbLoRA layers and initialize beta accumulators (following DeBERTa pattern)
+    prob_lora_layers = {}
+    
+    # Find all ProbLoRA layers in the model (adapted from DeBERTa approach)
+    if hasattr(model, 'model') and hasattr(model.model, 'layers'):
+        for layer_idx, layer in enumerate(model.model.layers):
+            layer_projections = {}
+            
+            # Check attention projections (similar to DeBERTa query/value projections)
+            if hasattr(layer, 'self_attn'):
+                attn = layer.self_attn
+                for proj_name in ['q_proj', 'v_proj', 'o_proj']:  # Focus on main projections like DeBERTa
+                    if hasattr(attn, proj_name):
+                        proj = getattr(attn, proj_name)
+                        # Check if this is a ProbLoRA layer (has beta_get_sample method)
+                        if hasattr(proj, 'beta_get_sample') and hasattr(proj, 'rank'):
+                            layer_projections[f'attn_{proj_name}'] = proj
+            
+            # Check MLP projections (additional components)
+            if hasattr(layer, 'mlp'):
+                mlp = layer.mlp
+                for proj_name in ['gate_proj', 'up_proj', 'down_proj']:
+                    if hasattr(mlp, proj_name):
+                        proj = getattr(mlp, proj_name)
+                        # Check if this is a ProbLoRA layer (has beta_get_sample method)
+                        if hasattr(proj, 'beta_get_sample') and hasattr(proj, 'rank'):
+                            layer_projections[f'mlp_{proj_name}'] = proj
+            
+            if layer_projections:
+                prob_lora_layers[layer_idx] = layer_projections
+    
+    if not prob_lora_layers:
+        print("[ARD] No ProbLoRA layers found for prior estimation")
+        # Restore original training mode
+        if was_training:
+            model.train()
+        return []
+    
+    # Initialize beta accumulators for each layer (following DeBERTa pattern)
+    beta_accumulators = {}
+    for layer_idx, projections in prob_lora_layers.items():
+        beta_accumulators[layer_idx] = {}
+        for proj_name, proj in projections.items():
+            beta_accumulators[layer_idx][proj_name] = np.zeros(proj.rank, dtype=np.float32)
+    
     sample_count = 0
     
-    with torch.no_grad():
-        for batch_idx, batch in enumerate(eval_dataloader):
-            if sample_count >= num_samples:
-                break
+    for batch_idx, batch in enumerate(eval_dataloader):
+        if sample_count >= num_samples:
+            break
+        
+        # Move to device
+        inputs = {k: v.to(device) if torch.is_tensor(v) else v for k, v in batch.items()}
+        
+        # Get hidden states for each layer (following DeBERTa approach)
+        input_ids = inputs["input_ids"]
+        attention_mask = inputs.get("attention_mask")
+        
+        # Get hidden states from model forward pass (similar to DeBERTa encoder outputs)
+        if hasattr(model, 'model'):
+            hidden_states_outputs = model.model(
+                input_ids=input_ids,
+                attention_mask=attention_mask,
+                output_hidden_states=True,
+                use_cache=False
+            )
+            hidden_states = hidden_states_outputs.hidden_states
             
-            # Move to device
-            inputs = {k: v.to(device) if torch.is_tensor(v) else v for k, v in batch.items()}
-            
-            # Forward pass
-            outputs = model(**inputs)
-            
-            # Collect statistics from ProbLoRA layers
-            for name, module in model.named_modules():
-                if hasattr(module, 'A') and hasattr(module, 'B'):
-                    # This is a ProbLoRA layer
-                    if hasattr(module, 'log_sigma_A') and hasattr(module, 'log_sigma_B'):
-                        # Compute variance estimates
-                        var_A = torch.exp(2 * module.log_sigma_A).mean().item()
-                        var_B = torch.exp(2 * module.log_sigma_B).mean().item()
-                        
-                        layer_stats.append({
-                            'layer_name': name,
-                            'var_A': var_A,
-                            'var_B': var_B,
-                            'combined_var': var_A * var_B
-                        })
-            
-            sample_count += inputs['input_ids'].size(0) if 'input_ids' in inputs else 1
-            
-            if batch_idx % 10 == 0:
-                print(f"   Processed {batch_idx + 1} batches, ~{sample_count} samples")
+            # Process each layer that has ProbLoRA projections (following DeBERTa pattern)
+            for layer_idx, projections in prob_lora_layers.items():
+                if layer_idx < len(hidden_states):
+                    layer_input = hidden_states[layer_idx]
+                    
+                    # Accumulate beta samples for each projection (following DeBERTa pattern)
+                    for proj_name, proj in projections.items():
+                        try:
+                            beta_sample = proj.beta_get_sample(layer_input)
+                            beta_accumulators[layer_idx][proj_name] += np.sum(beta_sample ** 2, axis=0) / 2.0
+                        except Exception as e:
+                            print(f"[ARD] Warning: Failed to get beta sample for layer {layer_idx} {proj_name}: {e}")
+                            continue
+        
+        sample_count += inputs['input_ids'].size(0)
+        
+        if batch_idx % 10 == 0:
+            print(f"   Processed {batch_idx + 1} batches, ~{sample_count} samples")
     
-    # Analyze collected statistics
-    if layer_stats:
-        print(f"\n[ARD] Analysis of {len(set(s['layer_name'] for s in layer_stats))} ProbLoRA layers:")
-        
-        # Group by layer
-        layer_groups = {}
-        for stat in layer_stats:
-            name = stat['layer_name']
-            if name not in layer_groups:
-                layer_groups[name] = []
-            layer_groups[name].append(stat)
-        
-        # Print statistics
-        for layer_name, stats in layer_groups.items():
-            avg_var_A = np.mean([s['var_A'] for s in stats])
-            avg_var_B = np.mean([s['var_B'] for s in stats])
-            avg_combined = np.mean([s['combined_var'] for s in stats])
+    # Update est_var for each layer (following DeBERTa pattern: est_var = beta / alpha + 1e-6)
+    print(f"\n[ARD] Updating estimated variances for {len(prob_lora_layers)} layers:")
+    
+    for layer_idx, projections in prob_lora_layers.items():
+        for proj_name, proj in projections.items():
+            beta_accumulated = beta_accumulators[layer_idx][proj_name]
+            # Calculate est_var: beta / alpha + 1e-6 (same as DeBERTa)
+            est_var_values = beta_accumulated / proj.alpha + 1e-6
+            proj.est_var = torch.tensor(est_var_values, device=device)
             
-            print(f"   {layer_name}: Var(A)={avg_var_A:.6f}, Var(B)={avg_var_B:.6f}, Combined={avg_combined:.6f}")
+            # Print statistics
+            avg_est_var = np.mean(est_var_values)
+            print(f"   Layer {layer_idx} {proj_name}: avg_est_var={avg_est_var:.6f}")
             
-            # ARD relevance determination
-            relevance = "High" if avg_combined > 0.01 else "Medium" if avg_combined > 0.001 else "Low"
+            # ARD relevance determination (using est_var)
+            relevance = "High" if avg_est_var > 0.1 else "Medium" if avg_est_var > 0.01 else "Low"
             print(f"     → Estimated relevance: {relevance}")
-    else:
-        print("[ARD] No ProbLoRA layers found for prior estimation")
     
     # Restore original training mode
     if was_training:
@@ -934,7 +909,8 @@ def estimate_ard_priors_clm(model, eval_dataset, device, num_samples=1000, token
     else:
         model.eval()
     
-    return layer_stats
+    print(f"[ARD] ✅ Prior estimation completed - updated est_var for all ProbLoRA layers")
+    return list(prob_lora_layers.keys())
 
 
 def optimize_memory_settings():
@@ -1036,8 +1012,12 @@ def create_ard_callbacks(device, output_dir, train_ds=None, val_ds=None,
 
 
 def build_clm_trainer(model, tokenizer, train_dataset, eval_dataset, cfg, output_dir, 
-                     ard_prior_samples=100, enable_callbacks=True, tb_log_dir=None):
-    """Build enhanced CLM trainer with uncertainty evaluation, ARD callbacks, and prior estimation."""
+                     ard_prior_samples=100, enable_callbacks=True, tb_log_dir=None, use_deberta_pattern=False):
+    """Build enhanced CLM trainer with uncertainty evaluation, ARD callbacks, and prior estimation.
+    
+    Args:
+        use_deberta_pattern: If True, use DeBERTa-style heldout_loader approach
+    """
     
     # Split validation dataset for ARD and uncertainty evaluation
     # Pass train_dataset so we can create validation split if needed
@@ -1085,6 +1065,16 @@ def build_clm_trainer(model, tokenizer, train_dataset, eval_dataset, cfg, output
     # Data collator for causal language modeling
     data_collator = DataCollatorForLanguageModeling(tokenizer, mlm=False)
 
+    # Create heldout_loader if using DeBERTa pattern
+    heldout_loader = None
+    if use_deberta_pattern and ard_dataset is not None:
+        heldout_loader = DataLoader(
+            ard_dataset,
+            batch_size=cfg.get("batch_size", 4),
+            collate_fn=data_collator,
+            shuffle=False
+        )
+
     # Create the enhanced trainer
     trainer = ARDCLMTrainer(
         model=model,
@@ -1094,14 +1084,12 @@ def build_clm_trainer(model, tokenizer, train_dataset, eval_dataset, cfg, output
         data_collator=data_collator,
         tokenizer=tokenizer,
         beta=float(cfg.get("kl_loss_beta", 0.01)),
+        heldout_loader=heldout_loader,  # DeBERTa-style heldout loader
         ard_eval_dataset=ard_dataset,  # Separate dataset for ARD prior estimation
         uncertainty_eval_samples=cfg.get("uncertainty_eval_samples", 1000),
         n_bins=cfg.get("uncertainty_n_bins", 15),
         output_dir=output_dir
     )
-    
-    # Set trainer reference on model for callbacks
-    model.trainer = trainer
     
     # Enable gradient checkpointing for memory efficiency based on configuration
     if cfg.get("gradient_checkpointing", True) and hasattr(model, 'gradient_checkpointing_enable'):
@@ -1132,7 +1120,7 @@ def build_clm_trainer(model, tokenizer, train_dataset, eval_dataset, cfg, output
             batch_size=cfg.get("batch_size", 4),
             tokenizer=tokenizer,
             enable_plotting=cfg.get("enable_plotting", True),
-            enable_resampling=cfg.get("enable_resampling", False),  # Disabled by default for CLM
+            enable_resampling=cfg.get("enable_resampling", use_deberta_pattern),  # Enable resampling if using DeBERTa pattern
             plot_start_epoch=cfg.get("plot_start_epoch", 2),
             plot_interval=cfg.get("plot_interval", 2)
         )

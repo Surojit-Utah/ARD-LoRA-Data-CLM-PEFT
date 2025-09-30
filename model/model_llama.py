@@ -9,7 +9,7 @@ class ProbLoRALayer(nn.Module):
     Works with both encoder (bidirectional) and decoder (causal) architectures.
     The KL divergence computation is independent of attention masking.
     """
-    def __init__(self, base_proj: nn.Linear, rank, num_tokens=2048, ard_prior_samples=1000, scaling=1.0, prior_var=1.0):
+    def __init__(self, base_proj: nn.Linear, rank, num_tokens=2048, ard_prior_samples=1000, scaling=1.0):
         super().__init__()
 
         self.base_proj = base_proj
@@ -18,7 +18,6 @@ class ProbLoRALayer(nn.Module):
         self.num_tokens = num_tokens
         self.ard_prior_samples = ard_prior_samples
         self.scaling = scaling
-        self.prior_var = prior_var
 
         self.in_features = base_proj.in_features
         self.out_features = base_proj.out_features
@@ -38,7 +37,7 @@ class ProbLoRALayer(nn.Module):
         # ARD prior parameters
         self.alpha = (self.num_tokens * self.ard_prior_samples) / 2.0
         self.beta = np.zeros(self.rank, dtype=np.float32)
-        self.est_var = torch.ones(self.rank) * self.prior_var
+        self.est_var = torch.ones(self.rank)
 
     def forward(self, x):
         """Forward pass - works with any sequence length and masking strategy"""
@@ -116,7 +115,7 @@ class ProbLoRALayer(nn.Module):
             if hasattr(self, 'est_var') and self.est_var is not None:
                 target_var = self.est_var[active_mask].to(x.device).unsqueeze(0)
             else:
-                target_var = torch.ones(active_dims, device=x.device).unsqueeze(0) * self.prior_var
+                target_var = torch.ones(active_dims, device=x.device).unsqueeze(0)
         else:
             target_var = self.est_var.to(x.device).unsqueeze(0)
         
@@ -168,37 +167,10 @@ class ProbLoRALayer(nn.Module):
         samples = mu + eps * torch.exp(0.5 * logvar)
         return samples.cpu().detach().numpy()
 
-    def get_effective_rank(self):
-        """Get the effective rank after applying variance mask"""
-        if hasattr(self, 'variance_mask') and self.variance_mask is not None:
-            return torch.sum(self.variance_mask > 0).item()
-        else:
-            return self.rank
-    
-    def get_mask_info(self):
-        """Get information about the current variance mask"""
-        if hasattr(self, 'variance_mask') and self.variance_mask is not None:
-            active_dims = torch.sum(self.variance_mask > 0).item()
-            return {
-                'has_mask': True,
-                'original_rank': self.rank,
-                'effective_rank': active_dims,
-                'compression_ratio': active_dims / self.rank,
-                'active_dimensions': torch.where(self.variance_mask > 0)[0].tolist(),
-                'pruned_dimensions': torch.where(self.variance_mask == 0)[0].tolist()
-            }
-        else:
-            return {
-                'has_mask': False,
-                'original_rank': self.rank,
-                'effective_rank': self.rank,
-                'compression_ratio': 1.0,
-                'active_dimensions': list(range(self.rank)),
-                'pruned_dimensions': []
-            }
 
 
-def inject_problora_llama(model, rank=64, scaling=1.0, prior_var=1.0, num_tokens=2048, ard_prior_samples=1000):
+
+def inject_problora_llama(model, rank=64, scaling=1.0, num_tokens=2048, ard_prior_samples=1000):
     """
     Inject ProbLoRA into LLaMA2-7B model.
     Targets the standard attention projections: q_proj, k_proj, v_proj, o_proj
@@ -215,19 +187,19 @@ def inject_problora_llama(model, rank=64, scaling=1.0, prior_var=1.0, num_tokens
                 
                 # Wrap standard LLaMA attention projections
                 if hasattr(attn, 'q_proj') and isinstance(attn.q_proj, nn.Linear):
-                    attn.q_proj = ProbLoRALayer(attn.q_proj, rank, num_tokens, ard_prior_samples, scaling, prior_var)
+                    attn.q_proj = ProbLoRALayer(attn.q_proj, rank, num_tokens, ard_prior_samples, scaling)
                     layers_modified += 1
                 
                 if hasattr(attn, 'k_proj') and isinstance(attn.k_proj, nn.Linear):
-                    attn.k_proj = ProbLoRALayer(attn.k_proj, rank, num_tokens, ard_prior_samples, scaling, prior_var)
+                    attn.k_proj = ProbLoRALayer(attn.k_proj, rank, num_tokens, ard_prior_samples, scaling)
                     layers_modified += 1
                     
                 if hasattr(attn, 'v_proj') and isinstance(attn.v_proj, nn.Linear):
-                    attn.v_proj = ProbLoRALayer(attn.v_proj, rank, num_tokens, ard_prior_samples, scaling, prior_var)
+                    attn.v_proj = ProbLoRALayer(attn.v_proj, rank, num_tokens, ard_prior_samples, scaling)
                     layers_modified += 1
                     
                 if hasattr(attn, 'o_proj') and isinstance(attn.o_proj, nn.Linear):
-                    attn.o_proj = ProbLoRALayer(attn.o_proj, rank, num_tokens, ard_prior_samples, scaling, prior_var)
+                    attn.o_proj = ProbLoRALayer(attn.o_proj, rank, num_tokens, ard_prior_samples, scaling)
                     layers_modified += 1
     
     print(f"[INFO] Successfully injected ProbLoRA into {layers_modified} linear layers")

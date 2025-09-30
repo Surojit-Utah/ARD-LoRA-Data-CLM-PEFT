@@ -26,7 +26,6 @@ defaults:
   fp16: false
   bf16: true  # Preferred on A100 GPUs for better performance
   load_in_4bit: false  # Disable quantization - LoRA parameters need to be trainable
-  prior_var: 1.0
   kl_loss_beta: 0.01  # KL divergence loss strength for ARD-LoRA
   max_validation_samples: 250  # Cap validation dataset size for memory efficiency
   
