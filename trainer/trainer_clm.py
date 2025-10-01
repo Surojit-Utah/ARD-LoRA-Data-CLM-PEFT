@@ -1085,6 +1085,7 @@ def build_clm_trainer(model, tokenizer, train_dataset, eval_dataset, cfg, output
         optim="adamw_torch",  # Use torch AdamW for better memory management
         # Enable gradient checkpointing if model supports it
         gradient_checkpointing=cfg.get("gradient_checkpointing", True),
+        gradient_checkpointing_kwargs={"use_reentrant": False},  # <- add this for the checkpoint warnings 
     )
 
     # Data collator for causal language modeling
