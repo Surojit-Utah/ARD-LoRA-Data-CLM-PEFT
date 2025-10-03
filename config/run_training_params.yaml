@@ -43,7 +43,7 @@ defaults:
   # Callback configuration
   enable_callbacks: true  # Enable ARD callbacks
   enable_plotting: true  # Enable latent plotting
-  enable_resampling: false  # Enable held-out resampling (disabled for CLM)
+  enable_resampling: true  # Enable held-out resampling (use validation data for ARD)
   plot_start_epoch: 2  # Start plotting from epoch 2
   plot_interval: 2  # Plot every 2 epochs
 

@@ -583,73 +583,53 @@ class LatentPlotCallback(TrainerCallback):
 
 
 class HeldoutResampleCallback(TrainerCallback):
-    """Callback to resample held-out data following DeBERTa pattern."""
+    """Callback to resample validation data for ARD vs evaluation split each epoch."""
     
     def __init__(self, train_ds, val_ds, ard_prior_samples, batch_size, tokenizer=None):
         super().__init__()
-        self.train_ds = train_ds
-        self.val_ds = val_ds
-        self.ard_prior_samples = min(ard_prior_samples, len(train_ds) if train_ds else 0)
+        self.train_ds = train_ds  # Keep for compatibility, but won't be modified
+        self.val_ds = val_ds      # This is what we'll resample from
+        self.ard_prior_samples = ard_prior_samples
         self.batch_size = batch_size
         self.tokenizer = tokenizer
-    
-    def _get_data_loaders(self):
-        """Create new data loaders with resampled held-out data (following DeBERTa pattern)."""
-        if self.train_ds is None:
-            return None, None, None
         
-        # Randomly sample indices for held-out data (same as DeBERTa approach)
-        total_train = len(self.train_ds)
-        perm = np.random.permutation(total_train)
-        held_idx = perm[:self.ard_prior_samples].tolist()
-        remaining_train_idx = perm[self.ard_prior_samples:].tolist()
+        # Validate that we have enough validation data
+        if self.val_ds is not None and len(self.val_ds) < self.ard_prior_samples:
+            print(f"[HeldoutResampleCallback] WARNING: Validation dataset has only {len(self.val_ds)} samples, "
+                  f"but {self.ard_prior_samples} requested for ARD. Will use all validation data for ARD.")
+            self.ard_prior_samples = len(self.val_ds)
+    
+    def _resample_validation_split(self):
+        """Resample validation data split: ARD samples vs evaluation samples."""
+        if self.val_ds is None or len(self.val_ds) == 0:
+            return None, None
+        
+        total_val = len(self.val_ds)
+        
+        # Ensure we don't exceed validation dataset size
+        ard_samples = min(self.ard_prior_samples, total_val)
+        
+        # Randomly shuffle validation indices
+        perm = np.random.permutation(total_val)
+        
+        # Split: first portion for ARD, remaining for evaluation
+        ard_indices = perm[:ard_samples].tolist()
+        eval_indices = perm[ard_samples:].tolist()
         
         # Create subset datasets
-        if hasattr(self.train_ds, 'select'):
+        if hasattr(self.val_ds, 'select'):
             # HuggingFace dataset
-            held_ds = self.train_ds.select(held_idx)
-            remaining_train_ds = self.train_ds.select(remaining_train_idx)
+            ard_dataset = self.val_ds.select(ard_indices)
+            eval_dataset = self.val_ds.select(eval_indices) if eval_indices else None
         else:
             # PyTorch dataset
-            held_ds = Subset(self.train_ds, held_idx)
-            remaining_train_ds = Subset(self.train_ds, remaining_train_idx)
+            ard_dataset = Subset(self.val_ds, ard_indices)
+            eval_dataset = Subset(self.val_ds, eval_indices) if eval_indices else None
         
-        # Create data collator
-        from transformers import DataCollatorForLanguageModeling
-        data_collator = DataCollatorForLanguageModeling(
-            tokenizer=self.tokenizer,
-            mlm=False
-        )
-        
-        # Create data loaders (following DeBERTa pattern)
-        train_loader = DataLoader(
-            remaining_train_ds, 
-            batch_size=self.batch_size, 
-            shuffle=True,
-            collate_fn=data_collator
-        )
-        heldout_loader = DataLoader(
-            held_ds, 
-            batch_size=self.batch_size,
-            collate_fn=data_collator,
-            shuffle=False
-        )
-        val_loader = None
-        if self.val_ds is not None:
-            if hasattr(self.val_ds, 'select'):
-                val_dataset = self.val_ds
-            else:
-                val_dataset = self.val_ds
-            val_loader = DataLoader(
-                val_dataset, 
-                batch_size=self.batch_size,
-                collate_fn=data_collator
-            )
-        
-        return train_loader, heldout_loader, val_loader
+        return ard_dataset, eval_dataset
     
     def on_epoch_begin(self, args, state, control, **kwargs):
-        """Resample held-out data at the beginning of each epoch (following DeBERTa pattern)."""
+        """Resample validation split at the beginning of each epoch."""
         model = kwargs["model"]
         trainer = getattr(model, 'trainer', None)
         
@@ -657,24 +637,29 @@ class HeldoutResampleCallback(TrainerCallback):
             print("[HeldoutResampleCallback] No trainer reference found")
             return
         
+        if self.val_ds is None:
+            print("[HeldoutResampleCallback] No validation dataset available for resampling")
+            return
+        
         try:
-            train_loader, heldout_loader, val_loader = self._get_data_loaders()
+            # Resample validation data split
+            ard_dataset, eval_dataset = self._resample_validation_split()
             
-            if heldout_loader is not None:
-                # Update trainer's held-out dataset (DeBERTa style)
-                trainer.heldout_loader = heldout_loader
-                if hasattr(trainer, 'ard_eval_dataset'):
-                    trainer.ard_eval_dataset = heldout_loader.dataset
-                print(f"[HeldoutResampleCallback] Epoch {int(state.epoch)} → new held-out set with {len(heldout_loader.dataset)} samples")
-            
-            # Store additional loaders for potential use
-            if hasattr(trainer, 'train_loader'):
-                trainer.train_loader = train_loader
-            if hasattr(trainer, 'val_loader'):
-                trainer.val_loader = val_loader
+            if ard_dataset is not None:
+                # Update trainer's ARD dataset (for prior estimation)
+                trainer.ard_eval_dataset = ard_dataset
+                
+                # Update trainer's evaluation dataset (for model evaluation)
+                if eval_dataset is not None:
+                    trainer.eval_dataset = eval_dataset
+                
+                print(f"[HeldoutResampleCallback] Epoch {int(state.epoch)} → "
+                      f"ARD: {len(ard_dataset)} samples, "
+                      f"Eval: {len(eval_dataset) if eval_dataset else 0} samples "
+                      f"(from {len(self.val_ds)} total validation samples)")
             
         except Exception as e:
-            print(f"[HeldoutResampleCallback] Failed to resample held-out data: {e}")
+            print(f"[HeldoutResampleCallback] Failed to resample validation data: {e}")
 
 
 def split_validation_dataset(val_dataset, ard_prior_samples=100, seed=42, train_dataset=None, train_split_ratio=0.1):

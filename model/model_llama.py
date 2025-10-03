@@ -1,4 +1,5 @@
 import torch
+import torch.nn.functional as F
 from torch import nn
 import numpy as np
 
@@ -22,23 +23,19 @@ class ProbLoRALayer(nn.Module):
         self.in_features = base_proj.in_features
         self.out_features = base_proj.out_features
 
-        # Create raw tensors
-        A_tensor = torch.empty(2*rank, self.in_features)
+        # Init mu_A, logvar_A separately for stability
+        mu_A = torch.empty(rank, self.in_features)
+        nn.init.xavier_normal_(mu_A)
+        logvar_A = torch.full((rank, self.in_features), float(torch.log(torch.tensor(1e-2))))
+        self.A = nn.Parameter(torch.cat([mu_A, logvar_A], dim=0))   # Wrap as parameters
+
+        # Apply Xavier Normal initialization on matrix B
         B_tensor = torch.empty(self.out_features, self.rank)
-
-        # Apply Xavier Normal initialization
-        nn.init.xavier_normal_(A_tensor)
         nn.init.xavier_normal_(B_tensor)
+        self.B = nn.Parameter(B_tensor)     # Wrap as parameters
 
-        # Wrap as parameters
-        self.A = nn.Parameter(A_tensor)
-        self.B = nn.Parameter(B_tensor)
-
-        # ARD prior parameters
-        self.alpha = (self.num_tokens * self.ard_prior_samples) / 2.0
-        self.beta = np.zeros(self.rank, dtype=np.float32)
-        # Initialize est_var as a buffer (will move with model to device)
-        self.register_buffer('est_var', torch.ones(self.rank))
+        # ARD prior parameter
+        self.register_buffer('est_var', torch.ones(self.rank))  # Initialize est_var as a buffer (will move with model to device)
 
     def forward(self, x):
         """Forward pass - works with any sequence length and masking strategy"""
@@ -72,6 +69,7 @@ class ProbLoRALayer(nn.Module):
         
         # Compute latent mean and logvar: [B*S, rank]
         mu = (mu_A_masked @ x_flat.T).T
+        logvar_A_masked = torch.log(F.softplus(logvar_A_masked) + 1e-6) # Stable gradient for variance
         logvar = (logvar_A_masked @ x_flat.T).T
         
         # Apply additional masking to latent outputs to ensure inactive dims are zero
@@ -209,39 +207,20 @@ def inject_problora_llama(model, rank=64, scaling=1.0, num_tokens=2048, ard_prio
                     attn.q_proj = ProbLoRALayer(attn.q_proj, rank, num_tokens, ard_prior_samples, scaling)
                     layers_modified += 1
                 
-                if hasattr(attn, 'k_proj') and isinstance(attn.k_proj, nn.Linear):
-                    attn.k_proj = ProbLoRALayer(attn.k_proj, rank, num_tokens, ard_prior_samples, scaling)
-                    layers_modified += 1
+                # if hasattr(attn, 'k_proj') and isinstance(attn.k_proj, nn.Linear):
+                #     attn.k_proj = ProbLoRALayer(attn.k_proj, rank, num_tokens, ard_prior_samples, scaling)
+                #     layers_modified += 1
                     
                 if hasattr(attn, 'v_proj') and isinstance(attn.v_proj, nn.Linear):
                     attn.v_proj = ProbLoRALayer(attn.v_proj, rank, num_tokens, ard_prior_samples, scaling)
                     layers_modified += 1
                     
-                if hasattr(attn, 'o_proj') and isinstance(attn.o_proj, nn.Linear):
-                    attn.o_proj = ProbLoRALayer(attn.o_proj, rank, num_tokens, ard_prior_samples, scaling)
-                    layers_modified += 1
+                # if hasattr(attn, 'o_proj') and isinstance(attn.o_proj, nn.Linear):
+                #     attn.o_proj = ProbLoRALayer(attn.o_proj, rank, num_tokens, ard_prior_samples, scaling)
+                #     layers_modified += 1
     
     print(f"[INFO] Successfully injected ProbLoRA into {layers_modified} linear layers")
     print(f"[INFO] Each layer now has ARD-enabled latent space with rank={rank}")
     print(f"[INFO] KL divergence will be computed in latent space (model-agnostic)")
     
     return model
-
-
-def collect_problora_layers(model):
-    """Collect all ProbLoRA layers for KL computation and prior estimation"""
-    problora_layers = []
-    
-    if hasattr(model, 'model') and hasattr(model.model, 'layers'):
-        for layer_idx, layer in enumerate(model.model.layers):
-            if hasattr(layer, 'self_attn'):
-                attn = layer.self_attn
-                
-                # Collect all ProbLoRA layers
-                for proj_name in ['q_proj', 'k_proj', 'v_proj', 'o_proj']:
-                    if hasattr(attn, proj_name):
-                        proj_layer = getattr(attn, proj_name)
-                        if isinstance(proj_layer, ProbLoRALayer):
-                            problora_layers.append((f"layer_{layer_idx}_{proj_name}", proj_layer))
-    
-    return problora_layers
