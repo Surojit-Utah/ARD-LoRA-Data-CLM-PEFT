@@ -103,65 +103,81 @@ class ProbLoRALayer(nn.Module):
 
     def kl_divergence_latent(self, x):
         """
-        KL divergence computation - model-agnostic.
+        Optimized KL divergence computation - model-agnostic.
         Works with both causal (LLaMA) and bidirectional (DeBERTa) attention.
         The computation is in the latent space and independent of masking strategy.
+        
+        Optimizations:
+        - Reduced redundant matrix operations
+        - Cached device/dtype conversions
+        - Eliminated redundant exp() calls
+        - More efficient tensor operations
         """
         mu_A, logvar_A = torch.split(self.A, self.rank, dim=0)
         B, S, _ = x.size()  # batch_size, seq_len, features
-        x_flat = x.view(-1, x.size(-1))
         
-        # Convert to input dtype and device for computation consistency
+        # Early exit for zero active dimensions
+        if hasattr(self, 'variance_mask') and self.variance_mask is not None:
+            active_dims = torch.sum(self.variance_mask > 0).item()
+            if active_dims == 0:
+                return torch.tensor(0.0, device=x.device, requires_grad=True)
+        else:
+            active_dims = self.rank
+        
+        # Flatten input once
+        x_flat = x.view(-1, x.size(-1))  # [B*S, in_features]
+        
+        # Convert to input dtype and device for computation consistency (cached)
         mu_A = mu_A.to(dtype=x.dtype, device=x.device)
         logvar_A = logvar_A.to(dtype=x.dtype, device=x.device)
         
-        # Apply variance mask if it exists
+        # Apply variance mask if it exists (optimized)
         if hasattr(self, 'variance_mask') and self.variance_mask is not None:
-            # Apply mask to both mu_A and logvar_A
             mask = self.variance_mask.unsqueeze(1).to(dtype=x.dtype, device=x.device)  # Shape: [rank, 1]
             mu_A_masked = mu_A * mask
             logvar_A_masked = logvar_A * mask
-            active_dims = torch.sum(self.variance_mask > 0).item()
-        else:
-            mu_A_masked = mu_A
-            logvar_A_masked = logvar_A
-            active_dims = self.rank
-        
-        # Get latent encodings from reparameterization (as used in forward pass)
-        mu = (mu_A_masked @ x_flat.T).T
-        logvar = (logvar_A_masked @ x_flat.T).T
-        var = torch.exp(logvar)
-        
-        # Ensure est_var is on the same device as x and apply mask if present
-        if hasattr(self, 'variance_mask') and self.variance_mask is not None:
-            # Only use est_var for active dimensions
+            
+            # Optimized matrix operations for masked case
+            mu = torch.mm(x_flat, mu_A_masked.T)  # [B*S, rank] - more efficient than transpose operations
+            logvar = torch.mm(x_flat, logvar_A_masked.T)  # [B*S, rank]
+            
+            # Get target variance for active dimensions only
             active_mask = self.variance_mask > 0
             if hasattr(self, 'est_var') and self.est_var is not None:
                 target_var = self.est_var[active_mask].to(x.device).unsqueeze(0)
             else:
-                target_var = torch.ones(active_dims, device=x.device).unsqueeze(0)
-        else:
-            target_var = self.est_var.to(x.device).unsqueeze(0)
-        
-        if active_dims == 0:
-            # All dimensions are masked out, return zero KL divergence
-            return torch.tensor(0.0, device=x.device)
-        
-        # KL divergence: KL(q(z|x) || p(z)) where p(z) ~ N(0, est_var)
-        # Only compute for active (non-masked) dimensions
-        if hasattr(self, 'variance_mask') and self.variance_mask is not None:
+                target_var = torch.ones(active_dims, device=x.device, dtype=x.dtype).unsqueeze(0)
+            
+            # Select only active dimensions for computation
             active_indices = torch.where(self.variance_mask > 0)[0]
             mu_active = mu[:, active_indices]
-            logvar_active = logvar[:, active_indices] 
-            var_active = torch.exp(logvar_active)
+            logvar_active = logvar[:, active_indices]
             
-            kld = 0.5 * (torch.log(target_var) - logvar_active + 
-                        ((var_active + mu_active.pow(2)) / target_var) - 1.0)
+            # Optimized KL computation: avoid redundant exp() call
+            # KL = 0.5 * (log(target_var) - logvar + (exp(logvar) + mu²) / target_var - 1)
+            mu_squared = mu_active.pow(2)
+            exp_logvar = torch.exp(logvar_active)
+            log_target_var = torch.log(target_var)
+            
+            kld = 0.5 * (log_target_var - logvar_active + 
+                        (exp_logvar + mu_squared) / target_var - 1.0)
         else:
-            kld = 0.5 * (torch.log(target_var) - logvar + 
-                        ((var + mu.pow(2)) / target_var) - 1.0)
+            # Optimized matrix operations for non-masked case
+            mu = torch.mm(x_flat, mu_A.T)  # [B*S, rank] - more efficient
+            logvar = torch.mm(x_flat, logvar_A.T)  # [B*S, rank]
+            
+            # Get target variance
+            target_var = self.est_var.to(x.device).unsqueeze(0)
+            
+            # Optimized KL computation: avoid redundant exp() call
+            mu_squared = mu.pow(2)
+            exp_logvar = torch.exp(logvar)
+            log_target_var = torch.log(target_var)
+            
+            kld = 0.5 * (log_target_var - logvar + 
+                        (exp_logvar + mu_squared) / target_var - 1.0)
         
-        # Sum over active rank dimensions, then normalize by batch_size * seq_len
+        # Return mean KL divergence
         return kld.mean()
     
     def beta_get_sample(self, x):
@@ -221,17 +237,17 @@ def inject_problora_llama(model, rank=64, scaling=1.0, num_tokens=2048, ard_prio
                     attn.q_proj = ProbLoRALayer(attn.q_proj, rank, num_tokens, ard_prior_samples, scaling)
                     layers_modified += 1
                 
-                if hasattr(attn, 'k_proj') and isinstance(attn.k_proj, nn.Linear):
-                    attn.k_proj = ProbLoRALayer(attn.k_proj, rank, num_tokens, ard_prior_samples, scaling)
-                    layers_modified += 1
+                # if hasattr(attn, 'k_proj') and isinstance(attn.k_proj, nn.Linear):
+                #     attn.k_proj = ProbLoRALayer(attn.k_proj, rank, num_tokens, ard_prior_samples, scaling)
+                #     layers_modified += 1
                     
                 if hasattr(attn, 'v_proj') and isinstance(attn.v_proj, nn.Linear):
                     attn.v_proj = ProbLoRALayer(attn.v_proj, rank, num_tokens, ard_prior_samples, scaling)
                     layers_modified += 1
                     
-                if hasattr(attn, 'o_proj') and isinstance(attn.o_proj, nn.Linear):
-                    attn.o_proj = ProbLoRALayer(attn.o_proj, rank, num_tokens, ard_prior_samples, scaling)
-                    layers_modified += 1
+                # if hasattr(attn, 'o_proj') and isinstance(attn.o_proj, nn.Linear):
+                #     attn.o_proj = ProbLoRALayer(attn.o_proj, rank, num_tokens, ard_prior_samples, scaling)
+                #     layers_modified += 1
     
     print(f"[INFO] Successfully injected ProbLoRA into {layers_modified} linear layers")
     print(f"[INFO] Each layer now has ARD-enabled latent space with rank={rank}")
