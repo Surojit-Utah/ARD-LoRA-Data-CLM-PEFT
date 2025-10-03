@@ -19,7 +19,7 @@ defaults:
   weight_decay: 0.0
   train_epochs: 3
   rank: 16
-  max_len: 256
+  max_len: 2048
   ard_prior_samples: 100
   batch_size: 4
   gradient_accumulation_steps: 16
