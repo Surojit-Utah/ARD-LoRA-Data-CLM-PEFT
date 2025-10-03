@@ -860,7 +860,29 @@ def estimate_ard_priors_clm(model, eval_dataset, device, num_samples=1000, token
                     for proj_name, proj in projections.items():
                         try:
                             beta_sample = proj.beta_get_sample(layer_input)
-                            beta_accumulators[layer_idx][proj_name] += np.sum(beta_sample ** 2, axis=0) / 2.0
+                            
+                            # NUMERICAL STABILITY: Check for inf/nan before accumulation
+                            if np.isnan(beta_sample).any() or np.isinf(beta_sample).any():
+                                print(f"[ARD] Warning: NaN/Inf in beta sample for layer {layer_idx} {proj_name}, skipping")
+                                continue
+                            
+                            # NUMERICAL STABILITY: Clip values before squaring to prevent overflow
+                            beta_sample_clipped = np.clip(beta_sample, -100.0, 100.0)
+                            
+                            # Safely compute squared samples with overflow protection
+                            try:
+                                beta_squared = beta_sample_clipped ** 2
+                                # Check for overflow after squaring
+                                if np.isnan(beta_squared).any() or np.isinf(beta_squared).any():
+                                    print(f"[ARD] Warning: Overflow in beta^2 for layer {layer_idx} {proj_name}, using clipped values")
+                                    beta_squared = np.clip(beta_squared, 0.0, 1e10)  # Cap at reasonable maximum
+                                
+                                beta_accumulators[layer_idx][proj_name] += np.sum(beta_squared, axis=0) / 2.0
+                            except (FloatingPointError, OverflowError):
+                                print(f"[ARD] Warning: Numerical overflow for layer {layer_idx} {proj_name}, using fallback")
+                                # Fallback: use much smaller values to maintain numerical stability
+                                beta_accumulators[layer_idx][proj_name] += np.ones(proj.rank, dtype=np.float32) * 0.1
+                                
                         except Exception as e:
                             print(f"[ARD] Warning: Failed to get beta sample for layer {layer_idx} {proj_name}: {e}")
                             continue
@@ -876,8 +898,25 @@ def estimate_ard_priors_clm(model, eval_dataset, device, num_samples=1000, token
     for layer_idx, projections in prob_lora_layers.items():
         for proj_name, proj in projections.items():
             beta_accumulated = beta_accumulators[layer_idx][proj_name]
+            
+            # NUMERICAL STABILITY: Check beta_accumulated for inf/nan values
+            if np.isnan(beta_accumulated).any() or np.isinf(beta_accumulated).any():
+                print(f"[ARD] Warning: Invalid beta_accumulated for layer {layer_idx} {proj_name}, using fallback")
+                beta_accumulated = np.ones(proj.rank, dtype=np.float32) * 0.1  # Small positive values
+            
             # Calculate est_var: beta / alpha + 1e-6 (same as DeBERTa)
-            est_var_values = beta_accumulated / proj.alpha + 1e-6
+            # NUMERICAL STABILITY: Ensure alpha is reasonable and prevent division by zero
+            alpha_safe = max(proj.alpha, 1e-6)
+            est_var_values = beta_accumulated / alpha_safe + 1e-6
+            
+            # NUMERICAL STABILITY: Clamp est_var to reasonable range
+            est_var_values = np.clip(est_var_values, 1e-6, 1e6)  # Prevent extreme values
+            
+            # Check final values before creating tensor
+            if np.isnan(est_var_values).any() or np.isinf(est_var_values).any():
+                print(f"[ARD] Warning: Invalid est_var for layer {layer_idx} {proj_name}, using default")
+                est_var_values = np.ones(proj.rank, dtype=np.float32)  # Default to 1.0
+            
             # Create a float32 tensor on the target device for est_var
             est_var_tensor = torch.tensor(est_var_values, dtype=torch.float32, device=device)
 
