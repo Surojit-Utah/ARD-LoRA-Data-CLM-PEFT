@@ -23,16 +23,28 @@ class ProbLoRALayer(nn.Module):
         self.in_features = base_proj.in_features
         self.out_features = base_proj.out_features
 
-        # Init mu_A, logvar_A separately for stability
-        mu_A = torch.empty(rank, self.in_features)
-        nn.init.xavier_normal_(mu_A)
-        logvar_A = torch.full((rank, self.in_features), float(torch.log(torch.tensor(1e-2))))
-        self.A = nn.Parameter(torch.cat([mu_A, logvar_A], dim=0))   # Wrap as parameters
+        # # Init mu_A, logvar_A separately for stability
+        # mu_A = torch.empty(rank, self.in_features)
+        # nn.init.xavier_normal_(mu_A)
+        # logvar_A = torch.full((rank, self.in_features), float(torch.log(torch.tensor(1e-2))))
+        # self.A = nn.Parameter(torch.cat([mu_A, logvar_A], dim=0))   # Wrap as parameters
 
-        # Apply Xavier Normal initialization on matrix B
+        # # Apply Xavier Normal initialization on matrix B
+        # B_tensor = torch.empty(self.out_features, self.rank)
+        # nn.init.xavier_normal_(B_tensor)
+        # self.B = nn.Parameter(B_tensor)     # Wrap as parameters
+
+        # Create raw tensors
+        A_tensor = torch.empty(2*rank, self.in_features)
         B_tensor = torch.empty(self.out_features, self.rank)
+
+        # Apply Xavier Normal initialization
+        nn.init.xavier_normal_(A_tensor)
         nn.init.xavier_normal_(B_tensor)
-        self.B = nn.Parameter(B_tensor)     # Wrap as parameters
+
+        # Wrap as parameters
+        self.A = nn.Parameter(A_tensor)
+        self.B = nn.Parameter(B_tensor)
 
         # ARD prior parameter
         self.alpha = (self.num_tokens*self.ard_prior_samples) / 2.0
