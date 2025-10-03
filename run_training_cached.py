@@ -193,13 +193,19 @@ def load_model_with_problora(config):
     if not use_cache_setting:
         print(f"[MEMORY] KV caching disabled during training to reduce memory usage on 40GB A100")
     
-    # Inject ProbLoRA
+    # Inject ProbLoRA with numerical stability parameters
     model = inject_problora_llama(
         model,
         rank=config["rank"],
         scaling=config["scaling"],
         num_tokens=config["max_len"],
-        ard_prior_samples=config["ard_prior_samples"]
+        ard_prior_samples=config["ard_prior_samples"],
+        logvar_clamp_min=config["logvar_clamp_min"],
+        logvar_clamp_max=config["logvar_clamp_max"],
+        beta_logvar_clamp_min=config["beta_logvar_clamp_min"],
+        beta_logvar_clamp_max=config["beta_logvar_clamp_max"],
+        sample_clamp_min=config["sample_clamp_min"],
+        sample_clamp_max=config["sample_clamp_max"]
     )
     
     # Freeze base parameters and unfreeze LoRA parameters
