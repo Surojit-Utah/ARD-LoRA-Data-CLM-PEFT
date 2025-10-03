@@ -3,12 +3,14 @@ defaults:
   runId: 1
   # Model configuration
   model_name: "LLaMA2-7B"
+  model_name_or_path: "meta-llama/Llama-2-7b-hf"
+  tokenizer_name: null  # Use model tokenizer
   train_type: "causal_lm"  # Specify training type for validation
   dataset_name: "BayesianPEFT"
-  dataset_name_specific: "alpaca"  # Which specific dataset from Bayesian-PEFT
+  dataset_name_specific: "sst2"  # Which specific dataset from Bayesian-PEFT
   
   # Cache configuration
-  cache_root: "./data_cache"  # Default local cache
+  cache_root: "/content/drive/MyDrive/ARD_LoRA_Data_Cache"  # Google Drive cache
   google_drive_cache: "/content/drive/MyDrive/ARD_LoRA_Data_Cache"  # Google Drive path
   use_google_drive: true  # Enable Google Drive caching
   
@@ -18,34 +20,91 @@ defaults:
   warmup_ratio: 0.03
   weight_decay: 0.0
   train_epochs: 3
-  rank: 16
-  max_len: 2048
-  ard_prior_samples: 100
   batch_size: 4
   gradient_accumulation_steps: 16
+  
+  # Precision Configuration
   fp16: false
   bf16: true  # Preferred on A100 GPUs for better performance
   load_in_4bit: false  # Disable quantization - LoRA parameters need to be trainable
+  
+  # Training Strategy
+  save_strategy: "epoch"
+  eval_strategy: "epoch"
+  save_steps: 500
+  eval_steps: null
+  load_best_model_at_end: true
+  remove_unused_columns: false
+  
+  # Optimization
+  max_grad_norm: 1.0
+  optim: "adamw_torch"
+  gradient_checkpointing: true
+  use_cache: false  # Disable KV caching during training to save memory
+  
+  # Logging and Monitoring
+  logging_steps: 50
+  dataloader_num_workers: 0
+  
+  # ARD-LoRA Configuration
+  rank: 16
+  scaling: 1.0
+  max_lora_rank_threshold: 64
+  
+  # ProbLoRA Model Parameters
+  num_tokens: 2048
+  ard_prior_samples: 100
+  
+  # Numerical Stability Parameters
+  logvar_clamp_min: -15.0
+  logvar_clamp_max: 15.0
+  beta_logvar_clamp_min: -10.0
+  beta_logvar_clamp_max: 10.0
+  sample_clamp_min: -50.0
+  sample_clamp_max: 50.0
+  
+  # ARD Loss Configuration
   kl_loss_beta: 0.01  # KL divergence loss strength for ARD-LoRA
+  
+  # ARD Relevance Thresholds
+  ard_high_relevance_threshold: 0.1
+  ard_medium_relevance_threshold: 0.01
+  
+  # Uncertainty Evaluation
+  uncertainty_eval_samples: 1000
+  uncertainty_n_bins: 15
+  
+  # Dataset Configuration
+  max_len: 2048
+  num_labels: 0
+  validation_split_ratio: 0.1
+  min_validation_samples: 2000
+  max_ard_ratio: 0.8
+  random_seed: 42
   max_validation_samples: 250  # Cap validation dataset size for memory efficiency
   
-  # Memory optimization settings for 40GB A100
-  use_cache: false  # Disable KV caching during training to save memory
-  gradient_checkpointing: true  # Enable for memory savings - trade compute for memory
+  # Callback Configuration
+  enable_callbacks: true
+  enable_plotting: true
+  enable_resampling: true
+  plot_start_epoch: 2
+  plot_interval: 2
+  plot_batch_size: 16
   
-  # Uncertainty evaluation settings
-  uncertainty_eval_samples: 1000  # Number of samples for uncertainty evaluation
-  uncertainty_n_bins: 15  # Number of bins for ECE calculation
+  # Memory Optimization
+  gpu_memory_fraction: 0.9
+  gradient_checkpointing_kwargs:
+    use_reentrant: false
   
-  # TensorBoard logging
-  report_to: ["tensorboard"]  # Log uncertainty metrics to tensorboard
+  # Reporting and Output
+  report_to: ["tensorboard"]
   
-  # Callback configuration
-  enable_callbacks: true  # Enable ARD callbacks
-  enable_plotting: true  # Enable latent plotting
-  enable_resampling: true  # Enable held-out resampling (use validation data for ARD)
-  plot_start_epoch: 2  # Start plotting from epoch 2
-  plot_interval: 2  # Plot every 2 epochs
+  # Optional Debug Parameters
+  debug_dataset_filtering: false
+  checkpoint_debug: false
+  
+  # Optional Advanced Parameters
+  metric_for_best_model: "eval_loss"
 
 models:
   LLaMA2-7B:
@@ -65,14 +124,137 @@ models:
 
 datasets:
   BayesianPEFT:
-    dataset_type: "bayesian_peft"  # Use our new dataset strategy
+    dataset_type: "bayesian_peft"
     repo_url: "https://github.com/Wang-ML-Lab/bayesian-peft"
     dataset_path: "dataset"
     name: "bayesian_peft"
     max_len: 2048
     num_labels: 0
-    cache_dir: "./data_cache"  # Local caching directory
-    # Dataset configurations for different datasets
+    cache_dir: "/content/drive/MyDrive/ARD_LoRA_Data_Cache"
+
+    # Commonsense / Reasoning
+    piqa:
+      dataset_name: "piqa"
+      dataset_class: "S2ClassDataset"
+      max_len: 512
+      num_labels: 2
+      validation_split_ratio: 0.1
+      min_validation_samples: 2000
+      max_ard_ratio: 0.8
+      random_seed: 42
+
+    hellaswag:
+      dataset_name: "hellaswag"
+      dataset_class: "S2ClassDataset"
+      max_len: 512
+      num_labels: 4
+      validation_split_ratio: 0.1
+      min_validation_samples: 2000
+      max_ard_ratio: 0.8
+      random_seed: 42
+
+    winogrande:
+      dataset_name: "winogrande"
+      dataset_class: "S2ClassDataset"
+      max_len: 512
+      num_labels: 2
+      validation_split_ratio: 0.1
+      min_validation_samples: 2000
+      max_ard_ratio: 0.8
+      random_seed: 42
+
+    arc_easy:
+      dataset_name: "arc_easy"
+      dataset_class: "S2ClassDataset"
+      max_len: 512
+      num_labels: 4
+      validation_split_ratio: 0.1
+      min_validation_samples: 2000
+      max_ard_ratio: 0.8
+      random_seed: 42
+
+    arc_challenge:
+      dataset_name: "arc_challenge"
+      dataset_class: "S2ClassDataset"
+      max_len: 512
+      num_labels: 4
+      validation_split_ratio: 0.1
+      min_validation_samples: 2000
+      max_ard_ratio: 0.8
+      random_seed: 42
+
+    # Reading comprehension
+    boolq:
+      dataset_name: "boolq"
+      dataset_class: "S2ClassDataset"
+      max_len: 512
+      num_labels: 2
+      validation_split_ratio: 0.1
+      min_validation_samples: 2000
+      max_ard_ratio: 0.8
+      random_seed: 42
+
+    # Out-of-distribution / NLI-style evaluation
+    anli:
+      dataset_name: "anli"
+      dataset_class: "S2ClassDataset"
+      max_len: 512
+      num_labels: 3
+      validation_split_ratio: 0.1
+      min_validation_samples: 2000
+      max_ard_ratio: 0.8
+      random_seed: 42
+
+    rte:
+      dataset_name: "rte"
+      dataset_class: "S2ClassDataset"
+      max_len: 512
+      num_labels: 2
+      validation_split_ratio: 0.1
+      min_validation_samples: 2000
+      max_ard_ratio: 0.8
+      random_seed: 42
+
+    cb:
+      dataset_name: "cb"
+      dataset_class: "S2ClassDataset"
+      max_len: 512
+      num_labels: 3
+      validation_split_ratio: 0.1
+      min_validation_samples: 2000
+      max_ard_ratio: 0.8
+      random_seed: 42
+
+    copa:
+      dataset_name: "copa"
+      dataset_class: "S2ClassDataset"
+      max_len: 512
+      num_labels: 2
+      validation_split_ratio: 0.1
+      min_validation_samples: 2000
+      max_ard_ratio: 0.8
+      random_seed: 42
+
+    # Sentiment classification
+    sst2:
+      dataset_name: "sst2"
+      dataset_class: "S2ClassDataset"
+      max_len: 512
+      num_labels: 2
+      validation_split_ratio: 0.1
+      min_validation_samples: 2000
+      max_ard_ratio: 0.8
+      random_seed: 42
+
+    # Instruction-following evaluation (not training)
+    alpacaeval:
+      dataset_name: "alpacaeval"
+      dataset_class: "EvalOnlyDataset"
+      max_len: 2048
+      num_labels: 0
+      notes: "Evaluation-only benchmark for instruction-following, not used for training"
+
+    # Dataset configurations for different datasets (existing)
     alpaca:
       dataset_name: "alpaca"  # Specific dataset from Bayesian-PEFT suite
       dataset_class: "S2SDataset"  # Use their S2S dataset class

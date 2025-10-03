@@ -10,7 +10,10 @@ class ProbLoRALayer(nn.Module):
     Works with both encoder (bidirectional) and decoder (causal) architectures.
     The KL divergence computation is independent of attention masking.
     """
-    def __init__(self, base_proj: nn.Linear, rank, num_tokens=2048, ard_prior_samples=1000, scaling=1.0):
+    def __init__(self, base_proj: nn.Linear, rank, num_tokens, ard_prior_samples, scaling, 
+                 logvar_clamp_min, logvar_clamp_max, 
+                 beta_logvar_clamp_min, beta_logvar_clamp_max,
+                 sample_clamp_min, sample_clamp_max):
         super().__init__()
 
         self.base_proj = base_proj
@@ -19,6 +22,14 @@ class ProbLoRALayer(nn.Module):
         self.num_tokens = num_tokens
         self.ard_prior_samples = ard_prior_samples
         self.scaling = scaling
+        
+        # Numerical stability parameters
+        self.logvar_clamp_min = logvar_clamp_min
+        self.logvar_clamp_max = logvar_clamp_max
+        self.beta_logvar_clamp_min = beta_logvar_clamp_min
+        self.beta_logvar_clamp_max = beta_logvar_clamp_max
+        self.sample_clamp_min = sample_clamp_min
+        self.sample_clamp_max = sample_clamp_max
 
         self.in_features = base_proj.in_features
         self.out_features = base_proj.out_features
@@ -87,7 +98,7 @@ class ProbLoRALayer(nn.Module):
         logvar = (logvar_A_masked @ x_flat.T).T
         
         # NUMERICAL STABILITY: Clamp logvar to prevent extreme values during training
-        logvar = torch.clamp(logvar, min=-15.0, max=15.0)  # Prevents exp() overflow/underflow
+        logvar = torch.clamp(logvar, min=self.logvar_clamp_min, max=self.logvar_clamp_max)  # Prevents exp() overflow/underflow
         
         # Apply additional masking to latent outputs to ensure inactive dims are zero
         if hasattr(self, 'variance_mask') and self.variance_mask is not None:
@@ -212,13 +223,13 @@ class ProbLoRALayer(nn.Module):
             logvar = logvar * mask_latent
         
         # NUMERICAL STABILITY: Clamp logvar to prevent extreme values
-        logvar = torch.clamp(logvar, min=-10.0, max=10.0)  # Prevents exp() overflow/underflow
+        logvar = torch.clamp(logvar, min=self.beta_logvar_clamp_min, max=self.beta_logvar_clamp_max)  # Prevents exp() overflow/underflow
         
         eps = torch.randn_like(mu)
         samples = mu + eps * torch.exp(0.5 * logvar)  # [B*S, rank]
         
         # NUMERICAL STABILITY: Clamp samples to prevent overflow in beta accumulation
-        samples = torch.clamp(samples, min=-50.0, max=50.0)  # Prevents overflow in square operation
+        samples = torch.clamp(samples, min=self.sample_clamp_min, max=self.sample_clamp_max)  # Prevents overflow in square operation
         
         # Convert to float32 before numpy conversion (BFloat16 not supported by numpy)
         samples_float = samples.float().cpu().detach()
@@ -233,7 +244,10 @@ class ProbLoRALayer(nn.Module):
 
 
 
-def inject_problora_llama(model, rank=64, scaling=1.0, num_tokens=2048, ard_prior_samples=1000):
+def inject_problora_llama(model, rank, scaling, num_tokens, ard_prior_samples,
+                         logvar_clamp_min, logvar_clamp_max,
+                         beta_logvar_clamp_min, beta_logvar_clamp_max,
+                         sample_clamp_min, sample_clamp_max):
     """
     Inject ProbLoRA into LLaMA2-7B model.
     Targets the standard attention projections: q_proj, k_proj, v_proj, o_proj
@@ -250,19 +264,31 @@ def inject_problora_llama(model, rank=64, scaling=1.0, num_tokens=2048, ard_prio
                 
                 # Wrap standard LLaMA attention projections
                 if hasattr(attn, 'q_proj') and isinstance(attn.q_proj, nn.Linear):
-                    attn.q_proj = ProbLoRALayer(attn.q_proj, rank, num_tokens, ard_prior_samples, scaling)
+                    attn.q_proj = ProbLoRALayer(attn.q_proj, rank, num_tokens, ard_prior_samples, scaling,
+                                              logvar_clamp_min, logvar_clamp_max,
+                                              beta_logvar_clamp_min, beta_logvar_clamp_max,
+                                              sample_clamp_min, sample_clamp_max)
                     layers_modified += 1
                 
                 # if hasattr(attn, 'k_proj') and isinstance(attn.k_proj, nn.Linear):
-                #     attn.k_proj = ProbLoRALayer(attn.k_proj, rank, num_tokens, ard_prior_samples, scaling)
+                #     attn.k_proj = ProbLoRALayer(attn.k_proj, rank, num_tokens, ard_prior_samples, scaling,
+                #                               logvar_clamp_min, logvar_clamp_max,
+                #                               beta_logvar_clamp_min, beta_logvar_clamp_max,
+                #                               sample_clamp_min, sample_clamp_max)
                 #     layers_modified += 1
                     
                 if hasattr(attn, 'v_proj') and isinstance(attn.v_proj, nn.Linear):
-                    attn.v_proj = ProbLoRALayer(attn.v_proj, rank, num_tokens, ard_prior_samples, scaling)
+                    attn.v_proj = ProbLoRALayer(attn.v_proj, rank, num_tokens, ard_prior_samples, scaling,
+                                              logvar_clamp_min, logvar_clamp_max,
+                                              beta_logvar_clamp_min, beta_logvar_clamp_max,
+                                              sample_clamp_min, sample_clamp_max)
                     layers_modified += 1
                     
                 # if hasattr(attn, 'o_proj') and isinstance(attn.o_proj, nn.Linear):
-                #     attn.o_proj = ProbLoRALayer(attn.o_proj, rank, num_tokens, ard_prior_samples, scaling)
+                #     attn.o_proj = ProbLoRALayer(attn.o_proj, rank, num_tokens, ard_prior_samples, scaling,
+                #                               logvar_clamp_min, logvar_clamp_max,
+                #                               beta_logvar_clamp_min, beta_logvar_clamp_max,
+                #                               sample_clamp_min, sample_clamp_max)
                 #     layers_modified += 1
     
     print(f"[INFO] Successfully injected ProbLoRA into {layers_modified} linear layers")

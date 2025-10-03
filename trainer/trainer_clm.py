@@ -372,7 +372,15 @@ class ARDCLMTrainer(Trainer):
                     # Use configured ard_prior_samples directly
                     ard_prior_samples = self.ard_prior_samples
                     
-                    estimate_ard_priors_clm(model, self.ard_eval_dataset, model.device, num_samples=ard_prior_samples)
+                    # Get batch size and relevance thresholds from trainer args
+                    batch_size = self.args.per_device_eval_batch_size if hasattr(self.args, 'per_device_eval_batch_size') else 4
+                    high_threshold = getattr(self, 'high_relevance_threshold', 0.1)
+                    medium_threshold = getattr(self, 'medium_relevance_threshold', 0.01)
+                    estimate_ard_priors_clm(model, self.ard_eval_dataset, model.device, 
+                                          num_samples=ard_prior_samples, tokenizer=self.tokenizer, 
+                                          batch_size=batch_size,
+                                          high_relevance_threshold=high_threshold,
+                                          medium_relevance_threshold=medium_threshold)
                     print("✅ ARD prior estimation completed")
                 except Exception as e:
                     print(f"⚠️ ARD prior estimation failed: {e}")
@@ -513,7 +521,15 @@ class PriorEstimationCallback(TrainerCallback):
         ard_prior_samples = trainer.ard_prior_samples
         
         try:
-            estimate_ard_priors_clm(model, eval_data, self.device, num_samples=ard_prior_samples, tokenizer=tokenizer)
+            # Get batch size and relevance thresholds from trainer args
+            batch_size = trainer.args.per_device_eval_batch_size if hasattr(trainer.args, 'per_device_eval_batch_size') else 4
+            high_threshold = getattr(trainer, 'high_relevance_threshold', 0.1)
+            medium_threshold = getattr(trainer, 'medium_relevance_threshold', 0.01)
+            estimate_ard_priors_clm(model, eval_data, self.device, 
+                                  num_samples=ard_prior_samples, tokenizer=tokenizer, 
+                                  batch_size=batch_size,
+                                  high_relevance_threshold=high_threshold,
+                                  medium_relevance_threshold=medium_threshold)
             print("[PriorEstimationCallback] ARD prior estimation completed")
         except Exception as e:
             print(f"[PriorEstimationCallback] ARD prior estimation failed: {e}")
@@ -527,12 +543,13 @@ class PriorEstimationCallback(TrainerCallback):
 class LatentPlotCallback(TrainerCallback):
     """Callback to plot latent encodings following DeBERTa pattern."""
     
-    def __init__(self, device, output_dir, start_epoch=2, interval=2):
+    def __init__(self, device, output_dir, start_epoch, interval, plot_batch_size):
         super().__init__()
         self.device = device
         self.output_dir = Path(output_dir)
         self.start_epoch = start_epoch
         self.interval = interval
+        self.plot_batch_size = plot_batch_size
     
     def on_epoch_end(self, args, state, control, **kwargs):
         """Plot latent encodings at specified intervals."""
@@ -571,11 +588,11 @@ class LatentPlotCallback(TrainerCallback):
             if hasattr(eval_data, 'dataset'):
                 # If it's a DataLoader, create a simple DataLoader for plotting
                 from torch.utils.data import DataLoader
-                plot_dataloader = DataLoader(eval_data.dataset, batch_size=16, shuffle=False)
+                plot_dataloader = DataLoader(eval_data.dataset, batch_size=self.plot_batch_size, shuffle=False)
             else:
                 # If it's a dataset, create a DataLoader
                 from torch.utils.data import DataLoader
-                plot_dataloader = DataLoader(eval_data, batch_size=16, shuffle=False)
+                plot_dataloader = DataLoader(eval_data, batch_size=self.plot_batch_size, shuffle=False)
             
             # Generate plots
             plot_mean_encodings(model, plot_dataloader, self.device, str(plot_dir), epoch=current_epoch)
@@ -669,7 +686,7 @@ class HeldoutResampleCallback(TrainerCallback):
             print(f"[HeldoutResampleCallback] Failed to resample validation data: {e}")
 
 
-def split_validation_dataset(val_dataset, ard_prior_samples=100, seed=42, train_dataset=None, train_split_ratio=0.1):
+def split_validation_dataset(val_dataset, ard_prior_samples, seed, train_dataset=None, train_split_ratio=0.1, min_val_samples=2000, max_ard_ratio=0.8):
     """
     Split validation dataset into two parts:
     1. ARD prior estimation (first part) - specified number of samples
@@ -701,8 +718,8 @@ def split_validation_dataset(val_dataset, ard_prior_samples=100, seed=42, train_
         
         # Create validation split from training data
         total_train = len(train_dataset)
-        # Calculate validation size: at least 10% of training data and at least 2000 samples (1000 for ARD + 1000 for eval)
-        min_val_size = max(int(total_train * min_split_ratio), 2000)
+        # Calculate validation size: at least 10% of training data and at least min_val_samples (for ARD + eval)
+        min_val_size = max(int(total_train * min_split_ratio), min_val_samples)
         val_size = min(min_val_size, total_train // 2)  # Don't use more than half of training data
         
         np.random.seed(seed)
@@ -715,8 +732,7 @@ def split_validation_dataset(val_dataset, ard_prior_samples=100, seed=42, train_
     if total_size == 0:
         return None, None
     
-    # Use the requested number of samples, but don't exceed 80% of validation data
-    max_ard_ratio = 0.8
+    # Use the requested number of samples, but don't exceed max_ard_ratio of validation data
     max_ard_samples = int(total_size * max_ard_ratio)
     
     if total_size < ard_prior_samples:
@@ -748,7 +764,8 @@ def split_validation_dataset(val_dataset, ard_prior_samples=100, seed=42, train_
 
 
 @torch.no_grad()
-def estimate_ard_priors_clm(model, eval_dataset, device, num_samples=1000, tokenizer=None):
+def estimate_ard_priors_clm(model, eval_dataset, device, num_samples, tokenizer, batch_size, 
+                            high_relevance_threshold=0.1, medium_relevance_threshold=0.01):
     """
     Estimate ARD priors following DeBERTa pattern, adapted for LLaMA architecture.
     
@@ -758,6 +775,9 @@ def estimate_ard_priors_clm(model, eval_dataset, device, num_samples=1000, token
         device: Device to run computation on
         num_samples: Number of samples to use for estimation
         tokenizer: Tokenizer for data collation (REQUIRED)
+        batch_size: Batch size for data loading
+        high_relevance_threshold: Threshold for high relevance classification
+        medium_relevance_threshold: Threshold for medium relevance classification
     """
     print(f"[ARD] Estimating priors using {num_samples} samples...")
     
@@ -783,7 +803,7 @@ def estimate_ard_priors_clm(model, eval_dataset, device, num_samples=1000, token
         )
         eval_dataloader = DataLoader(
             eval_dataset, 
-            batch_size=4, 
+            batch_size=batch_size, 
             collate_fn=data_collator,
             shuffle=False
         )
@@ -950,7 +970,7 @@ def estimate_ard_priors_clm(model, eval_dataset, device, num_samples=1000, token
             print(f"   Layer {layer_idx} {proj_name}: avg_est_var={avg_est_var:.6f}")
             
             # ARD relevance determination (using est_var)
-            relevance = "High" if avg_est_var > 0.1 else "Medium" if avg_est_var > 0.01 else "Low"
+            relevance = "High" if avg_est_var > high_relevance_threshold else "Medium" if avg_est_var > medium_relevance_threshold else "Low"
             print(f"     → Estimated relevance: {relevance}")
     
     # Restore original training mode
@@ -963,10 +983,13 @@ def estimate_ard_priors_clm(model, eval_dataset, device, num_samples=1000, token
     return list(prob_lora_layers.keys())
 
 
-def optimize_memory_settings():
+def optimize_memory_settings(gpu_memory_fraction=0.9):
     """
     Apply memory optimization settings to reduce CUDA OOM errors.
     Call this before training starts.
+    
+    Args:
+        gpu_memory_fraction: Fraction of GPU memory to use (default: 0.9)
     """
     print("[MEMORY] Applying memory optimization settings...")
     
@@ -979,8 +1002,8 @@ def optimize_memory_settings():
         
         # Set memory fraction to leave some memory for system
         try:
-            torch.cuda.set_per_process_memory_fraction(0.9)  # Use 90% of GPU memory
-            print("[MEMORY] Set GPU memory fraction to 90%")
+            torch.cuda.set_per_process_memory_fraction(gpu_memory_fraction)
+            print(f"[MEMORY] Set GPU memory fraction to {gpu_memory_fraction*100:.0f}%")
         except:
             print("[MEMORY] Could not set memory fraction")
         
@@ -1012,10 +1035,369 @@ def emergency_memory_cleanup():
     print("[MEMORY] Emergency cleanup completed")
 
 
+def debug_dataset_filtering(dataset, tokenizer, max_len=2048, sample_size=1000):
+    """
+    Debug dataset filtering to identify why samples are being lost.
+    
+    Args:
+        dataset: The dataset to analyze
+        tokenizer: Tokenizer used for processing
+        max_len: Maximum sequence length
+        sample_size: Number of samples to analyze
+    
+    Returns:
+        Dictionary with filtering statistics
+    """
+    print("\n🔍 DEBUGGING DATASET FILTERING")
+    print("=" * 50)
+    
+    total_samples = len(dataset)
+    sample_size = min(sample_size, total_samples)
+    
+    # Analysis counters
+    stats = {
+        'total_samples': total_samples,
+        'analyzed_samples': sample_size,
+        'valid_samples': 0,
+        'too_long_samples': 0,
+        'empty_samples': 0,
+        'tokenization_failed': 0,
+        'other_issues': 0,
+        'sequence_lengths': []
+    }
+    
+    print(f"Analyzing {sample_size} samples from {total_samples} total samples...")
+    
+    # Sample random indices to analyze
+    import random
+    random.seed(42)
+    sample_indices = random.sample(range(total_samples), sample_size)
+    
+    for idx in sample_indices:
+        try:
+            sample = dataset[idx]
+            
+            # Check if sample has required fields
+            if not sample or 'input_ids' not in sample:
+                stats['empty_samples'] += 1
+                continue
+            
+            # Get sequence length
+            input_ids = sample['input_ids']
+            if isinstance(input_ids, (list, tuple)):
+                seq_len = len(input_ids)
+            elif hasattr(input_ids, 'shape'):
+                seq_len = input_ids.shape[-1] if len(input_ids.shape) > 0 else 0
+            else:
+                seq_len = 0
+            
+            stats['sequence_lengths'].append(seq_len)
+            
+            # Check sequence length
+            if seq_len > max_len:
+                stats['too_long_samples'] += 1
+                continue
+            elif seq_len == 0:
+                stats['empty_samples'] += 1
+                continue
+            
+            # Check labels if available
+            if 'labels' in sample:
+                labels = sample['labels']
+                if isinstance(labels, (list, tuple)):
+                    # Check if all labels are -100 (masked)
+                    if hasattr(labels, '__iter__') and all(l == -100 for l in labels):
+                        stats['empty_samples'] += 1
+                        continue
+            
+            stats['valid_samples'] += 1
+            
+        except Exception as e:
+            stats['tokenization_failed'] += 1
+            if sample_size <= 10:  # Only print errors for small samples
+                print(f"   Error processing sample {idx}: {e}")
+    
+    # Calculate statistics
+    if stats['sequence_lengths']:
+        import numpy as np
+        seq_lengths = np.array(stats['sequence_lengths'])
+        stats['avg_seq_length'] = np.mean(seq_lengths)
+        stats['median_seq_length'] = np.median(seq_lengths)
+        stats['max_seq_length'] = np.max(seq_lengths)
+        stats['min_seq_length'] = np.min(seq_lengths)
+        stats['seq_lengths_over_max'] = np.sum(seq_lengths > max_len)
+    
+    # Print results
+    print(f"\n📊 FILTERING ANALYSIS RESULTS:")
+    print(f"   Total samples: {stats['total_samples']:,}")
+    print(f"   Analyzed samples: {stats['analyzed_samples']:,}")
+    print(f"   Valid samples: {stats['valid_samples']:,} ({stats['valid_samples']/stats['analyzed_samples']*100:.1f}%)")
+    print(f"   Too long (>{max_len}): {stats['too_long_samples']:,} ({stats['too_long_samples']/stats['analyzed_samples']*100:.1f}%)")
+    print(f"   Empty/invalid: {stats['empty_samples']:,} ({stats['empty_samples']/stats['analyzed_samples']*100:.1f}%)")
+    print(f"   Tokenization failed: {stats['tokenization_failed']:,} ({stats['tokenization_failed']/stats['analyzed_samples']*100:.1f}%)")
+    
+    if stats['sequence_lengths']:
+        print(f"\n📏 SEQUENCE LENGTH STATISTICS:")
+        print(f"   Average length: {stats['avg_seq_length']:.1f}")
+        print(f"   Median length: {stats['median_seq_length']:.1f}")
+        print(f"   Min length: {stats['min_seq_length']}")
+        print(f"   Max length: {stats['max_seq_length']}")
+        print(f"   Sequences > {max_len}: {stats['seq_lengths_over_max']:,}")
+    
+    return stats
+
+
+def analyze_data_collator_filtering(dataset, tokenizer, batch_size=4, max_len=2048, num_batches=10):
+    """
+    Analyze how DataCollatorForLanguageModeling filters data.
+    
+    Args:
+        dataset: Dataset to test
+        tokenizer: Tokenizer to use
+        batch_size: Batch size for testing
+        max_len: Maximum sequence length
+        num_batches: Number of batches to test
+    
+    Returns:
+        Dictionary with collator filtering statistics
+    """
+    print("\n🔍 ANALYZING DATA COLLATOR FILTERING")
+    print("=" * 50)
+    
+    from transformers import DataCollatorForLanguageModeling
+    from torch.utils.data import DataLoader
+    
+    # Create data collator
+    data_collator = DataCollatorForLanguageModeling(tokenizer, mlm=False)
+    
+    # Create dataloader
+    dataloader = DataLoader(
+        dataset,
+        batch_size=batch_size,
+        collate_fn=data_collator,
+        shuffle=False
+    )
+    
+    stats = {
+        'total_batches_attempted': 0,
+        'successful_batches': 0,
+        'failed_batches': 0,
+        'total_samples_attempted': 0,
+        'total_samples_in_successful_batches': 0,
+        'errors': []
+    }
+    
+    print(f"Testing {num_batches} batches with batch_size={batch_size}...")
+    
+    try:
+        for batch_idx, batch in enumerate(dataloader):
+            if batch_idx >= num_batches:
+                break
+            
+            stats['total_batches_attempted'] += 1
+            stats['total_samples_attempted'] += batch_size
+            
+            try:
+                # Check batch contents
+                if 'input_ids' in batch:
+                    input_ids = batch['input_ids']
+                    batch_actual_size = input_ids.shape[0] if hasattr(input_ids, 'shape') else len(input_ids)
+                    stats['total_samples_in_successful_batches'] += batch_actual_size
+                    stats['successful_batches'] += 1
+                    
+                    if batch_idx == 0:  # Print details for first batch
+                        print(f"\n   First batch details:")
+                        print(f"     Requested batch size: {batch_size}")
+                        print(f"     Actual batch size: {batch_actual_size}")
+                        print(f"     Input shape: {input_ids.shape if hasattr(input_ids, 'shape') else 'N/A'}")
+                        if 'labels' in batch:
+                            labels = batch['labels']
+                            print(f"     Labels shape: {labels.shape if hasattr(labels, 'shape') else 'N/A'}")
+                else:
+                    stats['failed_batches'] += 1
+                    stats['errors'].append(f"Batch {batch_idx}: No input_ids in batch")
+                    
+            except Exception as e:
+                stats['failed_batches'] += 1
+                stats['errors'].append(f"Batch {batch_idx}: {str(e)}")
+                
+    except Exception as e:
+        print(f"   DataLoader error: {e}")
+        stats['errors'].append(f"DataLoader error: {str(e)}")
+    
+    # Calculate filtering rate
+    if stats['total_samples_attempted'] > 0:
+        filtering_rate = (stats['total_samples_attempted'] - stats['total_samples_in_successful_batches']) / stats['total_samples_attempted'] * 100
+    else:
+        filtering_rate = 0
+    
+    print(f"\n📊 DATA COLLATOR ANALYSIS RESULTS:")
+    print(f"   Attempted batches: {stats['total_batches_attempted']}")
+    print(f"   Successful batches: {stats['successful_batches']}")
+    print(f"   Failed batches: {stats['failed_batches']}")
+    print(f"   Total samples attempted: {stats['total_samples_attempted']}")
+    print(f"   Samples in successful batches: {stats['total_samples_in_successful_batches']}")
+    print(f"   Data collator filtering rate: {filtering_rate:.1f}%")
+    
+    if stats['errors']:
+        print(f"\n⚠️  ERRORS ENCOUNTERED:")
+        for error in stats['errors'][:5]:  # Show first 5 errors
+            print(f"     {error}")
+        if len(stats['errors']) > 5:
+            print(f"     ... and {len(stats['errors']) - 5} more errors")
+    
+    return stats
+
+
+def get_effective_dataset_size(trainer):
+    """
+    Calculate the effective dataset size used by the trainer.
+    
+    Args:
+        trainer: The ARDCLMTrainer instance
+    
+    Returns:
+        Dictionary with dataset size information
+    """
+    print("\n📊 CALCULATING EFFECTIVE DATASET SIZE")
+    print("=" * 50)
+    
+    # Get trainer's dataloader
+    train_dataloader = trainer.get_train_dataloader()
+    
+    stats = {
+        'reported_dataset_size': len(trainer.train_dataset) if trainer.train_dataset else 0,
+        'dataloader_batch_count': len(train_dataloader) if train_dataloader else 0,
+        'per_device_batch_size': trainer.args.per_device_train_batch_size,
+        'gradient_accumulation_steps': trainer.args.gradient_accumulation_steps,
+        'world_size': trainer.args.world_size if hasattr(trainer.args, 'world_size') else 1,
+        'effective_batch_size': None,
+        'effective_dataset_size': None,
+        'filtering_percentage': None
+    }
+    
+    # Calculate effective batch size
+    stats['effective_batch_size'] = (
+        stats['per_device_batch_size'] * 
+        stats['gradient_accumulation_steps'] * 
+        stats['world_size']
+    )
+    
+    # Calculate effective dataset size
+    if stats['dataloader_batch_count'] > 0:
+        stats['effective_dataset_size'] = (
+            stats['dataloader_batch_count'] * stats['effective_batch_size']
+        )
+        
+        # Calculate filtering percentage
+        if stats['reported_dataset_size'] > 0:
+            stats['filtering_percentage'] = (
+                (stats['reported_dataset_size'] - stats['effective_dataset_size']) / 
+                stats['reported_dataset_size'] * 100
+            )
+    
+    print(f"   Reported dataset size: {stats['reported_dataset_size']:,}")
+    print(f"   DataLoader batch count: {stats['dataloader_batch_count']:,}")
+    print(f"   Per-device batch size: {stats['per_device_batch_size']}")
+    print(f"   Gradient accumulation steps: {stats['gradient_accumulation_steps']}")
+    print(f"   World size: {stats['world_size']}")
+    print(f"   Effective batch size: {stats['effective_batch_size']}")
+    
+    if stats['effective_dataset_size'] is not None:
+        print(f"   Effective dataset size: {stats['effective_dataset_size']:,}")
+        print(f"   Samples lost to filtering: {stats['reported_dataset_size'] - stats['effective_dataset_size']:,}")
+        if stats['filtering_percentage'] is not None:
+            print(f"   Filtering percentage: {stats['filtering_percentage']:.1f}%")
+    
+    return stats
+
+
+def apply_dataset_filtering_fixes(dataset, tokenizer, max_len=2048, verbose=True):
+    """
+    Apply common fixes for dataset filtering issues.
+    
+    Args:
+        dataset: Dataset to fix
+        tokenizer: Tokenizer to use
+        max_len: Maximum sequence length
+        verbose: Whether to print progress
+    
+    Returns:
+        Fixed dataset
+    """
+    if verbose:
+        print("\n🔧 APPLYING DATASET FILTERING FIXES")
+        print("=" * 50)
+        print(f"Original dataset size: {len(dataset):,}")
+    
+    # Fix 1: Remove samples that are too long
+    def filter_length(example):
+        if 'input_ids' in example:
+            input_ids = example['input_ids']
+            if isinstance(input_ids, (list, tuple)):
+                return len(input_ids) <= max_len
+            elif hasattr(input_ids, 'shape'):
+                return input_ids.shape[-1] <= max_len
+        return True
+    
+    # Fix 2: Remove empty samples
+    def filter_empty(example):
+        if 'input_ids' not in example:
+            return False
+        input_ids = example['input_ids']
+        if isinstance(input_ids, (list, tuple)):
+            return len(input_ids) > 0
+        elif hasattr(input_ids, 'shape'):
+            return input_ids.shape[-1] > 0
+        return True
+    
+    # Fix 3: Remove samples with all masked labels
+    def filter_all_masked(example):
+        if 'labels' in example:
+            labels = example['labels']
+            if isinstance(labels, (list, tuple)):
+                return not all(l == -100 for l in labels)
+            elif hasattr(labels, '__iter__'):
+                try:
+                    return not all(l == -100 for l in labels)
+                except:
+                    pass
+        return True
+    
+    # Apply filters if dataset supports filtering
+    if hasattr(dataset, 'filter'):
+        if verbose:
+            print("   Applying length filter...")
+        dataset = dataset.filter(filter_length)
+        if verbose:
+            print(f"   After length filter: {len(dataset):,}")
+        
+        if verbose:
+            print("   Applying empty sample filter...")
+        dataset = dataset.filter(filter_empty)
+        if verbose:
+            print(f"   After empty filter: {len(dataset):,}")
+        
+        if verbose:
+            print("   Applying masked labels filter...")
+        dataset = dataset.filter(filter_all_masked)
+        if verbose:
+            print(f"   After masked labels filter: {len(dataset):,}")
+    else:
+        if verbose:
+            print("   Dataset doesn't support filtering - manual filtering needed")
+    
+    if verbose:
+        print(f"\n✅ Dataset filtering fixes applied")
+        print(f"   Final dataset size: {len(dataset):,}")
+    
+    return dataset
+
+
 def create_ard_callbacks(device, output_dir, train_ds=None, val_ds=None, 
                         ard_prior_samples=1000, batch_size=4, tokenizer=None,
                         enable_plotting=True, enable_resampling=True,
-                        plot_start_epoch=2, plot_interval=2):
+                        plot_start_epoch=2, plot_interval=2, plot_batch_size=16):
     """Create standard ARD training callbacks.
     
     Args:
@@ -1045,7 +1427,8 @@ def create_ard_callbacks(device, output_dir, train_ds=None, val_ds=None,
             device=device,
             output_dir=output_dir,
             start_epoch=plot_start_epoch,
-            interval=plot_interval
+            interval=plot_interval,
+            plot_batch_size=plot_batch_size
         ))
     
     # Add resampling callback if enabled and datasets available
@@ -1073,44 +1456,46 @@ def build_clm_trainer(model, tokenizer, train_dataset, eval_dataset, cfg, output
     # Pass train_dataset so we can create validation split if needed
     ard_dataset, uncertainty_dataset = split_validation_dataset(
         eval_dataset, 
-        ard_prior_samples=ard_prior_samples,  # Use absolute sample count instead of ratio
+        ard_prior_samples=ard_prior_samples,
+        seed=cfg["random_seed"],
         train_dataset=train_dataset,
-        train_split_ratio=cfg.get("validation_split_ratio", 0.1)  # Use 10% of training data by default (minimum)
+        train_split_ratio=cfg["validation_split_ratio"],
+        min_val_samples=cfg["min_validation_samples"],
+        max_ard_ratio=cfg["max_ard_ratio"]
     )
     
-    # Use TensorBoard log directory if provided, otherwise use default
-    logging_dir = tb_log_dir or cfg.get("logging_dir") or f"{output_dir}/tensorboard_logs"
+    # Use TensorBoard log directory from get_output_dirs() - required parameter
+    if tb_log_dir is None:
+        raise ValueError("tb_log_dir must be provided from get_output_dirs()")
     
-    # Training arguments with enhanced configuration and memory optimization
+    # Training arguments - ALL VALUES FROM CONFIG FILE (NO DEFAULTS)
     args = TrainingArguments(
         output_dir=output_dir,
-        logging_dir=logging_dir,  # Explicit TensorBoard logging directory
-        per_device_train_batch_size=cfg.get("batch_size", 1),
-        per_device_eval_batch_size=max(1, cfg.get("batch_size", 1)),  # Smaller eval batch to save memory
-        gradient_accumulation_steps=cfg.get("gradient_accumulation_steps", 4),  # Increase to compensate for smaller batch
-        num_train_epochs=cfg.get("train_epochs", 1),
-        bf16=bool(cfg.get("bf16", False)),  # BF16 support for A100 GPUs
-        fp16=bool(cfg.get("fp16", True)) if not cfg.get("bf16", False) else False,  # Use fp16 only if bf16 is not enabled
-        learning_rate=float(cfg.get("learning_rate", 2e-5)),
-        weight_decay=float(cfg.get("weight_decay", 0.0)),
-        lr_scheduler_type=cfg.get("lr_scheduler_type", "linear"),
-        warmup_ratio=float(cfg.get("warmup_ratio", 0.03)),
-        logging_steps=cfg.get("logging_steps", 50),
-        save_strategy="epoch",  # Save after each epoch
-        eval_strategy="epoch" if uncertainty_dataset else "no",  # Evaluate after each epoch
-        save_steps=500,
-        eval_steps=None,  # Use epoch-based evaluation
-        load_best_model_at_end=bool(uncertainty_dataset),
-        metric_for_best_model="eval_loss" if uncertainty_dataset else None,
-        report_to=cfg.get("report_to", ["tensorboard"]) if cfg.get("report_to") else None,
-        remove_unused_columns=False,
-        dataloader_num_workers=0,  # Reduce to 0 to save memory
-        # Memory optimization settings
-        max_grad_norm=1.0,  # Gradient clipping
-        optim="adamw_torch",  # Use torch AdamW for better memory management
-        # Enable gradient checkpointing if model supports it
-        gradient_checkpointing=cfg.get("gradient_checkpointing", True),
-        gradient_checkpointing_kwargs={"use_reentrant": False},  # <- add this for the checkpoint warnings 
+        logging_dir=tb_log_dir,  # TensorBoard logging directory from get_output_dirs()
+        per_device_train_batch_size=cfg["batch_size"],
+        per_device_eval_batch_size=cfg["batch_size"],
+        gradient_accumulation_steps=cfg["gradient_accumulation_steps"],
+        num_train_epochs=cfg["train_epochs"],
+        bf16=cfg["bf16"],
+        fp16=cfg["fp16"],
+        learning_rate=cfg["learning_rate"],
+        weight_decay=cfg["weight_decay"],
+        lr_scheduler_type=cfg["lr_scheduler_type"],
+        warmup_ratio=cfg["warmup_ratio"],
+        logging_steps=cfg["logging_steps"],
+        save_strategy=cfg["save_strategy"],
+        eval_strategy=cfg["eval_strategy"],
+        save_steps=cfg["save_steps"],
+        eval_steps=cfg.get("eval_steps"),  # Optional parameter
+        load_best_model_at_end=cfg["load_best_model_at_end"],
+        metric_for_best_model=cfg.get("metric_for_best_model"),  # Optional parameter
+        report_to=cfg.get("report_to"),  # Optional parameter
+        remove_unused_columns=cfg["remove_unused_columns"],
+        dataloader_num_workers=cfg["dataloader_num_workers"],
+        max_grad_norm=cfg["max_grad_norm"],
+        optim=cfg["optim"],
+        gradient_checkpointing=cfg["gradient_checkpointing"],
+        gradient_checkpointing_kwargs=cfg.get("gradient_checkpointing_kwargs", {"use_reentrant": False}),
     )
 
     # Data collator for causal language modeling
@@ -1121,12 +1506,46 @@ def build_clm_trainer(model, tokenizer, train_dataset, eval_dataset, cfg, output
     if use_deberta_pattern and ard_dataset is not None:
         heldout_loader = DataLoader(
             ard_dataset,
-            batch_size=cfg.get("batch_size", 4),
+            batch_size=cfg["batch_size"],
             collate_fn=data_collator,
             shuffle=False
         )
 
-    # Create the enhanced trainer
+    # DEBUG: Analyze dataset filtering issues if enabled
+    if cfg.get("debug_dataset_filtering", False):
+        print("\n🔍 DATASET FILTERING DEBUG ANALYSIS ENABLED")
+        print("=" * 60)
+        
+        # Debug training dataset
+        if train_dataset is not None:
+            print("\n📊 TRAINING DATASET ANALYSIS:")
+            debug_stats = debug_dataset_filtering(
+                train_dataset, 
+                tokenizer, 
+                max_len=cfg["max_len"],
+                sample_size=min(1000, len(train_dataset))
+            )
+            
+            # Test data collator
+            collator_stats = analyze_data_collator_filtering(
+                train_dataset,
+                tokenizer,
+                batch_size=cfg["batch_size"],
+                max_len=cfg["max_len"],
+                num_batches=10
+            )
+            
+        # Debug validation dataset
+        if eval_dataset is not None:
+            print("\n📊 VALIDATION DATASET ANALYSIS:")
+            debug_dataset_filtering(
+                eval_dataset, 
+                tokenizer, 
+                max_len=cfg["max_len"],
+                sample_size=min(250, len(eval_dataset))
+            )
+
+    # Create the enhanced trainer - ALL VALUES FROM CONFIG FILE
     trainer = ARDCLMTrainer(
         model=model,
         args=args,
@@ -1134,13 +1553,38 @@ def build_clm_trainer(model, tokenizer, train_dataset, eval_dataset, cfg, output
         eval_dataset=uncertainty_dataset,  # Use uncertainty dataset for standard evaluation
         data_collator=data_collator,
         tokenizer=tokenizer,
-        beta=float(cfg.get("kl_loss_beta", 0.01)),
+        beta=cfg["kl_loss_beta"],
         heldout_loader=heldout_loader,  # DeBERTa-style heldout loader
         ard_eval_dataset=ard_dataset,  # Separate dataset for ARD prior estimation
-        uncertainty_eval_samples=cfg.get("uncertainty_eval_samples", 1000),
-        n_bins=cfg.get("uncertainty_n_bins", 15),
-        output_dir=output_dir
+        uncertainty_eval_samples=cfg["uncertainty_eval_samples"],
+        n_bins=cfg["uncertainty_n_bins"],
+        output_dir=output_dir,
+        ard_prior_samples=ard_prior_samples
     )
+    
+    # Set relevance thresholds on trainer for ARD prior estimation
+    trainer.high_relevance_threshold = cfg["ard_high_relevance_threshold"]
+    trainer.medium_relevance_threshold = cfg["ard_medium_relevance_threshold"]
+    
+    # DEBUG: Get effective dataset size after trainer creation
+    if cfg.get("debug_dataset_filtering", False):
+        effective_stats = get_effective_dataset_size(trainer)
+        
+        # Print summary of filtering analysis
+        print("\n📋 FILTERING ANALYSIS SUMMARY")
+        print("=" * 60)
+        print(f"🔍 Issue: {effective_stats.get('filtering_percentage', 0):.1f}% of training data is being filtered out")
+        print(f"📊 Effective training samples: {effective_stats.get('effective_dataset_size', 0):,} / {effective_stats.get('reported_dataset_size', 0):,}")
+        print(f"⏱️  Training steps: {effective_stats.get('dataloader_batch_count', 0):,}")
+        print()
+        print("🔧 RECOMMENDED SOLUTIONS:")
+        print("   1. Add 'debug_dataset_filtering: true' to your config to see detailed analysis")
+        print("   2. Check sequence length distribution in your dataset")
+        print("   3. Consider reducing max_len if most sequences are shorter")
+        print("   4. Verify tokenization is working correctly")
+        print("   5. Check for empty or corrupted samples in your dataset")
+        print("   6. Use apply_dataset_filtering_fixes() function to clean your dataset")
+        print()
     # GRADIENT-CHECKPOINTING FIX: ensure at least one checkpointed input has requires_grad=True
     # Register a small embed forward-hook and per-layer forward_pre_hooks. Track how many
     # hooks succeeded so we can print a coverage summary. Optionally enable a debug wrapper
@@ -1269,13 +1713,14 @@ def build_clm_trainer(model, tokenizer, train_dataset, eval_dataset, cfg, output
             output_dir=output_dir,
             train_ds=train_dataset,
             val_ds=eval_dataset,
-            ard_prior_samples=cfg.get("ard_prior_samples", 1000),
-            batch_size=cfg.get("batch_size", 4),
+            ard_prior_samples=ard_prior_samples,  # Use parameter passed to function
+            batch_size=cfg["batch_size"],
             tokenizer=tokenizer,
-            enable_plotting=cfg.get("enable_plotting", True),
-            enable_resampling=cfg.get("enable_resampling", use_deberta_pattern),  # Enable resampling if using DeBERTa pattern
-            plot_start_epoch=cfg.get("plot_start_epoch", 2),
-            plot_interval=cfg.get("plot_interval", 2)
+            enable_plotting=cfg["enable_plotting"],
+            enable_resampling=cfg["enable_resampling"],
+            plot_start_epoch=cfg["plot_start_epoch"],
+            plot_interval=cfg["plot_interval"],
+            plot_batch_size=cfg["plot_batch_size"]
         )
         
         # Add callbacks to trainer

@@ -1,15 +1,15 @@
 """
-Bayesian-PEFT Dataset Integration with Local Caching for CLM
-===========================================================
+Bayesian-PEFT Dataset Integration with Google Drive Caching for CLM
+===================================================================
 
 This module leverages Bayesian-PEFT's dataset classes while ensuring
-data is downloaded and cached locally (e.g., Google Drive) for 
+data is downloaded and cached in Google Drive for 
 persistent access across training runs.
 
 Strategy:
 1. Clone Bayesian-PEFT repo for dataset utilities
 2. Download datasets using their loaders
-3. Cache processed datasets locally 
+3. Cache processed datasets in Google Drive 
 4. Provide ARD-LoRA compatible interface
 """
 
@@ -28,11 +28,11 @@ from transformers import AutoTokenizer
 
 class BayesianPEFTDataManager:
     """
-    Manager for Bayesian-PEFT datasets with local caching.
-    Downloads data once and caches for future use.
+    Manager for Bayesian-PEFT datasets with Google Drive caching.
+    Downloads data once and caches in Google Drive for future use.
     """
     
-    def __init__(self, cache_root: str = "./data_cache", repo_path: str = "./external/bayesian-peft"):
+    def __init__(self, cache_root: str = "/content/drive/MyDrive/ARD_LoRA_Data_Cache", repo_path: str = "./external/bayesian-peft"):
         self.cache_root = Path(cache_root)
         self.repo_path = Path(repo_path)
         self.cache_root.mkdir(parents=True, exist_ok=True)
@@ -65,7 +65,7 @@ class BayesianPEFTDataManager:
         return train_cache.exists()
     
     def cache_dataset(self, dataset_name: str, data: Dict[str, Any]):
-        """Cache dataset to local storage"""
+        """Cache dataset to Google Drive storage"""
         for split, dataset in data.items():
             cache_path = self.get_dataset_cache_path(dataset_name, split)
             
@@ -321,7 +321,7 @@ class ARDLoRADatasetWrapper:
     Handles tokenization and formatting for causal language modeling.
     """
     
-    def __init__(self, dataset_name: str, tokenizer_name: str, config: Dict[str, Any], cache_root: str = "./data_cache"):
+    def __init__(self, dataset_name: str, tokenizer_name: str, config: Dict[str, Any], cache_root: str = "/content/drive/MyDrive/ARD_LoRA_Data_Cache"):
         self.dataset_name = dataset_name
         self.config = config
         self.cache_root = cache_root
@@ -416,15 +416,15 @@ class ARDLoRADatasetWrapper:
         )
 
 
-def load_bayesian_peft_with_caching(dataset_name: str, tokenizer_name: str, config: Dict[str, Any], cache_root: str = "./data_cache"):
+def load_bayesian_peft_with_caching(dataset_name: str, tokenizer_name: str, config: Dict[str, Any], cache_root: str = "/content/drive/MyDrive/ARD_LoRA_Data_Cache"):
     """
-    Main function to load Bayesian-PEFT datasets with local caching.
+    Main function to load Bayesian-PEFT datasets with Google Drive caching.
     
     Args:
         dataset_name: Name of dataset (e.g., "alpaca", "dolly", "gsm8k")
         tokenizer_name: HuggingFace tokenizer name
         config: Dataset configuration
-        cache_root: Local cache directory (can be Google Drive path)
+        cache_root: Google Drive cache directory
     
     Returns:
         (train_dataset, val_dataset, tokenizer)

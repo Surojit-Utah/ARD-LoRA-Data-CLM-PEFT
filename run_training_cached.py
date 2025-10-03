@@ -31,13 +31,13 @@ def _merge_config(defaults: dict):
     merged.update(cfg.get("defaults", {}))
     
     # Apply model-specific defaults
-    model_name = merged.get("model_name", "LLaMA2-7B")
+    model_name = merged["model_name"]
     if "models" in cfg and model_name in cfg["models"]:
         model_cfg = cfg["models"][model_name]
         merged.update(model_cfg.get("defaults", {}))
     
     # Apply dataset-specific config
-    dataset_name = merged.get("dataset_name", "BayesianPEFT")
+    dataset_name = merged["dataset_name"]
     if "datasets" in cfg and dataset_name in cfg["datasets"]:
         dataset_cfg = cfg["datasets"][dataset_name]
         merged.update(dataset_cfg)
@@ -77,17 +77,17 @@ def _validate_config_types(config):
                 print(f"[WARNING] Could not convert {param} to int: {config[param]}")
     
     # Validate CLM-specific settings
-    if config.get("num_labels", 0) != 0:
-        print(f"[WARNING] CLM training should have num_labels=0, but got {config.get('num_labels')}")
+    if config["num_labels"] != 0:
+        print(f"[WARNING] CLM training should have num_labels=0, but got {config['num_labels']}")
         config["num_labels"] = 0
         print(f"[CONFIG] Reset num_labels to 0 for CLM training")
     
     # Validate memory optimization settings for A100
-    if not config.get("use_cache", True):
+    if not config["use_cache"]:
         print(f"[CONFIG] ✅ KV caching disabled for memory optimization")
-    if config.get("gradient_checkpointing", False):
+    if config["gradient_checkpointing"]:
         print(f"[CONFIG] ✅ Gradient checkpointing enabled for memory optimization")
-    if config.get("bf16", False):
+    if config["bf16"]:
         print(f"[CONFIG] ✅ BF16 precision enabled for A100 GPU optimization")
 
 
@@ -152,22 +152,22 @@ def setup_cache_directory(config):
 
 def load_model_with_problora(config):
     """Load LLaMA2 model and inject ProbLoRA layers"""
-    model_name_or_path = config.get("model_name_or_path", "meta-llama/Llama-2-7b-hf")
-    tokenizer_name = config.get("tokenizer_name", model_name_or_path)
+    model_name_or_path = config["model_name_or_path"]
+    tokenizer_name = config.get("tokenizer_name") or model_name_or_path
     
     print(f"[INFO] Loading model: {model_name_or_path}")
     
     # Model loading arguments
     model_kwargs = {}
-    if config.get("load_in_4bit"):
+    if config["load_in_4bit"]:
         from transformers import BitsAndBytesConfig
         model_kwargs["quantization_config"] = BitsAndBytesConfig(load_in_4bit=True)
     
     # Set torch dtype based on precision preference (bf16 preferred on A100)
     import torch
-    if config.get("bf16"):
+    if config["bf16"]:
         model_kwargs["torch_dtype"] = torch.bfloat16
-    elif config.get("fp16"):
+    elif config["fp16"]:
         model_kwargs["torch_dtype"] = torch.float16
     
     # Load model and tokenizer
@@ -187,7 +187,7 @@ def load_model_with_problora(config):
     print(f"[MEMORY] Original model.config.use_cache: {original_use_cache}")
     
     # Set use_cache based on configuration (disable for training to save memory)
-    use_cache_setting = config.get("use_cache", False)
+    use_cache_setting = config["use_cache"]
     model.config.use_cache = use_cache_setting
     print(f"[MEMORY] Set model.config.use_cache to: {model.config.use_cache}")
     if not use_cache_setting:
@@ -196,10 +196,10 @@ def load_model_with_problora(config):
     # Inject ProbLoRA
     model = inject_problora_llama(
         model,
-        rank=config.get("rank", 64),
-        scaling=config.get("scaling", 1.0),
-        num_tokens=config.get("max_len", 2048),
-        ard_prior_samples=config.get("ard_prior_samples", 1000)
+        rank=config["rank"],
+        scaling=config["scaling"],
+        num_tokens=config["max_len"],
+        ard_prior_samples=config["ard_prior_samples"]
     )
     
     # Freeze base parameters and unfreeze LoRA parameters
@@ -250,7 +250,8 @@ def load_model_with_problora(config):
         for name, param in model.named_parameters():
             if any(pattern in name for pattern in broader_patterns):
                 # Additional checks to avoid unfreezing all weights
-                if 'lora' in name.lower() or 'adapter' in name.lower() or (len(param.shape) == 2 and min(param.shape) <= 64):
+                max_rank_threshold = config.get("max_lora_rank_threshold", 64)  # Configurable threshold
+                if 'lora' in name.lower() or 'adapter' in name.lower() or (len(param.shape) == 2 and min(param.shape) <= max_rank_threshold):
                     # CRITICAL: Debug parameter details before setting gradients
                     print(f"[DEBUG] Checking parameter: {name}")
                     print(f"[DEBUG]   Shape: {param.shape}")
@@ -278,7 +279,7 @@ def load_model_with_problora(config):
             print(f"           1. Set load_in_4bit: false in config to disable quantization")
             print(f"           2. Use different LoRA injection that preserves floating-point parameters")
             print(f"           3. Check if ProbLoRA injection is compatible with quantization")
-            print(f"[CONFIG] Current quantization setting: load_in_4bit = {config.get('load_in_4bit', False)}")
+            print(f"[CONFIG] Current quantization setting: load_in_4bit = {config['load_in_4bit']}")
         
         raise RuntimeError("No trainable LoRA parameters found! Check ProbLoRA injection and parameter naming.")
     
@@ -308,12 +309,8 @@ def load_model_with_problora(config):
 def create_trainer(model, tokenizer, train_ds, val_ds, config, output_dir, tb_log_dir=None):
     """Create enhanced ARD-LoRA trainer with uncertainty evaluation and callbacks"""
     
-    # Update config to include TensorBoard log directory if provided
-    if tb_log_dir:
-        config["logging_dir"] = tb_log_dir
-    
     # Get ARD prior samples directly from config
-    ard_prior_samples = config.get("ard_prior_samples", 100)
+    ard_prior_samples = config["ard_prior_samples"]
     print(f"[INFO] ARD Prior: Using {ard_prior_samples} samples for ARD prior estimation")
     
     # Ensure tokenizer consistency validation
@@ -332,7 +329,7 @@ def create_trainer(model, tokenizer, train_ds, val_ds, config, output_dir, tb_lo
         cfg=config,
         output_dir=output_dir,
         ard_prior_samples=ard_prior_samples,  # Pass absolute sample count directly
-        enable_callbacks=config.get("enable_callbacks", True),  # Enable ARD callbacks
+        enable_callbacks=config["enable_callbacks"],  # Enable ARD callbacks
         tb_log_dir=tb_log_dir  # Pass TensorBoard log directory
     )
     
@@ -371,7 +368,7 @@ def main():
     
     print(f"[CONFIG] Model: {config.get('model_name')}")
     print(f"[CONFIG] Dataset: {config.get('dataset_name')}")
-    print(f"[CONFIG] Dataset Name: {config.get('dataset_name_specific', 'alpaca')}")
+    print(f"[CONFIG] Dataset Name: {config['dataset_name_specific']}")
     print(f"[CONFIG] KL Beta: {config.get('kl_loss_beta')}")
     print(f"[CONFIG] Rank: {config.get('rank')}")
     print(f"[CONFIG] Train Epochs: {config.get('train_epochs')}")
@@ -401,7 +398,7 @@ def main():
     
     # Load datasets with caching
     print(f"\n[STEP 2] Loading dataset with caching...")
-    dataset_name = config.get("dataset_name_specific", "alpaca")  # Which specific dataset
+    dataset_name = config["dataset_name_specific"]  # Which specific dataset
     
     try:
         train_ds, val_ds, tokenizer = load_bayesian_peft_with_caching(
@@ -425,7 +422,7 @@ def main():
         
         # Check validation dataset size for ARD prior estimation
         val_size = len(val_ds) if val_ds else 0
-        ard_samples = config.get("ard_prior_samples", 100)
+        ard_samples = config["ard_prior_samples"]
         if val_size > 0 and val_size < ard_samples:
             print(f"\n[WARNING] Validation dataset size issue:")
             print(f"          Validation samples: {val_size}")
@@ -450,7 +447,7 @@ def main():
     
     # Get run-specific directories
     output_dir, model_ckpt_dir, tb_log_dir = get_output_dirs(
-        config.get("runId", 1),
+        config["runId"],
         base_output_dir
     )
     
@@ -486,7 +483,7 @@ def main():
     print(f"[INFO] Beta (KL strength): {config.get('kl_loss_beta')}")
     print(f"[INFO] Output directory: {model_ckpt_dir}")
     print(f"[INFO] TensorBoard logs: {tb_log_dir}")
-    print(f"[INFO] TensorBoard logging enabled: {'tensorboard' in config.get('report_to', [])}")
+    print(f"[INFO] TensorBoard logging enabled: {'tensorboard' in config['report_to']}")
     
     # Ensure model is in training mode before training starts
     model.train()
@@ -518,7 +515,7 @@ def main():
         print(f"[SAVE] Model saved to {model_ckpt_dir}")
         
         # Print TensorBoard information
-        if 'tensorboard' in config.get('report_to', []):
+        if 'tensorboard' in config['report_to']:
             print(f"\n[TENSORBOARD] Training metrics logged to: {tb_log_dir}")
             print(f"[INFO] To view metrics, run: tensorboard --logdir {tb_log_dir}")
             print(f"[INFO] Metrics include:")
