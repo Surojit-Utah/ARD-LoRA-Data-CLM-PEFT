@@ -86,9 +86,6 @@ class ProbLoRALayer(nn.Module):
         # logvar_A_masked = torch.log(F.softplus(logvar_A_masked) + 1e-6) # Stable gradient for variance
         logvar = (logvar_A_masked @ x_flat.T).T
         
-        # NUMERICAL STABILITY: Clamp logvar to prevent extreme values during training
-        logvar = torch.clamp(logvar, min=-15.0, max=15.0)  # Prevents exp() overflow/underflow
-        
         # Apply additional masking to latent outputs to ensure inactive dims are zero
         if hasattr(self, 'variance_mask') and self.variance_mask is not None:
             mask_latent = self.variance_mask.unsqueeze(0).to(dtype=x.dtype, device=x.device)  # [1, rank]
@@ -211,14 +208,8 @@ class ProbLoRALayer(nn.Module):
             mu = mu * mask_latent
             logvar = logvar * mask_latent
         
-        # NUMERICAL STABILITY: Clamp logvar to prevent extreme values
-        logvar = torch.clamp(logvar, min=-10.0, max=10.0)  # Prevents exp() overflow/underflow
-        
         eps = torch.randn_like(mu)
         samples = mu + eps * torch.exp(0.5 * logvar)  # [B*S, rank]
-        
-        # NUMERICAL STABILITY: Clamp samples to prevent overflow in beta accumulation
-        samples = torch.clamp(samples, min=-50.0, max=50.0)  # Prevents overflow in square operation
         
         # Convert to float32 before numpy conversion (BFloat16 not supported by numpy)
         samples_float = samples.float().cpu().detach()

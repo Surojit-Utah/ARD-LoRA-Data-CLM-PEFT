@@ -29,12 +29,13 @@ class ARDCLMTrainer(Trainer):
     """Enhanced ARD Trainer following DeBERTa pattern, adapted for LLaMA."""
     
     def __init__(self, *args, beta=0.01, heldout_loader=None, ard_eval_dataset=None, uncertainty_eval_samples=1000, 
-                 n_bins=15, output_dir=None, **kwargs):
+                 n_bins=15, output_dir=None, ard_prior_samples=100, **kwargs):
         super().__init__(*args, **kwargs)
         self.beta = beta
         self.heldout_loader = heldout_loader
         self.ard_eval_dataset = ard_eval_dataset  # Dataset for ARD prior estimation
         self.uncertainty_eval_samples = uncertainty_eval_samples
+        self.ard_prior_samples = ard_prior_samples  # Store ARD prior samples count
         self.n_bins = n_bins
         self.uncertainty_evaluator = UncertaintyEvaluator(n_bins=n_bins) if UncertaintyEvaluator else None
         self.uncertainty_results = []  # Store results across epochs
@@ -368,7 +369,10 @@ class ARDCLMTrainer(Trainer):
             if self.ard_eval_dataset is not None:
                 print(f"\n🔄 Running ARD prior estimation after epoch {state.epoch}...")
                 try:
-                    estimate_ard_priors_clm(model, self.ard_eval_dataset, model.device)
+                    # Use configured ard_prior_samples directly
+                    ard_prior_samples = self.ard_prior_samples
+                    
+                    estimate_ard_priors_clm(model, self.ard_eval_dataset, model.device, num_samples=ard_prior_samples)
                     print("✅ ARD prior estimation completed")
                 except Exception as e:
                     print(f"⚠️ ARD prior estimation failed: {e}")
@@ -505,8 +509,11 @@ class PriorEstimationCallback(TrainerCallback):
         if tokenizer is None:
             print("[PriorEstimationCallback] WARNING: Tokenizer is None - attempting to continue without tokenizer validation")
         
+        # Use configured ard_prior_samples directly
+        ard_prior_samples = trainer.ard_prior_samples
+        
         try:
-            estimate_ard_priors_clm(model, eval_data, self.device, tokenizer=tokenizer)
+            estimate_ard_priors_clm(model, eval_data, self.device, num_samples=ard_prior_samples, tokenizer=tokenizer)
             print("[PriorEstimationCallback] ARD prior estimation completed")
         except Exception as e:
             print(f"[PriorEstimationCallback] ARD prior estimation failed: {e}")
@@ -866,16 +873,13 @@ def estimate_ard_priors_clm(model, eval_dataset, device, num_samples=1000, token
                                 print(f"[ARD] Warning: NaN/Inf in beta sample for layer {layer_idx} {proj_name}, skipping")
                                 continue
                             
-                            # NUMERICAL STABILITY: Clip values before squaring to prevent overflow
-                            beta_sample_clipped = np.clip(beta_sample, -100.0, 100.0)
-                            
-                            # Safely compute squared samples with overflow protection
+                            # Safely compute squared samples
                             try:
-                                beta_squared = beta_sample_clipped ** 2
+                                beta_squared = beta_sample ** 2
                                 # Check for overflow after squaring
                                 if np.isnan(beta_squared).any() or np.isinf(beta_squared).any():
-                                    print(f"[ARD] Warning: Overflow in beta^2 for layer {layer_idx} {proj_name}, using clipped values")
-                                    beta_squared = np.clip(beta_squared, 0.0, 1e10)  # Cap at reasonable maximum
+                                    print(f"[ARD] Warning: Overflow in beta^2 for layer {layer_idx} {proj_name}, skipping")
+                                    continue
                                 
                                 beta_accumulators[layer_idx][proj_name] += np.sum(beta_squared, axis=0) / 2.0
                             except (FloatingPointError, OverflowError):
@@ -908,9 +912,6 @@ def estimate_ard_priors_clm(model, eval_dataset, device, num_samples=1000, token
             # NUMERICAL STABILITY: Ensure alpha is reasonable and prevent division by zero
             alpha_safe = max(proj.alpha, 1e-6)
             est_var_values = beta_accumulated / alpha_safe + 1e-6
-            
-            # NUMERICAL STABILITY: Clamp est_var to reasonable range
-            est_var_values = np.clip(est_var_values, 1e-6, 1e6)  # Prevent extreme values
             
             # Check final values before creating tensor
             if np.isnan(est_var_values).any() or np.isinf(est_var_values).any():
