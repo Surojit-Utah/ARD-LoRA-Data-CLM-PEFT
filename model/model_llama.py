@@ -83,7 +83,7 @@ class ProbLoRALayer(nn.Module):
         
         # Compute latent mean and logvar: [B*S, rank]
         mu = (mu_A_masked @ x_flat.T).T
-        logvar_A_masked = torch.log(F.softplus(logvar_A_masked) + 1e-6) # Stable gradient for variance
+        # logvar_A_masked = torch.log(F.softplus(logvar_A_masked) + 1e-6) # Stable gradient for variance
         logvar = (logvar_A_masked @ x_flat.T).T
         
         # Apply additional masking to latent outputs to ensure inactive dims are zero
