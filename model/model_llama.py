@@ -35,6 +35,8 @@ class ProbLoRALayer(nn.Module):
         self.B = nn.Parameter(B_tensor)     # Wrap as parameters
 
         # ARD prior parameter
+        self.alpha = (self.num_tokens*self.ard_prior_samples) / 2.0
+        self.beta = np.zeros(self.rank, dtype=np.float32)
         self.register_buffer('est_var', torch.ones(self.rank))  # Initialize est_var as a buffer (will move with model to device)
 
     def forward(self, x):
