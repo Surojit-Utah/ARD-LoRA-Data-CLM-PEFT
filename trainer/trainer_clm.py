@@ -365,25 +365,9 @@ class ARDCLMTrainer(Trainer):
                 # Save results to file
                 self._save_uncertainty_results()
             
-            # Run ARD prior estimation if dataset available
-            if self.ard_eval_dataset is not None:
-                print(f"\n🔄 Running ARD prior estimation after epoch {state.epoch}...")
-                try:
-                    # Use configured ard_prior_samples directly
-                    ard_prior_samples = self.ard_prior_samples
-                    
-                    # Get batch size and relevance thresholds from trainer args
-                    batch_size = self.args.per_device_eval_batch_size if hasattr(self.args, 'per_device_eval_batch_size') else 4
-                    high_threshold = getattr(self, 'high_relevance_threshold', 0.1)
-                    medium_threshold = getattr(self, 'medium_relevance_threshold', 0.01)
-                    estimate_ard_priors_clm(model, self.ard_eval_dataset, model.device, 
-                                          num_samples=ard_prior_samples, tokenizer=self.tokenizer, 
-                                          batch_size=batch_size,
-                                          high_relevance_threshold=high_threshold,
-                                          medium_relevance_threshold=medium_threshold)
-                    print("✅ ARD prior estimation completed")
-                except Exception as e:
-                    print(f"⚠️ ARD prior estimation failed: {e}")
+            # REMOVED: Duplicate ARD prior estimation that was causing slowdown
+            # The PriorEstimationCallback already handles ARD prior estimation at epoch beginning
+            print(f"[INFO] ARD prior estimation handled by PriorEstimationCallback at epoch beginning")
     
     def _compute_eval_loss_components(self, model):
         """Compute CE and KL loss components on evaluation dataset."""
