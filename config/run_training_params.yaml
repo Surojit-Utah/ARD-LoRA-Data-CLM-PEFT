@@ -50,7 +50,7 @@ defaults:
 
   # ARD-LoRA Configuration
   rank: 16
-  scaling: 1.0
+  scaling: 0.25
   max_lora_rank_threshold: 64
   
   # ProbLoRA Model Parameters
