@@ -100,19 +100,23 @@ class ProbLoRALayer(nn.Module):
             logvar = x_flat @ logvar_A.T
             # final guard (should be unnecessary if softplus used)
             logvar = logvar.clamp(self.logvar_clamp_min, self.logvar_clamp_max)
+            del x_flat, x32                       # <-- free early
 
             if self.training:
                 eps = torch.randn_like(mu)
                 sigma = torch.exp(0.5 * logvar)
                 z = mu + eps * sigma
+                del eps, sigma
                 # optional gentle clamp on z
                 if self.sample_clamp_min is not None and self.sample_clamp_max is not None:
                     z = z.clamp(self.sample_clamp_min, self.sample_clamp_max)
             else:
                 z = mu  # deterministic eval
+            del mu, logvar
 
             lora_out32 = z @ B_mat.T
             out32 = lora_out32.reshape(x32.size(0), x32.size(1), -1)
+            del z, B_mat, lora_out32
 
         out = out32.to(x.dtype)  # single downcast
         return base_out + self.scaling * out

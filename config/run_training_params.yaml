@@ -6,7 +6,7 @@ defaults:
   model_name_or_path: "meta-llama/Llama-2-7b-hf"
   tokenizer_name: null  # Use model tokenizer
   train_type: "causal_lm"  # Specify training type for validation
-  attn_implementation: "sdpa"  # Use SDPA for A100 optimization
+  attn_implementation: "flash_attention_2"  # Use Flash Attention 2 for better memory efficiency
   dataset_name: "BayesianPEFT"
   dataset_name_specific: "sst2"  # Which specific dataset from Bayesian-PEFT
   
@@ -44,7 +44,7 @@ defaults:
   use_cache: false  # Disable KV caching during training to save memory
   
   # Logging and Monitoring
-  logging_steps: 10  # Increased from 50 to 100 to reduce logging overhead
+  logging_steps: 500  # Increased from 50 to 100 to reduce logging overhead
   dataloader_num_workers: 4  # Increased from 0 to 4 for better data loading
   dataloader_pin_memory: True
 
