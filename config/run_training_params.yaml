@@ -20,8 +20,8 @@ defaults:
   warmup_ratio: 0.03
   weight_decay: 0.0
   train_epochs: 3
-  batch_size: 4
-  gradient_accumulation_steps: 16
+  batch_size: 16  # Increased from 4 to 16 for better A100 utilization
+  gradient_accumulation_steps: 4  # Reduced from 16 to 4 (maintains effective batch size of 64)
   
   # Precision Configuration
   fp16: false
@@ -37,7 +37,7 @@ defaults:
   remove_unused_columns: false
   
   # Optimization
-  max_grad_norm: 1.0
+  max_grad_norm: 0.5  # Reduced from 1.0 to 0.5 for better stability
   optim: "adamw_torch"
   gradient_checkpointing: true
   use_cache: false  # Disable KV caching during training to save memory
@@ -52,19 +52,19 @@ defaults:
   max_lora_rank_threshold: 64
   
   # ProbLoRA Model Parameters
-  num_tokens: 2048
+  num_tokens: 1024  # Updated to match max_len
   ard_prior_samples: 25  # Reduced from 100 to 25 for faster training
   
-  # Numerical Stability Parameters
-  logvar_clamp_min: -15.0
-  logvar_clamp_max: 15.0
-  beta_logvar_clamp_min: -10.0
-  beta_logvar_clamp_max: 10.0
-  sample_clamp_min: -50.0
-  sample_clamp_max: 50.0
+  # Numerical Stability Parameters - FIXED for stability
+  logvar_clamp_min: -10.0  # Less extreme clamping
+  logvar_clamp_max: 10.0   # Less extreme clamping
+  beta_logvar_clamp_min: -8.0  # Tighter bounds
+  beta_logvar_clamp_max: 8.0   # Tighter bounds
+  sample_clamp_min: -10.0  # Much tighter bounds
+  sample_clamp_max: 10.0   # Much tighter bounds
   
   # ARD Loss Configuration
-  kl_loss_beta: 0.01  # KL divergence loss strength for ARD-LoRA
+  kl_loss_beta: 0.001  # Reduced from 0.01 to 0.001 to prevent loss explosion
   
   # ARD Relevance Thresholds
   ard_high_relevance_threshold: 0.1
@@ -75,7 +75,7 @@ defaults:
   uncertainty_n_bins: 15
   
   # Dataset Configuration - Global Settings
-  max_len: 2048  # Global max sequence length for all datasets
+  max_len: 1024  # Reduced from 2048 to 1024 for stability and speed
   num_labels: 0
   validation_split_ratio: 0.1
   min_validation_samples: 2000
