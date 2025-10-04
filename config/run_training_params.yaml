@@ -15,7 +15,7 @@ defaults:
   use_google_drive: true  # Enable Google Drive caching
   
   # Training hyperparameters (adapted from Section 4.1 of BLoB / best-effort)
-  learning_rate: 0.0001  # 1e-4 as float
+  learning_rate: 0.00001  # Reduced from 0.0001 to 0.00001 for stability
   lr_scheduler_type: "linear"
   warmup_ratio: 0.03
   weight_decay: 0.0
@@ -37,7 +37,7 @@ defaults:
   remove_unused_columns: false
   
   # Optimization
-  max_grad_norm: 0.5  # Reduced from 1.0 to 0.5 for better stability
+  max_grad_norm: 0.1  # Much more aggressive clipping to prevent instability
   optim: "adamw_torch"
   gradient_checkpointing: true
   use_cache: false  # Disable KV caching during training to save memory
@@ -55,16 +55,16 @@ defaults:
   num_tokens: 1024  # Updated to match max_len
   ard_prior_samples: 25  # Reduced from 100 to 25 for faster training
   
-  # Numerical Stability Parameters - FIXED for stability
-  logvar_clamp_min: -10.0  # Less extreme clamping
-  logvar_clamp_max: 10.0   # Less extreme clamping
-  beta_logvar_clamp_min: -8.0  # Tighter bounds
-  beta_logvar_clamp_max: 8.0   # Tighter bounds
-  sample_clamp_min: -10.0  # Much tighter bounds
-  sample_clamp_max: 10.0   # Much tighter bounds
+  # Numerical Stability Parameters - ULTRA CONSERVATIVE
+  logvar_clamp_min: -5.0  # Very tight bounds to prevent overflow
+  logvar_clamp_max: 5.0   # Very tight bounds to prevent overflow
+  beta_logvar_clamp_min: -3.0  # Even tighter for beta sampling
+  beta_logvar_clamp_max: 3.0   # Even tighter for beta sampling
+  sample_clamp_min: -3.0  # Very tight sample bounds
+  sample_clamp_max: 3.0   # Very tight sample bounds
   
   # ARD Loss Configuration
-  kl_loss_beta: 0.001  # Reduced from 0.01 to 0.001 to prevent loss explosion
+  kl_loss_beta: 0.01  # Further reduced from 0.001 to 0.0001 to prevent loss explosion
   
   # ARD Relevance Thresholds
   ard_high_relevance_threshold: 0.1
@@ -83,10 +83,10 @@ defaults:
   random_seed: 42
   max_validation_samples: 250  # Cap validation dataset size for memory efficiency
   
-  # Callback Configuration
-  enable_callbacks: true
-  enable_plotting: true
-  enable_resampling: true
+  # Callback Configuration - DISABLED FOR STABILITY
+  enable_callbacks: false  # Temporarily disable ARD callbacks to isolate issues
+  enable_plotting: false   # Disabled to reduce overhead
+  enable_resampling: false # Disabled to reduce overhead
   plot_start_epoch: 2
   plot_interval: 2
   plot_batch_size: 16
