@@ -7,7 +7,7 @@ import torch.cuda.amp as amp
 
 def _fp32_ctx(x):
     # If autocast is on, temporarily disable it; otherwise no-op.
-    return amp.autocast(enabled=False) if amp.is_autocast_enabled() else nullcontext()
+    return amp.autocast(enabled=False) if torch.is_autocast_enabled() else nullcontext()
 
 
 class ProbLoRALayer(nn.Module):
