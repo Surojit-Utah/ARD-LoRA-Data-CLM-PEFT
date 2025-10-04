@@ -54,7 +54,7 @@ defaults:
   max_lora_rank_threshold: 64
   
   # ProbLoRA Model Parameters
-  num_tokens: 1024  # Updated to match max_len
+  num_tokens: 256  # Updated to match max_len
   ard_prior_samples: 25  # Reduced from 100 to 25 for faster training
   
   # Numerical Stability Parameters - ULTRA CONSERVATIVE
