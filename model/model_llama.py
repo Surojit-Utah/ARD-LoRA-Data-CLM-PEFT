@@ -270,12 +270,12 @@ def inject_problora_llama(model, rank, scaling, num_tokens, ard_prior_samples,
                                               sample_clamp_min, sample_clamp_max)
                     layers_modified += 1
                 
-                # if hasattr(attn, 'k_proj') and isinstance(attn.k_proj, nn.Linear):
-                #     attn.k_proj = ProbLoRALayer(attn.k_proj, rank, num_tokens, ard_prior_samples, scaling,
-                #                               logvar_clamp_min, logvar_clamp_max,
-                #                               beta_logvar_clamp_min, beta_logvar_clamp_max,
-                #                               sample_clamp_min, sample_clamp_max)
-                #     layers_modified += 1
+                if hasattr(attn, 'k_proj') and isinstance(attn.k_proj, nn.Linear):
+                    attn.k_proj = ProbLoRALayer(attn.k_proj, rank, num_tokens, ard_prior_samples, scaling,
+                                              logvar_clamp_min, logvar_clamp_max,
+                                              beta_logvar_clamp_min, beta_logvar_clamp_max,
+                                              sample_clamp_min, sample_clamp_max)
+                    layers_modified += 1
                     
                 if hasattr(attn, 'v_proj') and isinstance(attn.v_proj, nn.Linear):
                     attn.v_proj = ProbLoRALayer(attn.v_proj, rank, num_tokens, ard_prior_samples, scaling,
@@ -284,12 +284,12 @@ def inject_problora_llama(model, rank, scaling, num_tokens, ard_prior_samples,
                                               sample_clamp_min, sample_clamp_max)
                     layers_modified += 1
                     
-                if hasattr(attn, 'o_proj') and isinstance(attn.o_proj, nn.Linear):
-                    attn.o_proj = ProbLoRALayer(attn.o_proj, rank, num_tokens, ard_prior_samples, scaling,
-                                              logvar_clamp_min, logvar_clamp_max,
-                                              beta_logvar_clamp_min, beta_logvar_clamp_max,
-                                              sample_clamp_min, sample_clamp_max)
-                    layers_modified += 1
+                # if hasattr(attn, 'o_proj') and isinstance(attn.o_proj, nn.Linear):
+                #     attn.o_proj = ProbLoRALayer(attn.o_proj, rank, num_tokens, ard_prior_samples, scaling,
+                #                               logvar_clamp_min, logvar_clamp_max,
+                #                               beta_logvar_clamp_min, beta_logvar_clamp_max,
+                #                               sample_clamp_min, sample_clamp_max)
+                #     layers_modified += 1
     
     print(f"[INFO] Successfully injected ProbLoRA into {layers_modified} linear layers")
     print(f"[INFO] Each layer now has ARD-enabled latent space with rank={rank}")
