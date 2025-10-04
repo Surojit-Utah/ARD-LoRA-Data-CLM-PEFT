@@ -123,184 +123,139 @@ class BayesianPEFTDataManager:
     
     def download_and_cache_dataset(self, dataset_name: str, config: Dict[str, Any]) -> Dict[str, HFDataset]:
         """
-        Download dataset using Bayesian-PEFT loaders and cache locally.
-        This is where we leverage their dataset classes.
+        Download dataset using Bayesian-PEFT approach and cache locally.
+        This mimics how they construct datasets in their repository.
         """
-        print(f"[DOWNLOAD] Fetching {dataset_name} using Bayesian-PEFT loaders...")
+        print(f"[DOWNLOAD] Fetching {dataset_name} using Bayesian-PEFT approach...")
         
         try:
-            # Import their dataset utilities
-            from dataset.utils import get_dataset  # From their repo
-            from dataset.S2SDataset import S2SDataset
-            from dataset.S2ClassDataset import S2ClassDataset
+            # Import HuggingFace datasets directly (mimicking their approach)
+            from datasets import load_dataset
             
-            # Use their dataset factory based on config
-            dataset_class = config.get("dataset_class", "S2SDataset")
-            
-            if dataset_class == "S2SDataset":
-                dataset_loader = S2SDataset(
-                    dataset_name=dataset_name,
-                    max_length=config.get("max_len", 2048),
-                    **config
-                )
-            elif dataset_class == "S2ClassDataset":
-                dataset_loader = S2ClassDataset(
-                    dataset_name=dataset_name,
-                    max_length=config.get("max_len", 512),
-                    **config
-                )
-            else:
-                raise ValueError(f"Unsupported dataset class: {dataset_class}")
-            
-            # Get train/val splits using their methods
-            train_data = dataset_loader.get_train_data()
-            val_data = dataset_loader.get_validation_data() if hasattr(dataset_loader, 'get_validation_data') else None
-            
-            # If no validation data, create from train split
-            if val_data is None and train_data is not None:
-                print(f"[INFO] No validation split found for {dataset_name}. Creating from train data...")
-                # Split train data: 90% train, 10% validation
-                train_size = int(0.9 * len(train_data))
-                val_size = len(train_data) - train_size
+            # Load dataset based on dataset name (following their S2ClassDataset.py approach)
+            if dataset_name.lower() == "sst2":
+                # Load SST-2 from GLUE benchmark (like they do in S2ClassDataset.py line 42)
+                raw_dataset = load_dataset("glue", "sst2")
+                print(f"[INFO] Loaded SST-2 from GLUE: {len(raw_dataset['train'])} train, {len(raw_dataset['validation'])} validation")
                 
-                # Create train/val split
-                from datasets import Dataset
-                if isinstance(train_data, Dataset):
-                    # For HuggingFace datasets
+                # Process the dataset following their approach
+                def process_sst2_sample(example):
+                    return {
+                        "sentence": example["sentence"],
+                        "label": example["label"],
+                        "text": example["sentence"],  # For compatibility
+                        "full_text": example["sentence"],  # For our processing
+                        "prompt_text": example["sentence"]  # For prompt construction
+                    }
+                
+                # Apply processing to both splits
+                train_data = raw_dataset["train"].map(process_sst2_sample)
+                val_data = raw_dataset["validation"].map(process_sst2_sample)
+                
+                datasets = {"train": train_data, "validation": val_data}
+                
+            elif dataset_name.lower() in ["piqa", "hellaswag", "winogrande", "arc_easy", "arc_challenge", "boolq", "anli", "rte", "cb", "copa"]:
+                # Handle other classification datasets following their approach
+                if dataset_name.lower() == "piqa":
+                    raw_dataset = load_dataset("piqa")
+                elif dataset_name.lower() == "hellaswag":
+                    raw_dataset = load_dataset("hellaswag")
+                elif dataset_name.lower() == "winogrande":
+                    raw_dataset = load_dataset("winogrande", "winogrande_xl")
+                elif dataset_name.lower() == "arc_easy":
+                    raw_dataset = load_dataset("ai2_arc", "ARC-Easy")
+                elif dataset_name.lower() == "arc_challenge":
+                    raw_dataset = load_dataset("ai2_arc", "ARC-Challenge")
+                elif dataset_name.lower() == "boolq":
+                    raw_dataset = load_dataset("super_glue", "boolq")
+                elif dataset_name.lower() == "rte":
+                    raw_dataset = load_dataset("glue", "rte")
+                elif dataset_name.lower() == "cb":
+                    raw_dataset = load_dataset("super_glue", "cb")
+                elif dataset_name.lower() == "copa":
+                    raw_dataset = load_dataset("super_glue", "copa")
+                else:
+                    raw_dataset = load_dataset(dataset_name)
+                
+                print(f"[INFO] Loaded {dataset_name}: {raw_dataset}")
+                
+                # Create basic processing function
+                def process_classification_sample(example):
+                    # Extract main text field (varies by dataset)
+                    if "sentence" in example:
+                        text = example["sentence"]
+                    elif "question" in example:
+                        text = example["question"]
+                    elif "premise" in example:
+                        text = f"{example['premise']} {example.get('hypothesis', '')}"
+                    else:
+                        text = str(example)
+                    
+                    return {
+                        "text": text,
+                        "label": example.get("label", 0),
+                        "full_text": text,
+                        "prompt_text": text
+                    }
+                
+                # Get train and validation splits
+                train_split = "train" if "train" in raw_dataset else list(raw_dataset.keys())[0]
+                val_split = "validation" if "validation" in raw_dataset else "test" if "test" in raw_dataset else None
+                
+                train_data = raw_dataset[train_split].map(process_classification_sample)
+                
+                if val_split and val_split in raw_dataset:
+                    val_data = raw_dataset[val_split].map(process_classification_sample)
+                else:
+                    # Create validation split from train (following their approach)
+                    print(f"[INFO] Creating validation split from training data...")
                     split_data = train_data.train_test_split(test_size=0.1, seed=42)
                     train_data = split_data['train']
                     val_data = split_data['test']
-                elif hasattr(train_data, '__len__') and hasattr(train_data, '__getitem__'):
-                    # For list-like data
-                    import random
-                    indices = list(range(len(train_data)))
-                    random.seed(42)
-                    random.shuffle(indices)
-                    
-                    train_indices = indices[:train_size]
-                    val_indices = indices[train_size:]
-                    
-                    if hasattr(train_data, 'select'):
-                        train_data = train_data.select(train_indices)
-                        val_data = train_data.select(val_indices)
-                    else:
-                        # Create new lists
-                        original_data = train_data
-                        train_data = [original_data[i] for i in train_indices]
-                        val_data = [original_data[i] for i in val_indices]
-                        
-                        # Convert to HF datasets if possible
-                        from datasets import Dataset
-                        train_data = Dataset.from_list(train_data)
-                        val_data = Dataset.from_list(val_data)
                 
-                print(f"[INFO] Created validation split: {len(train_data)} train, {len(val_data)} validation")
+                datasets = {"train": train_data, "validation": val_data}
+                
+            else:
+                # Generic dataset loading
+                raw_dataset = load_dataset(dataset_name)
+                print(f"[INFO] Loaded {dataset_name}: {raw_dataset}")
+                
+                # Simple processing
+                def process_generic_sample(example):
+                    text = str(list(example.values())[0])  # Use first field as text
+                    return {
+                        "text": text,
+                        "label": example.get("label", 0),
+                        "full_text": text,
+                        "prompt_text": text
+                    }
+                
+                # Process splits
+                if "train" in raw_dataset:
+                    train_data = raw_dataset["train"].map(process_generic_sample)
+                    if "validation" in raw_dataset:
+                        val_data = raw_dataset["validation"].map(process_generic_sample)
+                    else:
+                        split_data = train_data.train_test_split(test_size=0.1, seed=42)
+                        train_data = split_data['train']
+                        val_data = split_data['test']
+                    
+                    datasets = {"train": train_data, "validation": val_data}
+                else:
+                    # Single split dataset
+                    all_data = raw_dataset[list(raw_dataset.keys())[0]].map(process_generic_sample)
+                    split_data = all_data.train_test_split(test_size=0.1, seed=42)
+                    datasets = {"train": split_data['train'], "validation": split_data['test']}
             
-            # Convert to our format
-            datasets = {"train": train_data}
-            if val_data is not None:
-                datasets["validation"] = val_data
-            
-            # Cache for future use
+            # Cache the processed datasets
             self.cache_dataset(dataset_name, datasets)
             
+            print(f"[SUCCESS] Processed {dataset_name} - Train: {len(datasets['train'])}, Val: {len(datasets['validation'])}")
             return self.load_cached_dataset(dataset_name)
             
         except Exception as e:
             print(f"[ERROR] Failed to download {dataset_name}: {e}")
-            print("[FALLBACK] Using manual download approach...")
-            return self._fallback_download(dataset_name, config)
-    
-    def _fallback_download(self, dataset_name: str, config: Dict[str, Any]) -> Dict[str, HFDataset]:
-        """Fallback download method if their loaders fail"""
-        # This would implement direct downloads for known datasets
-        if dataset_name.lower() == "alpaca":
-            return self._download_alpaca(config)
-        elif dataset_name.lower() == "dolly":
-            return self._download_dolly(config)
-        else:
-            raise ValueError(f"No fallback available for dataset: {dataset_name}")
-    
-    def _download_alpaca(self, config: Dict[str, Any]) -> Dict[str, HFDataset]:
-        """Download Alpaca dataset directly"""
-        from datasets import load_dataset
-        
-        print("[FALLBACK] Downloading Alpaca dataset from HuggingFace...")
-        dataset = load_dataset("tatsu-lab/alpaca")
-        
-        # Convert to our format
-        def format_alpaca(example):
-            instruction = example["instruction"]
-            input_text = example["input"] if example["input"] else ""
-            output_text = example["output"]
-            
-            prompt = instruction
-            if input_text:
-                prompt += f"\n{input_text}"
-            full_text = prompt + f"\n{output_text}"
-            
-            return {
-                "instruction": instruction,
-                "input": input_text,
-                "output": output_text,
-                "prompt_text": prompt,
-                "full_text": full_text
-            }
-        
-        train_ds = dataset["train"].map(format_alpaca)
-        
-        # Create validation split from train data
-        print("[INFO] Creating train/validation split for Alpaca...")
-        split_data = train_ds.train_test_split(test_size=0.1, seed=42)
-        train_ds = split_data['train']
-        val_ds = split_data['test']
-        
-        print(f"[INFO] Alpaca splits - Train: {len(train_ds)}, Validation: {len(val_ds)}")
-        
-        datasets = {"train": train_ds, "validation": val_ds}
-        self.cache_dataset("alpaca", datasets)
-        
-        return datasets
-    
-    def _download_dolly(self, config: Dict[str, Any]) -> Dict[str, HFDataset]:
-        """Download Dolly dataset directly"""
-        from datasets import load_dataset
-        
-        print("[FALLBACK] Downloading Dolly dataset from HuggingFace...")
-        dataset = load_dataset("databricks/databricks-dolly-15k")
-        
-        def format_dolly(example):
-            instruction = example["instruction"]
-            context = example["context"] if example["context"] else ""
-            response = example["response"]
-            
-            prompt = instruction
-            if context:
-                prompt += f"\nContext: {context}"
-            full_text = prompt + f"\n{response}"
-            
-            return {
-                "instruction": instruction,
-                "context": context,
-                "response": response,
-                "prompt_text": prompt,
-                "full_text": full_text
-            }
-        
-        train_ds = dataset["train"].map(format_dolly)
-        
-        # Create validation split from train data
-        print("[INFO] Creating train/validation split for Dolly...")
-        split_data = train_ds.train_test_split(test_size=0.1, seed=42)
-        train_ds = split_data['train']
-        val_ds = split_data['test']
-        
-        print(f"[INFO] Dolly splits - Train: {len(train_ds)}, Validation: {len(val_ds)}")
-        
-        datasets = {"train": train_ds, "validation": val_ds}
-        self.cache_dataset("dolly", datasets)
-        
-        return datasets
+            raise ValueError(f"Could not load dataset {dataset_name}. Please check dataset name and availability.")
     
     def get_dataset(self, dataset_name: str, config: Dict[str, Any]) -> Dict[str, HFDataset]:
         """
