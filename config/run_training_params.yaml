@@ -6,6 +6,7 @@ defaults:
   model_name_or_path: "meta-llama/Llama-2-7b-hf"
   tokenizer_name: null  # Use model tokenizer
   train_type: "causal_lm"  # Specify training type for validation
+  attn_implementation: "sdpa"  # Use SDPA for A100 optimization
   dataset_name: "BayesianPEFT"
   dataset_name_specific: "sst2"  # Which specific dataset from Bayesian-PEFT
   
@@ -16,7 +17,7 @@ defaults:
   
   # Training hyperparameters (adapted from Section 4.1 of BLoB / best-effort)
   learning_rate: 0.00001  # Reduced from 0.0001 to 0.00001 for stability
-  lr_scheduler_type: "linear"
+  lr_scheduler_type: "cosine"
   warmup_ratio: 0.03
   weight_decay: 0.0
   train_epochs: 3
@@ -44,8 +45,9 @@ defaults:
   
   # Logging and Monitoring
   logging_steps: 10  # Increased from 50 to 100 to reduce logging overhead
-  dataloader_num_workers: 0
-  
+  dataloader_num_workers: 4  # Increased from 0 to 4 for better data loading
+  dataloader_pin_memory: True
+
   # ARD-LoRA Configuration
   rank: 16
   scaling: 1.0

@@ -205,7 +205,8 @@ def load_model_with_problora(config):
         beta_logvar_clamp_min=config["beta_logvar_clamp_min"],
         beta_logvar_clamp_max=config["beta_logvar_clamp_max"],
         sample_clamp_min=config["sample_clamp_min"],
-        sample_clamp_max=config["sample_clamp_max"]
+        sample_clamp_max=config["sample_clamp_max"],
+        attn_implementation=config.get("attn_implementation", "sdpa")
     )
     
     # Freeze base parameters and unfreeze LoRA parameters
