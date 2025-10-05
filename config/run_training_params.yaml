@@ -21,9 +21,9 @@ defaults:
   warmup_ratio: 0.03
   weight_decay: 0.0
   train_epochs: 3
-  batch_size: 16  # Increased from 4 to 16 for better A100 utilization
-  gradient_accumulation_steps: 4  # Reduced from 16 to 4 (maintains effective batch size of 64)
-  
+  batch_size: 8  # Increased from 4 to 8 for better A100 utilization
+  gradient_accumulation_steps: 4  # Reduced from 16 to 4 (maintains effective batch size of 32)
+
   # Precision Configuration
   fp16: false
   bf16: true  # Preferred on A100 GPUs for better performance
@@ -44,7 +44,7 @@ defaults:
   use_cache: false  # Disable KV caching during training to save memory
   
   # Logging and Monitoring
-  logging_steps: 10  # Increased from 50 to 100 to reduce logging overhead
+  logging_steps: 500  # Increased from 50 to 100 to reduce logging overhead
   dataloader_num_workers: 4  # Increased from 0 to 4 for better data loading
   dataloader_pin_memory: True
 
@@ -82,7 +82,7 @@ defaults:
   uncertainty_n_bins: 15
   
   # Dataset Configuration - Global Settings
-  max_len: 1024  # Reduced from 2048 to 1024 for stability and speed
+  max_len: 2048  # Reduced from 2048 to 1024 for stability and speed
   num_labels: 0
   validation_split_ratio: 0.1
   min_validation_samples: 2000
