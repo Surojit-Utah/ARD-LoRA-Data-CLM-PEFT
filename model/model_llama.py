@@ -81,7 +81,7 @@ class ProbLoRALayer(nn.Module):
             # If keeping packed A and clamps:
             logvar_A = logvar_A_param  # consider softplus reparam instead
             # optional safety clamp on parameters (rarely hit if softplus is used)
-            # logvar_A = logvar_A.clamp(self.logvar_clamp_min, self.logvar_clamp_max)
+            logvar_A = logvar_A.clamp(self.logvar_clamp_min, self.logvar_clamp_max)
 
             B_mat = self.B  # FP32 master
 
@@ -99,7 +99,7 @@ class ProbLoRALayer(nn.Module):
             mu = x_flat @ mu_A.T
             logvar = x_flat @ logvar_A.T
             # final guard (should be unnecessary if softplus used)
-            # logvar = logvar.clamp(self.logvar_clamp_min, self.logvar_clamp_max)
+            logvar = logvar.clamp(self.logvar_clamp_min, self.logvar_clamp_max)
             del x_flat                       # <-- free early
 
             if self.training:
@@ -107,9 +107,9 @@ class ProbLoRALayer(nn.Module):
                 sigma = torch.exp(0.5 * logvar)
                 z = mu + eps * sigma
                 del eps, sigma
-                # # optional gentle clamp on z
-                # if self.sample_clamp_min is not None and self.sample_clamp_max is not None:
-                #     z = z.clamp(self.sample_clamp_min, self.sample_clamp_max)
+                # optional gentle clamp on z
+                if self.sample_clamp_min is not None and self.sample_clamp_max is not None:
+                    z = z.clamp(self.sample_clamp_min, self.sample_clamp_max)
             else:
                 z = mu  # deterministic eval
             del mu, logvar
@@ -204,8 +204,8 @@ class ProbLoRALayer(nn.Module):
 
             mu = x_flat @ mu_A.T
             logvar = x_flat @ logvar_A.T
-            # # last-resort guard:
-            # logvar = logvar.clamp(self.beta_logvar_clamp_min, self.beta_logvar_clamp_max)
+            # last-resort guard:
+            logvar = logvar.clamp(self.beta_logvar_clamp_min, self.beta_logvar_clamp_max)
 
             var = torch.exp(logvar)
             tvar = (self.est_var.to(x32.device) + 1e-6).unsqueeze(0)
@@ -315,14 +315,14 @@ class ProbLoRALayer(nn.Module):
             mu = mu * mask_latent
             logvar = logvar * mask_latent
         
-        # # NUMERICAL STABILITY: Clamp logvar to prevent extreme values
-        # logvar = torch.clamp(logvar, min=self.beta_logvar_clamp_min, max=self.beta_logvar_clamp_max)  # Prevents exp() overflow/underflow
+        # NUMERICAL STABILITY: Clamp logvar to prevent extreme values
+        logvar = torch.clamp(logvar, min=self.beta_logvar_clamp_min, max=self.beta_logvar_clamp_max)  # Prevents exp() overflow/underflow
         
         eps = torch.randn_like(mu)
         samples = mu + eps * torch.exp(0.5 * logvar)  # [B*S, rank]
         
-        # # NUMERICAL STABILITY: Clamp samples to prevent overflow in beta accumulation
-        # samples = torch.clamp(samples, min=self.sample_clamp_min, max=self.sample_clamp_max)  # Prevents overflow in square operation
+        # NUMERICAL STABILITY: Clamp samples to prevent overflow in beta accumulation
+        samples = torch.clamp(samples, min=self.sample_clamp_min, max=self.sample_clamp_max)  # Prevents overflow in square operation
         
         # Convert to float32 before numpy conversion (BFloat16 not supported by numpy)
         samples_float = samples.float().cpu().detach()
@@ -340,12 +340,22 @@ class ProbLoRALayer(nn.Module):
 def inject_problora_llama(model, rank, scaling, num_tokens, ard_prior_samples,
                          logvar_clamp_min, logvar_clamp_max,
                          beta_logvar_clamp_min, beta_logvar_clamp_max,
-                         sample_clamp_min, sample_clamp_max, attn_implementation):
+                         sample_clamp_min, sample_clamp_max, attn_implementation,
+                         target_attention_layers=None):
     """
     Inject ProbLoRA into LLaMA2-7B model.
-    Targets the standard attention projections: q_proj, k_proj, v_proj, o_proj
+    Targets configurable attention projections based on YAML configuration.
+    
+    Args:
+        target_attention_layers: List of attention projection names to inject (from YAML config - REQUIRED)
     """
     print(f"[INFO] Injecting ProbLoRA into LLaMA2 model with rank={rank}")
+    
+    # Validate required parameters
+    if target_attention_layers is None:
+        raise ValueError("target_attention_layers must be provided from YAML configuration")
+    
+    print(f"[INFO] Target attention layers: {target_attention_layers}")
     
     # Set attention implementation from YAML config for A100 optimization
     if hasattr(model, 'config') and attn_implementation is not None:
@@ -357,40 +367,23 @@ def inject_problora_llama(model, rank, scaling, num_tokens, ard_prior_samples,
     # LLaMA2 has model.layers (list of transformer blocks)
     if hasattr(model, 'model') and hasattr(model.model, 'layers'):
         for layer_idx, layer in enumerate(model.model.layers):
-            if hasattr(layer, 'self_attn'):
+            # Inject ProbLoRA into attention projections (configurable)
+            if hasattr(layer, 'self_attn') and target_attention_layers:
                 attn = layer.self_attn
                 
-                # Wrap standard LLaMA attention projections
-                if hasattr(attn, 'q_proj') and isinstance(attn.q_proj, nn.Linear):
-                    attn.q_proj = ProbLoRALayer(attn.q_proj, rank, num_tokens, ard_prior_samples, scaling,
-                                              logvar_clamp_min, logvar_clamp_max,
-                                              beta_logvar_clamp_min, beta_logvar_clamp_max,
-                                              sample_clamp_min, sample_clamp_max)
-                    layers_modified += 1
-                
-                if hasattr(attn, 'k_proj') and isinstance(attn.k_proj, nn.Linear):
-                    attn.k_proj = ProbLoRALayer(attn.k_proj, rank, num_tokens, ard_prior_samples, scaling,
-                                              logvar_clamp_min, logvar_clamp_max,
-                                              beta_logvar_clamp_min, beta_logvar_clamp_max,
-                                              sample_clamp_min, sample_clamp_max)
-                    layers_modified += 1
-                    
-                if hasattr(attn, 'v_proj') and isinstance(attn.v_proj, nn.Linear):
-                    attn.v_proj = ProbLoRALayer(attn.v_proj, rank, num_tokens, ard_prior_samples, scaling,
-                                              logvar_clamp_min, logvar_clamp_max,
-                                              beta_logvar_clamp_min, beta_logvar_clamp_max,
-                                              sample_clamp_min, sample_clamp_max)
-                    layers_modified += 1
-                    
-                if hasattr(attn, 'o_proj') and isinstance(attn.o_proj, nn.Linear):
-                    attn.o_proj = ProbLoRALayer(attn.o_proj, rank, num_tokens, ard_prior_samples, scaling,
-                                              logvar_clamp_min, logvar_clamp_max,
-                                              beta_logvar_clamp_min, beta_logvar_clamp_max,
-                                              sample_clamp_min, sample_clamp_max)
-                    layers_modified += 1
+                # Wrap configured attention projections
+                for proj_name in target_attention_layers:
+                    if hasattr(attn, proj_name) and isinstance(getattr(attn, proj_name), nn.Linear):
+                        setattr(attn, proj_name, ProbLoRALayer(
+                            getattr(attn, proj_name), rank, num_tokens, ard_prior_samples, scaling,
+                            logvar_clamp_min, logvar_clamp_max,
+                            beta_logvar_clamp_min, beta_logvar_clamp_max,
+                            sample_clamp_min, sample_clamp_max))
+                        layers_modified += 1
     
     print(f"[INFO] Successfully injected ProbLoRA into {layers_modified} linear layers")
     print(f"[INFO] Each layer now has ARD-enabled latent space with rank={rank}")
     print(f"[INFO] KL divergence will be computed in latent space (model-agnostic)")
+    print(f"[INFO] ProbLoRA injected into attention: {target_attention_layers}")
     
     return model

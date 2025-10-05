@@ -53,6 +53,11 @@ defaults:
   scaling: 0.25
   max_lora_rank_threshold: 64
   
+  # Target Layer Configuration - REQUIRED
+  # Specifies which attention projections to inject with ProbLoRA
+  # Available options: q_proj, k_proj, v_proj, o_proj
+  target_attention_layers: ["q_proj", "k_proj", "v_proj", "o_proj"]  # Full attention coverage
+  
   # ProbLoRA Model Parameters
   num_tokens: 256  # Updated to match max_len
   ard_prior_samples: 25  # Reduced from 100 to 25 for faster training

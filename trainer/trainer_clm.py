@@ -29,7 +29,7 @@ class ARDCLMTrainer(Trainer):
     """Enhanced ARD Trainer following DeBERTa pattern, adapted for LLaMA."""
     
     def __init__(self, *args, beta=0.01, heldout_loader=None, ard_eval_dataset=None, uncertainty_eval_samples=1000, 
-                 n_bins=15, output_dir=None, ard_prior_samples=100, **kwargs):
+                 n_bins=15, output_dir=None, ard_prior_samples=100, target_attention_layers=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.beta = beta
         self.heldout_loader = heldout_loader
@@ -40,6 +40,11 @@ class ARDCLMTrainer(Trainer):
         self.uncertainty_evaluator = UncertaintyEvaluator(n_bins=n_bins) if UncertaintyEvaluator else None
         self.uncertainty_results = []  # Store results across epochs
         self.output_dir = output_dir or self.args.output_dir
+        
+        # Store layer configuration from YAML - must be provided explicitly
+        if target_attention_layers is None:
+            raise ValueError("target_attention_layers must be provided from YAML configuration")
+        self.target_attention_layers = target_attention_layers
         
         # Set trainer reference on model for callbacks
         self.model.trainer = self
@@ -54,9 +59,14 @@ class ARDCLMTrainer(Trainer):
         # Extract labels for causal LM
         labels = inputs.get("labels")
         
-        # Forward pass
-        outputs = model(**inputs)
+        # Single forward pass with hidden states for both CE loss and KL computation
+        outputs = model(
+            **inputs,
+            output_hidden_states=True,  # Get hidden states in single forward pass
+            use_cache=False
+        )
         logits = outputs.logits
+        hidden_states = outputs.hidden_states  # Get hidden states from first forward pass (with gradients!)
         
         # Compute CE loss (causal LM loss)
         if labels is not None:
@@ -73,76 +83,86 @@ class ARDCLMTrainer(Trainer):
         else:
             ce_loss = torch.tensor(0.0, device=logits.device, requires_grad=True)
         
-        # Get inputs for layer processing (following DeBERTa pattern)
-        input_ids = inputs["input_ids"]
-        attention_mask = inputs.get("attention_mask")
-        
-        # # Get hidden states from model forward pass (similar to DeBERTa encoder outputs)
-        # with torch.no_grad():
-        #     if hasattr(model, 'model') and hasattr(model.model, 'embed_tokens'):
-        #         # Get embeddings and run through model to get hidden states
-        #         embeddings = model.model.embed_tokens(input_ids)
-        #         hidden_states_outputs = model.model(
-        #             input_ids=input_ids,
-        #             attention_mask=attention_mask,
-        #             output_hidden_states=True,
-        #             use_cache=False
-        #         )
-        #         hidden_states = hidden_states_outputs.hidden_states
-        #     else:
-        #         hidden_states = None
-        
         # Compute KL divergence following DeBERTa pattern
         kl = 0.0
+        kl_debug_info = {}
+        total_kl_layers = 0
         
-        # if hidden_states is not None and hasattr(model, 'model') and hasattr(model.model, 'layers'):
-        #     for layer_idx, layer in enumerate(model.model.layers):
-        #         # Get the input to this layer (previous layer's output)
-        #         layer_input = hidden_states[layer_idx] if layer_idx < len(hidden_states) else None
+        # Debug: Check if hidden states have gradients (only on first few steps)
+        if hasattr(self, '_debug_step_count'):
+            self._debug_step_count += 1
+        else:
+            self._debug_step_count = 1
+            
+        if self._debug_step_count <= 3:  # Debug first 3 steps
+            if hidden_states is not None:
+                print(f"\n[GRADIENT DEBUG] Step {self._debug_step_count} - Hidden States Analysis:")
+                print(f"[GRADIENT DEBUG]   Number of hidden state layers: {len(hidden_states)}")
+                print(f"[GRADIENT DEBUG]   Hidden states[0] requires_grad: {hidden_states[0].requires_grad}")
+                print(f"[GRADIENT DEBUG]   Hidden states[0] has grad_fn: {hidden_states[0].grad_fn is not None}")
+                print(f"[GRADIENT DEBUG]   ✅ Hidden states obtained from SINGLE forward pass with gradients!")
+            else:
+                print(f"\n[GRADIENT DEBUG] Step {self._debug_step_count} - ❌ WARNING: No hidden states found!")
+        
+        if hidden_states is not None and hasattr(model, 'model') and hasattr(model.model, 'layers'):
+            for layer_idx, layer in enumerate(model.model.layers):
+                # Get the input to this layer (previous layer's output)
+                layer_input = hidden_states[layer_idx] if layer_idx < len(hidden_states) else None
                 
-        #         if layer_input is not None:
-        #             # Check attention projections (similar to DeBERTa query/value projections)
-        #             if hasattr(layer, 'self_attn'):
-        #                 attn = layer.self_attn
+                if layer_input is not None:
+                    # Check attention projections (configurable from YAML)
+                    if hasattr(layer, 'self_attn') and self.target_attention_layers:
+                        attn = layer.self_attn
+                        layer_kl_total = 0.0
+                        layer_proj_count = 0
                         
-        #                 # Process query and value projections (main components like in DeBERTa)
-        #                 for proj_name in ['q_proj', 'v_proj']:
-        #                     if hasattr(attn, proj_name):
-        #                         proj = getattr(attn, proj_name)
-        #                         # Check if this is a ProbLoRA layer
-        #                         if hasattr(proj, 'kl_divergence_latent'):
-        #                             try:
-        #                                 kl += proj.kl_divergence_latent(layer_input)
-        #                             except Exception:
-        #                                 continue
+                        # Process attention projections based on YAML configuration
+                        for proj_name in self.target_attention_layers:
+                            if hasattr(attn, proj_name):
+                                proj = getattr(attn, proj_name)
+                                # Check if this is a ProbLoRA layer
+                                if hasattr(proj, 'kl_divergence_latent'):
+                                    try:
+                                        proj_kl = proj.kl_divergence_latent(layer_input)
+                                        kl += proj_kl
+                                        layer_kl_total += proj_kl.item() if torch.is_tensor(proj_kl) else float(proj_kl)
+                                        layer_proj_count += 1
+                                    except Exception:
+                                        continue
                         
-        #                 # Process output projection (similar to DeBERTa output dense layer)
-        #                 if hasattr(attn, 'o_proj'):
-        #                     proj = attn.o_proj
-        #                     if hasattr(proj, 'kl_divergence_latent'):
-        #                         try:
-        #                             kl += proj.kl_divergence_latent(layer_input)
-        #                         except Exception:
-        #                             continue
-                    
-        #             # Check MLP projections (additional components)
-        #             if hasattr(layer, 'mlp'):
-        #                 mlp = layer.mlp
-        #                 for proj_name in ['gate_proj', 'up_proj', 'down_proj']:
-        #                     if hasattr(mlp, proj_name):
-        #                         proj = getattr(mlp, proj_name)
-        #                         if hasattr(proj, 'kl_divergence_latent'):
-        #                             try:
-        #                                 kl += proj.kl_divergence_latent(layer_input)
-        #                             except Exception:
-        #                                 continue
+                        # Store debug info for this layer if it contributed to KL
+                        if layer_proj_count > 0:
+                            kl_debug_info[f"layer_{layer_idx}"] = {
+                                "projections_processed": layer_proj_count,
+                                "target_projections": list(self.target_attention_layers),
+                                "layer_kl_total": layer_kl_total
+                            }
+                            total_kl_layers += 1
         
         # If no KL components found, create zero tensor with gradient connection
         if not torch.is_tensor(kl) or kl == 0.0:
             kl = torch.tensor(0.0, device=ce_loss.device, requires_grad=True)
         
+        # Debug: Log KL computation details every 100 steps
+        if self._debug_step_count % 100 == 1:  # Log on first step and every 100 steps
+            print(f"\n[KL DEBUG] Step {self._debug_step_count} - KL Computation Details:")
+            print(f"[KL DEBUG]   Target attention layers: {self.target_attention_layers}")
+            print(f"[KL DEBUG]   Total layers with KL contribution: {total_kl_layers}")
+            print(f"[KL DEBUG]   Total KL value: {kl.item() if torch.is_tensor(kl) else float(kl):.6f}")
+            print(f"[KL DEBUG]   KL requires_grad: {kl.requires_grad if torch.is_tensor(kl) else 'N/A'}")
+            print(f"[KL DEBUG]   KL grad_fn: {kl.grad_fn is not None if torch.is_tensor(kl) else 'N/A'}")
+            
+            if kl_debug_info:
+                print(f"[KL DEBUG]   Layer-wise breakdown:")
+                for layer_name, info in kl_debug_info.items():
+                    print(f"[KL DEBUG]     {layer_name}: {info['projections_processed']}/{len(info['target_projections'])} projections, "
+                          f"KL={info['layer_kl_total']:.6f}")
+            else:
+                print(f"[KL DEBUG]   ⚠️ WARNING: No KL contributions found from any layer!")
+                print(f"[KL DEBUG]   This may indicate ProbLoRA layers are not properly injected.")
+        
         # Total loss with KL regularization (following DeBERTa pattern)
-        loss = ce_loss #+ self.beta * kl
+        loss = ce_loss + self.beta * kl
         
         # Store loss components for logging
         self.last_ce_loss = ce_loss.item() if torch.is_tensor(ce_loss) else float(ce_loss)
@@ -420,9 +440,10 @@ class ARDCLMTrainer(Trainer):
                 if len(kl_components) == 0:
                     if hasattr(model, 'model') and hasattr(model.model, 'layers'):
                         for layer in model.model.layers:
-                            if hasattr(layer, 'self_attn'):
+                            # Use trainer's layer configuration
+                            if hasattr(layer, 'self_attn') and self.target_attention_layers:
                                 attn = layer.self_attn
-                                for proj_name in ['q_proj', 'k_proj', 'v_proj', 'o_proj']:
+                                for proj_name in self.target_attention_layers:
                                     if hasattr(attn, proj_name):
                                         proj = getattr(attn, proj_name)
                                         if hasattr(proj, 'kl_divergence'):
@@ -509,11 +530,16 @@ class PriorEstimationCallback(TrainerCallback):
             batch_size = trainer.args.per_device_eval_batch_size if hasattr(trainer.args, 'per_device_eval_batch_size') else 4
             high_threshold = getattr(trainer, 'high_relevance_threshold', 0.1)
             medium_threshold = getattr(trainer, 'medium_relevance_threshold', 0.01)
+            # Get layer configuration from trainer
+            target_attention_layers = getattr(trainer, 'target_attention_layers', None)
+            if target_attention_layers is None:
+                raise ValueError("target_attention_layers must be configured in trainer")
             estimate_ard_priors_clm(model, eval_data, self.device, 
                                   num_samples=ard_prior_samples, tokenizer=tokenizer, 
                                   batch_size=batch_size,
                                   high_relevance_threshold=high_threshold,
-                                  medium_relevance_threshold=medium_threshold)
+                                  medium_relevance_threshold=medium_threshold,
+                                  target_attention_layers=target_attention_layers)
             print("[PriorEstimationCallback] ARD prior estimation completed")
         except Exception as e:
             print(f"[PriorEstimationCallback] ARD prior estimation failed: {e}")
@@ -749,7 +775,8 @@ def split_validation_dataset(val_dataset, ard_prior_samples, seed, train_dataset
 
 @torch.no_grad()
 def estimate_ard_priors_clm(model, eval_dataset, device, num_samples, tokenizer, batch_size, 
-                            high_relevance_threshold=0.1, medium_relevance_threshold=0.01):
+                            high_relevance_threshold=0.1, medium_relevance_threshold=0.01,
+                            target_attention_layers=None):
     """
     Estimate ARD priors following DeBERTa pattern, adapted for LLaMA architecture.
     
@@ -762,8 +789,13 @@ def estimate_ard_priors_clm(model, eval_dataset, device, num_samples, tokenizer,
         batch_size: Batch size for data loading
         high_relevance_threshold: Threshold for high relevance classification
         medium_relevance_threshold: Threshold for medium relevance classification
+        target_attention_layers: List of attention projection names to target (from YAML config - REQUIRED)
     """
     print(f"[ARD] Estimating priors using {num_samples} samples...")
+    
+    # Validate required parameters
+    if target_attention_layers is None:
+        raise ValueError("target_attention_layers must be provided from YAML configuration")
     
     # Set model to eval mode for prior estimation
     was_training = model.training
@@ -802,25 +834,15 @@ def estimate_ard_priors_clm(model, eval_dataset, device, num_samples, tokenizer,
         for layer_idx, layer in enumerate(model.model.layers):
             layer_projections = {}
             
-            # Check attention projections (similar to DeBERTa query/value projections)
-            if hasattr(layer, 'self_attn'):
+            # Check attention projections (configurable from YAML)
+            if hasattr(layer, 'self_attn') and target_attention_layers:
                 attn = layer.self_attn
-                for proj_name in ['q_proj', 'v_proj', 'o_proj']:  # Focus on main projections like DeBERTa
+                for proj_name in target_attention_layers:
                     if hasattr(attn, proj_name):
                         proj = getattr(attn, proj_name)
                         # Check if this is a ProbLoRA layer (has beta_get_sample method)
                         if hasattr(proj, 'beta_get_sample') and hasattr(proj, 'rank'):
                             layer_projections[f'attn_{proj_name}'] = proj
-            
-            # Check MLP projections (additional components)
-            if hasattr(layer, 'mlp'):
-                mlp = layer.mlp
-                for proj_name in ['gate_proj', 'up_proj', 'down_proj']:
-                    if hasattr(mlp, proj_name):
-                        proj = getattr(mlp, proj_name)
-                        # Check if this is a ProbLoRA layer (has beta_get_sample method)
-                        if hasattr(proj, 'beta_get_sample') and hasattr(proj, 'rank'):
-                            layer_projections[f'mlp_{proj_name}'] = proj
             
             if layer_projections:
                 prob_lora_layers[layer_idx] = layer_projections
@@ -1477,7 +1499,7 @@ def build_clm_trainer(model, tokenizer, train_dataset, eval_dataset, cfg, output
         remove_unused_columns=cfg["remove_unused_columns"],
         dataloader_num_workers=cfg["dataloader_num_workers"],
         dataloader_pin_memory=cfg["dataloader_pin_memory"],
-        # max_grad_norm=cfg["max_grad_norm"],
+        max_grad_norm=cfg["max_grad_norm"],
         optim=cfg["optim"],
         gradient_checkpointing=cfg["gradient_checkpointing"],
         gradient_checkpointing_kwargs=cfg.get("gradient_checkpointing_kwargs", {"use_reentrant": False}),
@@ -1544,7 +1566,8 @@ def build_clm_trainer(model, tokenizer, train_dataset, eval_dataset, cfg, output
         uncertainty_eval_samples=cfg["uncertainty_eval_samples"],
         n_bins=cfg["uncertainty_n_bins"],
         output_dir=output_dir,
-        ard_prior_samples=ard_prior_samples
+        ard_prior_samples=ard_prior_samples,
+        target_attention_layers=cfg["target_attention_layers"]  # REQUIRED from YAML config
     )
     
     # Set relevance thresholds on trainer for ARD prior estimation
