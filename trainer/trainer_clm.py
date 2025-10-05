@@ -1477,7 +1477,7 @@ def build_clm_trainer(model, tokenizer, train_dataset, eval_dataset, cfg, output
         remove_unused_columns=cfg["remove_unused_columns"],
         dataloader_num_workers=cfg["dataloader_num_workers"],
         dataloader_pin_memory=cfg["dataloader_pin_memory"],
-        max_grad_norm=cfg["max_grad_norm"],
+        # max_grad_norm=cfg["max_grad_norm"],
         optim=cfg["optim"],
         gradient_checkpointing=cfg["gradient_checkpointing"],
         gradient_checkpointing_kwargs=cfg.get("gradient_checkpointing_kwargs", {"use_reentrant": False}),

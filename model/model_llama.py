@@ -81,7 +81,7 @@ class ProbLoRALayer(nn.Module):
             # If keeping packed A and clamps:
             logvar_A = logvar_A_param  # consider softplus reparam instead
             # optional safety clamp on parameters (rarely hit if softplus is used)
-            logvar_A = logvar_A.clamp(self.logvar_clamp_min, self.logvar_clamp_max)
+            # logvar_A = logvar_A.clamp(self.logvar_clamp_min, self.logvar_clamp_max)
 
             B_mat = self.B  # FP32 master
 
@@ -99,7 +99,7 @@ class ProbLoRALayer(nn.Module):
             mu = x_flat @ mu_A.T
             logvar = x_flat @ logvar_A.T
             # final guard (should be unnecessary if softplus used)
-            logvar = logvar.clamp(self.logvar_clamp_min, self.logvar_clamp_max)
+            # logvar = logvar.clamp(self.logvar_clamp_min, self.logvar_clamp_max)
             del x_flat                       # <-- free early
 
             if self.training:
@@ -107,9 +107,9 @@ class ProbLoRALayer(nn.Module):
                 sigma = torch.exp(0.5 * logvar)
                 z = mu + eps * sigma
                 del eps, sigma
-                # optional gentle clamp on z
-                if self.sample_clamp_min is not None and self.sample_clamp_max is not None:
-                    z = z.clamp(self.sample_clamp_min, self.sample_clamp_max)
+                # # optional gentle clamp on z
+                # if self.sample_clamp_min is not None and self.sample_clamp_max is not None:
+                #     z = z.clamp(self.sample_clamp_min, self.sample_clamp_max)
             else:
                 z = mu  # deterministic eval
             del mu, logvar
@@ -204,8 +204,8 @@ class ProbLoRALayer(nn.Module):
 
             mu = x_flat @ mu_A.T
             logvar = x_flat @ logvar_A.T
-            # last-resort guard:
-            logvar = logvar.clamp(self.beta_logvar_clamp_min, self.beta_logvar_clamp_max)
+            # # last-resort guard:
+            # logvar = logvar.clamp(self.beta_logvar_clamp_min, self.beta_logvar_clamp_max)
 
             var = torch.exp(logvar)
             tvar = (self.est_var.to(x32.device) + 1e-6).unsqueeze(0)
@@ -315,14 +315,14 @@ class ProbLoRALayer(nn.Module):
             mu = mu * mask_latent
             logvar = logvar * mask_latent
         
-        # NUMERICAL STABILITY: Clamp logvar to prevent extreme values
-        logvar = torch.clamp(logvar, min=self.beta_logvar_clamp_min, max=self.beta_logvar_clamp_max)  # Prevents exp() overflow/underflow
+        # # NUMERICAL STABILITY: Clamp logvar to prevent extreme values
+        # logvar = torch.clamp(logvar, min=self.beta_logvar_clamp_min, max=self.beta_logvar_clamp_max)  # Prevents exp() overflow/underflow
         
         eps = torch.randn_like(mu)
         samples = mu + eps * torch.exp(0.5 * logvar)  # [B*S, rank]
         
-        # NUMERICAL STABILITY: Clamp samples to prevent overflow in beta accumulation
-        samples = torch.clamp(samples, min=self.sample_clamp_min, max=self.sample_clamp_max)  # Prevents overflow in square operation
+        # # NUMERICAL STABILITY: Clamp samples to prevent overflow in beta accumulation
+        # samples = torch.clamp(samples, min=self.sample_clamp_min, max=self.sample_clamp_max)  # Prevents overflow in square operation
         
         # Convert to float32 before numpy conversion (BFloat16 not supported by numpy)
         samples_float = samples.float().cpu().detach()
