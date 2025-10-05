@@ -142,7 +142,7 @@ class ARDCLMTrainer(Trainer):
             kl = torch.tensor(0.0, device=ce_loss.device, requires_grad=True)
         
         # Total loss with KL regularization (following DeBERTa pattern)
-        loss = ce_loss + self.beta * kl
+        loss = ce_loss #+ self.beta * kl
         
         # Store loss components for logging
         self.last_ce_loss = ce_loss.item() if torch.is_tensor(ce_loss) else float(ce_loss)
