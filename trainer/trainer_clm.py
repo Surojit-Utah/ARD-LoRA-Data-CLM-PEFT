@@ -1506,10 +1506,15 @@ def build_clm_trainer(model, tokenizer, train_dataset, eval_dataset, cfg, output
         optim=cfg["optim"],
         gradient_checkpointing=cfg["gradient_checkpointing"],
         gradient_checkpointing_kwargs=cfg.get("gradient_checkpointing_kwargs", {"use_reentrant": False}),
+        group_by_length=cfg["group_by_length"],  # Group samples by length for efficiency
     )
 
-    # Data collator for causal language modeling
-    data_collator = DataCollatorForLanguageModeling(tokenizer, mlm=False)
+    # Data collator for causal language modeling with padding optimization
+    data_collator = DataCollatorForLanguageModeling(
+        tokenizer, 
+        mlm=False,
+        pad_to_multiple_of=cfg.get("pad_to_multiple_of")  # Optimize for A100 tensor cores
+    )
 
     # Create heldout_loader if using DeBERTa pattern
     heldout_loader = None

@@ -21,8 +21,8 @@ defaults:
   warmup_ratio: 0.03
   weight_decay: 0.0
   train_epochs: 3
-  batch_size: 8  # Increased from 4 to 8 for better A100 utilization
-  gradient_accumulation_steps: 4  # Reduced from 16 to 4 (maintains effective batch size of 32)
+  batch_size: 32  # Increased from 4 to 32 for better A100 utilization
+  gradient_accumulation_steps: 4  # Reduced from 16 to 4 (maintains effective batch size of 128)
 
   # Precision Configuration
   fp16: false
@@ -36,6 +36,7 @@ defaults:
   eval_steps: null
   load_best_model_at_end: true
   remove_unused_columns: false
+  group_by_length: true  # Group samples by length for efficiency
   
   # Optimization
   max_grad_norm: 0.1  # Much more aggressive clipping to prevent instability
@@ -47,6 +48,9 @@ defaults:
   logging_steps: 500  # Increased from 50 to 100 to reduce logging overhead
   dataloader_num_workers: 4  # Increased from 0 to 4 for better data loading
   dataloader_pin_memory: True
+
+  # Data Collator Configuration
+  pad_to_multiple_of: 8  # Optimize for A100 tensor cores with BF16
 
   # ARD-LoRA Configuration
   rank: 16
@@ -82,7 +86,7 @@ defaults:
   uncertainty_n_bins: 15
   
   # Dataset Configuration - Global Settings
-  max_len: 2048  # Reduced from 2048 to 1024 for stability and speed
+  max_len: 512  # Reduced from 2048 to 512 for stability and speed
   num_labels: 0
   validation_split_ratio: 0.1
   min_validation_samples: 2000
