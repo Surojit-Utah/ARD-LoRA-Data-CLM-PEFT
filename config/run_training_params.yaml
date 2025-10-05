@@ -59,7 +59,7 @@ defaults:
   target_attention_layers: ["q_proj", "k_proj", "v_proj", "o_proj"]  # Full attention coverage
   
   # ProbLoRA Model Parameters
-  num_tokens: 256  # Updated to match max_len
+  num_tokens: ${max_len}  # Always match max_len for full sequence ARD coverage
   ard_prior_samples: 25  # Reduced from 100 to 25 for faster training
   
   # Numerical Stability Parameters - ULTRA CONSERVATIVE
@@ -126,7 +126,7 @@ datasets:
     repo_url: "https://github.com/Wang-ML-Lab/bayesian-peft"
     dataset_path: "dataset"
     name: "bayesian_peft"
-    max_len: 2048  # Uses global max_len setting
+    # max_len: removed to use global max_len=1024 consistently
     num_labels: 0
     cache_dir: "/content/drive/MyDrive/ARD_LoRA_Data_Cache"
 
@@ -134,7 +134,7 @@ datasets:
     piqa:
       dataset_name: "piqa"
       dataset_class: "S2ClassDataset"
-      max_len: 2048  # Updated to global max_len
+      # max_len: removed to use global max_len=1024 consistently
       num_labels: 2
       validation_split_ratio: 0.1
       min_validation_samples: 2000
@@ -144,7 +144,7 @@ datasets:
     hellaswag:
       dataset_name: "hellaswag"
       dataset_class: "S2ClassDataset"
-      max_len: 2048  # Updated to global max_len
+      # max_len: removed to use global max_len=1024 consistently
       num_labels: 4
       validation_split_ratio: 0.1
       min_validation_samples: 2000
@@ -154,7 +154,7 @@ datasets:
     winogrande:
       dataset_name: "winogrande"
       dataset_class: "S2ClassDataset"
-      max_len: 2048  # Updated to global max_len
+      # max_len: removed to use global max_len=1024 consistently
       num_labels: 2
       validation_split_ratio: 0.1
       min_validation_samples: 2000
@@ -164,7 +164,7 @@ datasets:
     arc_easy:
       dataset_name: "arc_easy"
       dataset_class: "S2ClassDataset"
-      max_len: 2048  # Updated to global max_len
+      # max_len: removed to use global max_len=1024 consistently
       num_labels: 4
       validation_split_ratio: 0.1
       min_validation_samples: 2000
@@ -174,7 +174,7 @@ datasets:
     arc_challenge:
       dataset_name: "arc_challenge"
       dataset_class: "S2ClassDataset"
-      max_len: 2048  # Updated to global max_len
+      # max_len: removed to use global max_len=1024 consistently
       num_labels: 4
       validation_split_ratio: 0.1
       min_validation_samples: 2000
@@ -185,7 +185,7 @@ datasets:
     boolq:
       dataset_name: "boolq"
       dataset_class: "S2ClassDataset"
-      max_len: 2048  # Updated to global max_len
+      # max_len: removed to use global max_len=1024 consistently
       num_labels: 2
       validation_split_ratio: 0.1
       min_validation_samples: 2000
@@ -196,7 +196,7 @@ datasets:
     anli:
       dataset_name: "anli"
       dataset_class: "S2ClassDataset"
-      max_len: 2048  # Updated to global max_len
+      # max_len: removed to use global max_len=1024 consistently
       num_labels: 3
       validation_split_ratio: 0.1
       min_validation_samples: 2000
@@ -206,7 +206,7 @@ datasets:
     rte:
       dataset_name: "rte"
       dataset_class: "S2ClassDataset"
-      max_len: 2048  # Updated to global max_len
+      # max_len: removed to use global max_len=1024 consistently
       num_labels: 2
       validation_split_ratio: 0.1
       min_validation_samples: 2000
@@ -216,7 +216,7 @@ datasets:
     cb:
       dataset_name: "cb"
       dataset_class: "S2ClassDataset"
-      max_len: 2048  # Updated to global max_len
+      # max_len: removed to use global max_len=1024 consistently
       num_labels: 3
       validation_split_ratio: 0.1
       min_validation_samples: 2000
@@ -226,7 +226,7 @@ datasets:
     copa:
       dataset_name: "copa"
       dataset_class: "S2ClassDataset"
-      max_len: 2048  # Updated to global max_len
+      # max_len: removed to use global max_len=1024 consistently
       num_labels: 2
       validation_split_ratio: 0.1
       min_validation_samples: 2000
@@ -237,7 +237,7 @@ datasets:
     sst2:
       dataset_name: "sst2"
       dataset_class: "S2ClassDataset"
-      max_len: 2048  # Updated to global max_len
+      # max_len: removed to use global max_len=1024 consistently
       num_labels: 2
       validation_split_ratio: 0.1
       min_validation_samples: 2000
@@ -248,7 +248,7 @@ datasets:
     alpacaeval:
       dataset_name: "alpacaeval"
       dataset_class: "EvalOnlyDataset"
-      max_len: 2048  # Uses global max_len setting
+      # max_len: removed to use global max_len=1024 consistently
       num_labels: 0
       notes: "Evaluation-only benchmark for instruction-following, not used for training"
 
@@ -256,26 +256,26 @@ datasets:
     alpaca:
       dataset_name: "alpaca"  # Specific dataset from Bayesian-PEFT suite
       dataset_class: "S2SDataset"  # Use their S2S dataset class
-      max_len: 2048  # Uses global max_len setting
+      # max_len: removed to use global max_len=1024 consistently
       num_labels: 0
     dolly:
       dataset_name: "dolly"
       dataset_class: "S2SDataset"
-      max_len: 2048  # Uses global max_len setting
+      # max_len: removed to use global max_len=1024 consistently
       num_labels: 0
     glue_cola:
       dataset_name: "glue_cola"
       dataset_class: "S2ClassDataset"  # Use their classification dataset class
-      max_len: 2048  # Updated to global max_len
+      # max_len: removed to use global max_len=1024 consistently
       num_labels: 2
     
   # Additional datasets that could be used with ARD-LoRA
   Alpaca:
     dataset_type: "alpaca"
-    max_len: 2048  # Uses global max_len setting
+    # max_len: removed to use global max_len=1024 consistently
     num_labels: 0
     
   Dolly:
     dataset_type: "dolly"  
-    max_len: 2048  # Uses global max_len setting
+    # max_len: removed to use global max_len=1024 consistently
     num_labels: 0

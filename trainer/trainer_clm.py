@@ -999,14 +999,16 @@ def optimize_memory_settings(gpu_memory_fraction=0.9):
     """
     print("[MEMORY] Applying memory optimization settings...")
     
-    # Set CUDA memory allocation configuration
+    # Set CUDA memory allocation configuration for fragmentation
     os.environ['PYTORCH_CUDA_ALLOC_CONF'] = 'expandable_segments:True'
+    # Disable tokenizer parallelism to prevent memory issues
+    os.environ['TOKENIZERS_PARALLELISM'] = 'false'
     
     # Reduce memory fragmentation
     if torch.cuda.is_available():
         torch.cuda.empty_cache()
         
-        # Set memory fraction to leave some memory for system
+        # Set memory fraction to leave more memory for system and avoid OOM
         try:
             torch.cuda.set_per_process_memory_fraction(gpu_memory_fraction)
             print(f"[MEMORY] Set GPU memory fraction to {gpu_memory_fraction*100:.0f}%")
@@ -1025,6 +1027,7 @@ def optimize_memory_settings(gpu_memory_fraction=0.9):
     
     # Set environment variables for memory optimization
     os.environ['TOKENIZERS_PARALLELISM'] = 'false'  # Reduce tokenizer memory usage
+    os.environ['PYTORCH_CUDA_ALLOC_CONF'] = 'expandable_segments:True'  # Reduce fragmentation
     
     print("[MEMORY] Memory optimization settings applied")
 
