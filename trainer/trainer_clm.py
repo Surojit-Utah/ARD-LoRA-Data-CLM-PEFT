@@ -77,65 +77,65 @@ class ARDCLMTrainer(Trainer):
         input_ids = inputs["input_ids"]
         attention_mask = inputs.get("attention_mask")
         
-        # Get hidden states from model forward pass (similar to DeBERTa encoder outputs)
-        with torch.no_grad():
-            if hasattr(model, 'model') and hasattr(model.model, 'embed_tokens'):
-                # Get embeddings and run through model to get hidden states
-                embeddings = model.model.embed_tokens(input_ids)
-                hidden_states_outputs = model.model(
-                    input_ids=input_ids,
-                    attention_mask=attention_mask,
-                    output_hidden_states=True,
-                    use_cache=False
-                )
-                hidden_states = hidden_states_outputs.hidden_states
-            else:
-                hidden_states = None
+        # # Get hidden states from model forward pass (similar to DeBERTa encoder outputs)
+        # with torch.no_grad():
+        #     if hasattr(model, 'model') and hasattr(model.model, 'embed_tokens'):
+        #         # Get embeddings and run through model to get hidden states
+        #         embeddings = model.model.embed_tokens(input_ids)
+        #         hidden_states_outputs = model.model(
+        #             input_ids=input_ids,
+        #             attention_mask=attention_mask,
+        #             output_hidden_states=True,
+        #             use_cache=False
+        #         )
+        #         hidden_states = hidden_states_outputs.hidden_states
+        #     else:
+        #         hidden_states = None
         
         # Compute KL divergence following DeBERTa pattern
         kl = 0.0
         
-        if hidden_states is not None and hasattr(model, 'model') and hasattr(model.model, 'layers'):
-            for layer_idx, layer in enumerate(model.model.layers):
-                # Get the input to this layer (previous layer's output)
-                layer_input = hidden_states[layer_idx] if layer_idx < len(hidden_states) else None
+        # if hidden_states is not None and hasattr(model, 'model') and hasattr(model.model, 'layers'):
+        #     for layer_idx, layer in enumerate(model.model.layers):
+        #         # Get the input to this layer (previous layer's output)
+        #         layer_input = hidden_states[layer_idx] if layer_idx < len(hidden_states) else None
                 
-                if layer_input is not None:
-                    # Check attention projections (similar to DeBERTa query/value projections)
-                    if hasattr(layer, 'self_attn'):
-                        attn = layer.self_attn
+        #         if layer_input is not None:
+        #             # Check attention projections (similar to DeBERTa query/value projections)
+        #             if hasattr(layer, 'self_attn'):
+        #                 attn = layer.self_attn
                         
-                        # Process query and value projections (main components like in DeBERTa)
-                        for proj_name in ['q_proj', 'v_proj']:
-                            if hasattr(attn, proj_name):
-                                proj = getattr(attn, proj_name)
-                                # Check if this is a ProbLoRA layer
-                                if hasattr(proj, 'kl_divergence_latent'):
-                                    try:
-                                        kl += proj.kl_divergence_latent(layer_input)
-                                    except Exception:
-                                        continue
+        #                 # Process query and value projections (main components like in DeBERTa)
+        #                 for proj_name in ['q_proj', 'v_proj']:
+        #                     if hasattr(attn, proj_name):
+        #                         proj = getattr(attn, proj_name)
+        #                         # Check if this is a ProbLoRA layer
+        #                         if hasattr(proj, 'kl_divergence_latent'):
+        #                             try:
+        #                                 kl += proj.kl_divergence_latent(layer_input)
+        #                             except Exception:
+        #                                 continue
                         
-                        # Process output projection (similar to DeBERTa output dense layer)
-                        if hasattr(attn, 'o_proj'):
-                            proj = attn.o_proj
-                            if hasattr(proj, 'kl_divergence_latent'):
-                                try:
-                                    kl += proj.kl_divergence_latent(layer_input)
-                                except Exception:
-                                    continue
+        #                 # Process output projection (similar to DeBERTa output dense layer)
+        #                 if hasattr(attn, 'o_proj'):
+        #                     proj = attn.o_proj
+        #                     if hasattr(proj, 'kl_divergence_latent'):
+        #                         try:
+        #                             kl += proj.kl_divergence_latent(layer_input)
+        #                         except Exception:
+        #                             continue
                     
-                    # Check MLP projections (additional components)
-                    if hasattr(layer, 'mlp'):
-                        mlp = layer.mlp
-                        for proj_name in ['gate_proj', 'up_proj', 'down_proj']:
-                            if hasattr(mlp, proj_name):
-                                proj = getattr(mlp, proj_name)
-                                if hasattr(proj, 'kl_divergence_latent'):
-                                    try:
-                                        kl += proj.kl_divergence_latent(layer_input)
-                                    except Exception:
-                                        continue
+        #             # Check MLP projections (additional components)
+        #             if hasattr(layer, 'mlp'):
+        #                 mlp = layer.mlp
+        #                 for proj_name in ['gate_proj', 'up_proj', 'down_proj']:
+        #                     if hasattr(mlp, proj_name):
+        #                         proj = getattr(mlp, proj_name)
+        #                         if hasattr(proj, 'kl_divergence_latent'):
+        #                             try:
+        #                                 kl += proj.kl_divergence_latent(layer_input)
+        #                             except Exception:
+        #                                 continue
         
         # If no KL components found, create zero tensor with gradient connection
         if not torch.is_tensor(kl) or kl == 0.0:
