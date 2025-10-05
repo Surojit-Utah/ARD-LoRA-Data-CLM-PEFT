@@ -44,7 +44,7 @@ defaults:
   use_cache: false  # Disable KV caching during training to save memory
   
   # Logging and Monitoring
-  logging_steps: 500  # Increased from 50 to 100 to reduce logging overhead
+  logging_steps: 10  # Increased from 50 to 100 to reduce logging overhead
   dataloader_num_workers: 4  # Increased from 0 to 4 for better data loading
   dataloader_pin_memory: True
 
