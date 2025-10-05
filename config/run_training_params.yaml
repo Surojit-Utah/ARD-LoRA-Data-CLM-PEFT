@@ -90,10 +90,10 @@ defaults:
   random_seed: 42
   max_validation_samples: 250  # Cap validation dataset size for memory efficiency
   
-  # Callback Configuration - DISABLED FOR STABILITY
-  enable_callbacks: false  # Temporarily disable ARD callbacks to isolate issues
-  enable_plotting: false   # Disabled to reduce overhead
-  enable_resampling: false # Disabled to reduce overhead
+  # Callback Configuration - ENABLED FOR FULL ARD FUNCTIONALITY
+  enable_callbacks: true   # Enable ARD callbacks for proper ARD training
+  enable_plotting: true
+  enable_resampling: true  # Enable for dynamic validation splits
   plot_start_epoch: 2
   plot_interval: 2
   plot_batch_size: 16
@@ -119,15 +119,6 @@ models:
     tokenizer_name: "meta-llama/Llama-2-7b-hf"
     train_type: "causal_lm"
     load_in_4bit: false  # Disable quantization for LoRA compatibility
-    defaults:
-      rank: 16
-      max_len: 2048  # Uses global max_len setting
-      batch_size: 4
-      kl_loss_beta: 0.01  # Lower KL strength for large model
-      learning_rate: 0.0001  # Override learning rate for large model
-      # Memory optimization for 40GB A100
-      use_cache: false  # Disable KV caching
-      gradient_checkpointing: true  # Enable gradient checkpointing
 
 datasets:
   BayesianPEFT:
