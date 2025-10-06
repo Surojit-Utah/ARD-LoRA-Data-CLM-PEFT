@@ -146,9 +146,13 @@ class ARDCLMTrainer(Trainer):
             kl = torch.tensor(0.0, device=ce_loss.device, requires_grad=True)
         
         # Debug: Log KL computation details once per epoch
-        if self._debug_step_count == 1 or (hasattr(self, 'state') and self.state.epoch != self._current_debug_epoch):  # Log once per epoch
-            epoch_info = f" (Epoch {self._current_debug_epoch})" if hasattr(self, 'state') else ""
-            print(f"\n[KL DEBUG] Step {self._debug_step_count}{epoch_info} - KL Computation Details:")
+        if not hasattr(self, '_last_kl_debug_epoch'):
+            self._last_kl_debug_epoch = -1
+            
+        # Only print once per epoch when epoch changes  
+        if current_epoch > self._last_kl_debug_epoch:
+            self._last_kl_debug_epoch = current_epoch
+            print(f"\n[KL DEBUG] Epoch {current_epoch} - KL Computation Details:")
             print(f"[KL DEBUG]   Target attention layers: {self.target_attention_layers}")
             print(f"[KL DEBUG]   Total layers with KL contribution: {total_kl_layers}")
             print(f"[KL DEBUG]   Total KL value: {kl.item() if torch.is_tensor(kl) else float(kl):.6f}")
