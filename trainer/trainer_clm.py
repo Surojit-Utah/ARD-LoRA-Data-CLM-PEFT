@@ -87,24 +87,24 @@ class ARDCLMTrainer(Trainer):
         else:
             self._debug_step_count = 1
             
-        # Track current epoch for debug printing
-        current_epoch = getattr(self, '_current_debug_epoch', -1)
-        if not hasattr(self, '_current_debug_epoch'):
-            self._current_debug_epoch = 0
+        # Track current epoch for debug printing - use trainer state epoch
+        current_epoch = getattr(self.state, 'epoch', 0) if hasattr(self, 'state') else 0
+        
+        # Initialize or check if we need to print debug for this epoch
+        if not hasattr(self, '_last_gradient_debug_epoch'):
+            self._last_gradient_debug_epoch = -1
             
-        if self._debug_step_count == 1 or (hasattr(self, 'state') and self.state.epoch != current_epoch):  # Debug once per epoch
-            if hasattr(self, 'state'):
-                self._current_debug_epoch = self.state.epoch
+        # Only print once per epoch when epoch changes
+        if current_epoch > self._last_gradient_debug_epoch:
+            self._last_gradient_debug_epoch = current_epoch
             if hidden_states is not None:
-                epoch_info = f" (Epoch {self._current_debug_epoch})" if hasattr(self, 'state') else ""
-                print(f"\n[GRADIENT DEBUG] Step {self._debug_step_count}{epoch_info} - Hidden States Analysis:")
+                print(f"\n[GRADIENT DEBUG] Epoch {current_epoch} - Hidden States Analysis:")
                 print(f"[GRADIENT DEBUG]   Number of hidden state layers: {len(hidden_states)}")
                 print(f"[GRADIENT DEBUG]   Hidden states[0] requires_grad: {hidden_states[0].requires_grad}")
                 print(f"[GRADIENT DEBUG]   Hidden states[0] has grad_fn: {hidden_states[0].grad_fn is not None}")
                 print(f"[GRADIENT DEBUG]   ✅ Hidden states obtained from SINGLE forward pass with gradients!")
             else:
-                epoch_info = f" (Epoch {self._current_debug_epoch})" if hasattr(self, 'state') else ""
-                print(f"\n[GRADIENT DEBUG] Step {self._debug_step_count}{epoch_info} - ❌ WARNING: No hidden states found!")
+                print(f"\n[GRADIENT DEBUG] Epoch {current_epoch} - ❌ WARNING: No hidden states found!")
         
         if hidden_states is not None and hasattr(model, 'model') and hasattr(model.model, 'layers'):
             for layer_idx, layer in enumerate(model.model.layers):
