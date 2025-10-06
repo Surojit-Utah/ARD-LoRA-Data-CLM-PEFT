@@ -87,8 +87,8 @@ class ARDCLMTrainer(Trainer):
         else:
             self._debug_step_count = 1
             
-        # Track current epoch for debug printing - use trainer state epoch
-        current_epoch = getattr(self.state, 'epoch', 0) if hasattr(self, 'state') else 0
+        # Track current epoch for debug printing - use integer epoch from trainer state
+        current_epoch = int(getattr(self.state, 'epoch', 0)) if hasattr(self, 'state') else 0
         
         # Initialize or check if we need to print debug for this epoch
         if not hasattr(self, '_last_gradient_debug_epoch'):
@@ -149,7 +149,7 @@ class ARDCLMTrainer(Trainer):
         if not hasattr(self, '_last_kl_debug_epoch'):
             self._last_kl_debug_epoch = -1
             
-        # Only print once per epoch when epoch changes  
+        # Only print once per epoch when epoch changes (use same integer epoch)
         if current_epoch > self._last_kl_debug_epoch:
             self._last_kl_debug_epoch = current_epoch
             print(f"\n[KL DEBUG] Epoch {current_epoch} - KL Computation Details:")
