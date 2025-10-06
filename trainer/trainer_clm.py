@@ -416,8 +416,25 @@ class ARDCLMTrainer(Trainer):
         results_path = Path(self.output_dir) / "uncertainty_results.json"
         results_path.parent.mkdir(parents=True, exist_ok=True)
         
+        # Convert numpy types to Python native types for JSON serialization
+        def convert_numpy_types(obj):
+            """Recursively convert numpy types to Python native types."""
+            if isinstance(obj, dict):
+                return {key: convert_numpy_types(value) for key, value in obj.items()}
+            elif isinstance(obj, list):
+                return [convert_numpy_types(item) for item in obj]
+            elif isinstance(obj, (np.integer, np.floating)):
+                return obj.item()  # Convert numpy scalar to Python scalar
+            elif isinstance(obj, np.ndarray):
+                return obj.tolist()  # Convert numpy array to Python list
+            else:
+                return obj
+        
+        # Convert the results to JSON-serializable format
+        json_safe_results = convert_numpy_types(self.uncertainty_results)
+        
         with open(results_path, 'w') as f:
-            json.dump(self.uncertainty_results, f, indent=2)
+            json.dump(json_safe_results, f, indent=2)
             
         print(f"💾 Uncertainty results saved to: {results_path}")
 
