@@ -81,21 +81,30 @@ class ARDCLMTrainer(Trainer):
         kl_debug_info = {}
         total_kl_layers = 0
         
-        # Debug: Check if hidden states have gradients (only on first few steps)
+        # Debug: Check if hidden states have gradients (only once per epoch)
         if hasattr(self, '_debug_step_count'):
             self._debug_step_count += 1
         else:
             self._debug_step_count = 1
             
-        if self._debug_step_count <= 3:  # Debug first 3 steps
+        # Track current epoch for debug printing
+        current_epoch = getattr(self, '_current_debug_epoch', -1)
+        if not hasattr(self, '_current_debug_epoch'):
+            self._current_debug_epoch = 0
+            
+        if self._debug_step_count == 1 or (hasattr(self, 'state') and self.state.epoch != current_epoch):  # Debug once per epoch
+            if hasattr(self, 'state'):
+                self._current_debug_epoch = self.state.epoch
             if hidden_states is not None:
-                print(f"\n[GRADIENT DEBUG] Step {self._debug_step_count} - Hidden States Analysis:")
+                epoch_info = f" (Epoch {self._current_debug_epoch})" if hasattr(self, 'state') else ""
+                print(f"\n[GRADIENT DEBUG] Step {self._debug_step_count}{epoch_info} - Hidden States Analysis:")
                 print(f"[GRADIENT DEBUG]   Number of hidden state layers: {len(hidden_states)}")
                 print(f"[GRADIENT DEBUG]   Hidden states[0] requires_grad: {hidden_states[0].requires_grad}")
                 print(f"[GRADIENT DEBUG]   Hidden states[0] has grad_fn: {hidden_states[0].grad_fn is not None}")
                 print(f"[GRADIENT DEBUG]   ✅ Hidden states obtained from SINGLE forward pass with gradients!")
             else:
-                print(f"\n[GRADIENT DEBUG] Step {self._debug_step_count} - ❌ WARNING: No hidden states found!")
+                epoch_info = f" (Epoch {self._current_debug_epoch})" if hasattr(self, 'state') else ""
+                print(f"\n[GRADIENT DEBUG] Step {self._debug_step_count}{epoch_info} - ❌ WARNING: No hidden states found!")
         
         if hidden_states is not None and hasattr(model, 'model') and hasattr(model.model, 'layers'):
             for layer_idx, layer in enumerate(model.model.layers):
@@ -136,9 +145,10 @@ class ARDCLMTrainer(Trainer):
         if not torch.is_tensor(kl) or kl == 0.0:
             kl = torch.tensor(0.0, device=ce_loss.device, requires_grad=True)
         
-        # Debug: Log KL computation details every 100 steps
-        if self._debug_step_count % 100 == 1:  # Log on first step and every 100 steps
-            print(f"\n[KL DEBUG] Step {self._debug_step_count} - KL Computation Details:")
+        # Debug: Log KL computation details once per epoch
+        if self._debug_step_count == 1 or (hasattr(self, 'state') and self.state.epoch != self._current_debug_epoch):  # Log once per epoch
+            epoch_info = f" (Epoch {self._current_debug_epoch})" if hasattr(self, 'state') else ""
+            print(f"\n[KL DEBUG] Step {self._debug_step_count}{epoch_info} - KL Computation Details:")
             print(f"[KL DEBUG]   Target attention layers: {self.target_attention_layers}")
             print(f"[KL DEBUG]   Total layers with KL contribution: {total_kl_layers}")
             print(f"[KL DEBUG]   Total KL value: {kl.item() if torch.is_tensor(kl) else float(kl):.6f}")
