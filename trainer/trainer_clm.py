@@ -9,35 +9,28 @@ import json
 import os
 import gc
 from pathlib import Path
-
-# Import uncertainty evaluator
-try:
-    from evaluate.uncertainty_metrics import UncertaintyEvaluator, print_evaluation_results
-except ImportError:
-    print("[WARNING] Could not import uncertainty evaluator. Please ensure evaluate module is available.")
-    UncertaintyEvaluator = None
-
-# Import plotting utilities if available
-try:
-    from utils.plot import plot_mean_encodings, diag_axis_splom
-except ImportError:
-    print("[INFO] Plotting utilities not available. Latent plotting will be disabled.")
-    plot_mean_encodings = None
+from evaluate.uncertainty_metrics import UncertaintyEvaluator, print_evaluation_results
+from utils.plot import plot_mean_encodings, diag_axis_splom
+from utils.dataset_debug import (
+    debug_dataset_filtering,
+    analyze_data_collator_filtering,
+    get_effective_dataset_size,
+    apply_dataset_filtering_fixes,
+    run_complete_dataset_analysis
+)
 
 
 class ARDCLMTrainer(Trainer):
     """Enhanced ARD Trainer following DeBERTa pattern, adapted for LLaMA."""
     
-    def __init__(self, *args, beta=0.01, heldout_loader=None, ard_eval_dataset=None, uncertainty_eval_samples=1000, 
+    def __init__(self, *args, beta=0.01, ard_heldout_loader=None, 
                  n_bins=15, output_dir=None, ard_prior_samples=100, target_attention_layers=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.beta = beta
-        self.heldout_loader = heldout_loader
-        self.ard_eval_dataset = ard_eval_dataset  # Dataset for ARD prior estimation
-        self.uncertainty_eval_samples = uncertainty_eval_samples
+        self.ard_heldout_loader = ard_heldout_loader  # Pre-configured DataLoader for ARD prior estimation
         self.ard_prior_samples = ard_prior_samples  # Store ARD prior samples count
         self.n_bins = n_bins
-        self.uncertainty_evaluator = UncertaintyEvaluator(n_bins=n_bins) if UncertaintyEvaluator else None
+        self.uncertainty_evaluator = UncertaintyEvaluator(n_bins=n_bins)
         self.uncertainty_results = []  # Store results across epochs
         self.output_dir = output_dir or self.args.output_dir
         
@@ -204,22 +197,23 @@ class ARDCLMTrainer(Trainer):
         return trainable_params > 0
 
 
-    def evaluate_uncertainty(self, eval_dataset=None, num_samples=None) -> Optional[Dict[str, float]]:
-        """Evaluate model uncertainty using ACC, ECE, and NLL metrics."""
+    def evaluate_uncertainty(self) -> Optional[Dict[str, float]]:
+        """Evaluate model uncertainty using ACC, ECE, and NLL metrics.
+        
+        Always uses the full self.eval_dataset for evaluation.
+        """
         if self.uncertainty_evaluator is None:
             print("[WARNING] Uncertainty evaluator not available")
             return None
             
-        if eval_dataset is None:
-            eval_dataset = self.eval_dataset
-            
-        if eval_dataset is None:
+        if self.eval_dataset is None:
             print("[WARNING] No evaluation dataset available for uncertainty evaluation")
             return None
             
-        num_samples = num_samples or self.uncertainty_eval_samples
+        eval_dataset = self.eval_dataset
+        dataset_size = len(eval_dataset)
         
-        print(f"\n🔄 Starting uncertainty evaluation (samples: {num_samples})...")
+        print(f"\n🔄 Starting uncertainty evaluation on full dataset ({dataset_size} samples)...")
         
         # Memory optimization: Reduce batch size for evaluation
         original_eval_batch_size = self.args.per_device_eval_batch_size
@@ -240,7 +234,7 @@ class ARDCLMTrainer(Trainer):
             sample_count = 0
             
             for batch_idx, batch in enumerate(eval_dataloader):
-                if sample_count >= num_samples:
+                if sample_count >= dataset_size:
                     break
                 
                 # Move batch to device
@@ -272,7 +266,7 @@ class ARDCLMTrainer(Trainer):
                     probs = torch.softmax(valid_logits, dim=-1)
                     
                     # Sample subset if too many tokens
-                    max_tokens_per_batch = min(200, num_samples - sample_count)
+                    max_tokens_per_batch = min(200, dataset_size - sample_count)
                     if len(valid_labels) > max_tokens_per_batch:
                         indices = torch.randperm(len(valid_labels))[:max_tokens_per_batch]
                         valid_labels = valid_labels[indices]
@@ -310,8 +304,49 @@ class ARDCLMTrainer(Trainer):
         
         return metrics
     
+    def on_epoch_begin(self, args, state, control, model=None, **kwargs):
+        """Called at the beginning of each epoch to run uncertainty evaluation."""
+        super().on_epoch_begin(args, state, control, model=model, **kwargs)
+        
+        # Run uncertainty evaluation at the beginning of each epoch
+        if self.eval_dataset is not None:
+            print(f"\n📊 Running uncertainty evaluation at beginning of epoch {state.epoch}...")
+            metrics = self.evaluate_uncertainty()
+            
+            if metrics is not None:
+                # Add epoch information
+                metrics['epoch'] = state.epoch
+                metrics['global_step'] = state.global_step
+                
+                # Store results
+                self.uncertainty_results.append(metrics)
+                
+                # Print formatted results
+                print(f"\n📈 Epoch {state.epoch} Uncertainty Results (Pre-Training):")
+                print(f"   Accuracy (ACC): {metrics['accuracy']:.4f}")
+                print(f"   Expected Calibration Error (ECE): {metrics['ece']:.4f}")
+                print(f"   Negative Log-Likelihood (NLL): {metrics['nll']:.4f}")
+                
+                # Log uncertainty metrics to tensorboard
+                if self.args.report_to and 'tensorboard' in self.args.report_to:
+                    uncertainty_metrics = {}
+                    for key, value in metrics.items():
+                        if isinstance(value, (int, float)):
+                            uncertainty_metrics[f"uncertainty_pre_epoch/{key}"] = value
+                    self.log(uncertainty_metrics)
+                
+                # Save results to file
+                self._save_uncertainty_results()
+            else:
+                print(f"[WARNING] No uncertainty metrics available for epoch {state.epoch}")
+        else:
+            print(f"[INFO] No evaluation dataset available for uncertainty evaluation at epoch {state.epoch}")
+    
     def on_epoch_end(self, args, state, control, model=None, **kwargs):
         """Called at the end of each epoch to run uncertainty evaluation and log metrics."""
+        print(f"\n🔍 [DEBUG] on_epoch_end called for epoch {state.epoch}")
+        print(f"🔍 [DEBUG] Training args eval_strategy: {self.args.eval_strategy}")
+        print(f"🔍 [DEBUG] Training args eval_steps: {getattr(self.args, 'eval_steps', 'None')}")
         super().on_epoch_end(args, state, control, model=model, **kwargs)
         
         # Log training loss components to TensorBoard
@@ -330,7 +365,9 @@ class ARDCLMTrainer(Trainer):
             print(f"   KL Beta: {self.beta:.4f}")
         
         # Run evaluation and log eval losses
+        print(f"\n🔍 [DEBUG] Checking eval_dataset: {self.eval_dataset is not None}")
         if self.eval_dataset is not None:
+            print(f"🔍 [DEBUG] eval_dataset length: {len(self.eval_dataset)}")
             print(f"\n📊 Running evaluation after epoch {state.epoch}...")
             
             # Get evaluation metrics including loss
@@ -356,48 +393,24 @@ class ARDCLMTrainer(Trainer):
             print(f"   KL Loss: {eval_kl_loss:.4f}")
             print(f"   Total Loss: {eval_loss:.4f}")
             
-            # Run uncertainty evaluation
-            print(f"\n📊 Running uncertainty evaluation after epoch {state.epoch}...")
-            metrics = self.evaluate_uncertainty()
-            
-            if metrics is not None:
-                # Add epoch information
-                metrics['epoch'] = state.epoch
-                metrics['global_step'] = state.global_step
-                
-                # Store results
-                self.uncertainty_results.append(metrics)
-                
-                # Print formatted results
-                print(f"\n📈 Epoch {state.epoch} Uncertainty Results:")
-                print(f"   Accuracy (ACC): {metrics['accuracy']:.4f}")
-                print(f"   Expected Calibration Error (ECE): {metrics['ece']:.4f}")
-                print(f"   Negative Log-Likelihood (NLL): {metrics['nll']:.4f}")
-                
-                # Log uncertainty metrics to tensorboard
-                if self.args.report_to and 'tensorboard' in self.args.report_to:
-                    uncertainty_metrics = {}
-                    for key, value in metrics.items():
-                        if isinstance(value, (int, float)):
-                            uncertainty_metrics[f"uncertainty/{key}"] = value
-                    self.log(uncertainty_metrics)
-                
-                # Save results to file
-                self._save_uncertainty_results()
-            
-            # REMOVED: Duplicate ARD prior estimation that was causing slowdown
-            # The PriorEstimationCallback already handles ARD prior estimation at epoch beginning
-            print(f"[INFO] ARD prior estimation handled by PriorEstimationCallback at epoch beginning")
+            # MOVED: Uncertainty evaluation moved to on_epoch_begin for better timing
+            print(f"[INFO] Uncertainty evaluation now handled at epoch beginning for better model state assessment")
+        else:
+            print(f"\n🔍 [DEBUG] eval_dataset is None - skipping custom evaluation block")
+            print(f"🔍 [DEBUG] This means the evaluation output you see is from HuggingFace's automatic evaluation")
     
     def _compute_eval_loss_components(self, model):
-        """Compute CE and KL loss components on evaluation dataset."""
+        """Compute CE and KL loss components on evaluation dataset.
+        
+        Always uses self.eval_dataset for evaluation.
+        """
         was_training = model.training
         try:
             # Set model to eval mode
             model.eval()
             
             # Get a batch from eval dataset
-            eval_dataloader = self.get_eval_dataloader()
+            eval_dataloader = self.get_eval_dataloader(self.eval_dataset)
             batch = next(iter(eval_dataloader))
             
             # Move batch to device
@@ -508,26 +521,18 @@ class PriorEstimationCallback(TrainerCallback):
             print("[PriorEstimationCallback] No trainer reference found on model")
             return
             
-        # Use heldout_loader if available (DeBERTa style), otherwise use ard_eval_dataset
-        eval_data = getattr(trainer, 'heldout_loader', None) or getattr(trainer, 'ard_eval_dataset', None)
+        # Use ard_heldout_loader for ARD prior estimation - fail if not configured
+        if not hasattr(trainer, 'ard_heldout_loader'):
+            raise AttributeError("[PriorEstimationCallback] trainer.ard_heldout_loader is required but not found. Check trainer configuration.")
         
+        eval_data = trainer.ard_heldout_loader
         if eval_data is None:
-            print("[PriorEstimationCallback] No held-out loader or ARD evaluation dataset found for this epoch")
-            return
+            raise ValueError("[PriorEstimationCallback] trainer.ard_heldout_loader is None. ARD prior estimation requires a configured DataLoader.")
         
         print(f"[PriorEstimationCallback] Estimating ARD priors at epoch {int(state.epoch)}...")
         
-        # CRITICAL: Get tokenizer from kwargs first, then trainer - fail fast if None
-        tokenizer = kwargs.get('tokenizer', getattr(trainer, 'tokenizer', None))
-        if tokenizer is None:
-            print("[PriorEstimationCallback] WARNING: Tokenizer is None - attempting to continue without tokenizer validation")
-        
-        # Use configured ard_prior_samples directly
-        ard_prior_samples = trainer.ard_prior_samples
-        
         try:
-            # Get batch size and relevance thresholds from trainer args
-            batch_size = trainer.args.per_device_eval_batch_size if hasattr(trainer.args, 'per_device_eval_batch_size') else 4
+            # Get relevance thresholds from trainer
             high_threshold = getattr(trainer, 'high_relevance_threshold', 0.1)
             medium_threshold = getattr(trainer, 'medium_relevance_threshold', 0.01)
             # Get layer configuration from trainer
@@ -535,8 +540,6 @@ class PriorEstimationCallback(TrainerCallback):
             if target_attention_layers is None:
                 raise ValueError("target_attention_layers must be configured in trainer")
             estimate_ard_priors_clm(model, eval_data, self.device, 
-                                  num_samples=ard_prior_samples, tokenizer=tokenizer, 
-                                  batch_size=batch_size,
                                   high_relevance_threshold=high_threshold,
                                   medium_relevance_threshold=medium_threshold,
                                   target_attention_layers=target_attention_layers)
@@ -576,12 +579,13 @@ class LatentPlotCallback(TrainerCallback):
             print("[LatentPlotCallback] No trainer reference found")
             return
         
-        # Use heldout_loader if available (DeBERTa style), otherwise use ard_eval_dataset
-        eval_data = getattr(trainer, 'heldout_loader', None) or getattr(trainer, 'ard_eval_dataset', None)
+        # Use ard_heldout_loader for plotting - fail if not configured
+        if not hasattr(trainer, 'ard_heldout_loader'):
+            raise AttributeError("[LatentPlotCallback] trainer.ard_heldout_loader is required but not found. Check trainer configuration.")
         
+        eval_data = trainer.ard_heldout_loader
         if eval_data is None:
-            print("[LatentPlotCallback] No held-out loader or ARD evaluation dataset found for plotting")
-            return
+            raise ValueError("[LatentPlotCallback] trainer.ard_heldout_loader is None. Plotting requires a configured DataLoader.")
         
         if plot_mean_encodings is None:
             print("[LatentPlotCallback] Plotting utilities not available")
@@ -594,15 +598,9 @@ class LatentPlotCallback(TrainerCallback):
             plot_dir = self.output_dir / "plots"
             plot_dir.mkdir(parents=True, exist_ok=True)
             
-            # Generate plots using the available evaluation data
-            if hasattr(eval_data, 'dataset'):
-                # If it's a DataLoader, create a simple DataLoader for plotting
-                from torch.utils.data import DataLoader
-                plot_dataloader = DataLoader(eval_data.dataset, batch_size=self.plot_batch_size, shuffle=False)
-            else:
-                # If it's a dataset, create a DataLoader
-                from torch.utils.data import DataLoader
-                plot_dataloader = DataLoader(eval_data, batch_size=self.plot_batch_size, shuffle=False)
+            # Use the existing ARD DataLoader directly since it's already properly configured
+            # with the correct batch_size, collate_fn, etc.
+            plot_dataloader = eval_data
             
             # Generate plots
             plot_mean_encodings(model, plot_dataloader, self.device, str(plot_dir), epoch=current_epoch)
@@ -619,13 +617,14 @@ class LatentPlotCallback(TrainerCallback):
 class HeldoutResampleCallback(TrainerCallback):
     """Callback to resample validation data for ARD vs evaluation split each epoch."""
     
-    def __init__(self, train_ds, val_ds, ard_prior_samples, batch_size, tokenizer=None):
+    def __init__(self, train_ds, val_ds, ard_prior_samples, batch_size, tokenizer=None, data_collator=None):
         super().__init__()
         self.train_ds = train_ds  # Keep for compatibility, but won't be modified
         self.val_ds = val_ds      # This is what we'll resample from
         self.ard_prior_samples = ard_prior_samples
         self.batch_size = batch_size
         self.tokenizer = tokenizer
+        self.data_collator = data_collator  # For creating fresh ARD DataLoaders
         
         # Validate that we have enough validation data
         if self.val_ds is not None and len(self.val_ds) < self.ard_prior_samples:
@@ -654,12 +653,12 @@ class HeldoutResampleCallback(TrainerCallback):
         if hasattr(self.val_ds, 'select'):
             # HuggingFace dataset
             ard_dataset = self.val_ds.select(ard_indices)
-            eval_dataset = self.val_ds.select(eval_indices) if eval_indices else None
+            eval_dataset = self.val_ds.select(eval_indices)
         else:
             # PyTorch dataset
             ard_dataset = Subset(self.val_ds, ard_indices)
-            eval_dataset = Subset(self.val_ds, eval_indices) if eval_indices else None
-        
+            eval_dataset = Subset(self.val_ds, eval_indices)
+
         return ard_dataset, eval_dataset
     
     def on_epoch_begin(self, args, state, control, **kwargs):
@@ -680,12 +679,21 @@ class HeldoutResampleCallback(TrainerCallback):
             ard_dataset, eval_dataset = self._resample_validation_split()
             
             if ard_dataset is not None:
-                # Update trainer's ARD dataset (for prior estimation)
-                trainer.ard_eval_dataset = ard_dataset
-                
                 # Update trainer's evaluation dataset (for model evaluation)
                 if eval_dataset is not None:
                     trainer.eval_dataset = eval_dataset
+                
+                # OPTION 1: Update trainer's ARD DataLoader with fresh data each epoch
+                if self.data_collator is not None:
+                    trainer.ard_heldout_loader = DataLoader(
+                        ard_dataset,
+                        batch_size=self.batch_size,
+                        collate_fn=self.data_collator,
+                        shuffle=False
+                    )
+                    print(f"[HeldoutResampleCallback] ✅ Updated ARD DataLoader with fresh {len(ard_dataset)} samples")
+                else:
+                    print(f"[HeldoutResampleCallback] ⚠️ No data_collator provided - ARD DataLoader not updated")
                 
                 print(f"[HeldoutResampleCallback] Epoch {int(state.epoch)} → "
                       f"ARD: {len(ard_dataset)} samples, "
@@ -768,30 +776,29 @@ def split_validation_dataset(val_dataset, ard_prior_samples, seed, train_dataset
     print(f"[INFO] Split validation dataset:")
     print(f"   Total validation samples: {total_size}")
     print(f"   ARD prior estimation: {len(ard_dataset)} samples ({len(ard_dataset)/total_size:.1%})")
-    print(f"   Uncertainty evaluation: {len(uncertainty_dataset) if uncertainty_dataset else 0} samples ({len(uncertainty_indices)/total_size:.1%} if uncertainty_dataset else 0)")
+    print(f"   Uncertainty evaluation: {len(uncertainty_dataset)} samples ({len(uncertainty_dataset)/total_size:.1%})")
     
     return ard_dataset, uncertainty_dataset
 
 
 @torch.no_grad()
-def estimate_ard_priors_clm(model, eval_dataset, device, num_samples, tokenizer, batch_size, 
-                            high_relevance_threshold=0.1, medium_relevance_threshold=0.01,
-                            target_attention_layers=None):
+def estimate_ard_priors_clm(model, ard_heldout_loader, device, 
+                            high_relevance_threshold, medium_relevance_threshold,
+                            target_attention_layers):
     """
     Estimate ARD priors following DeBERTa pattern, adapted for LLaMA architecture.
     
     Args:
         model: ARD-LoRA model with ProbLoRA layers
-        eval_dataset: Dataset or DataLoader for prior estimation
+        ard_heldout_loader: Pre-configured DataLoader for ARD prior estimation
         device: Device to run computation on
-        num_samples: Number of samples to use for estimation
-        tokenizer: Tokenizer for data collation (REQUIRED)
-        batch_size: Batch size for data loading
-        high_relevance_threshold: Threshold for high relevance classification
-        medium_relevance_threshold: Threshold for medium relevance classification
+        high_relevance_threshold: Threshold for high relevance classification (REQUIRED)
+        medium_relevance_threshold: Threshold for medium relevance classification (REQUIRED)
         target_attention_layers: List of attention projection names to target (from YAML config - REQUIRED)
     """
-    print(f"[ARD] Estimating priors using {num_samples} samples...")
+    # Calculate total samples from DataLoader
+    total_samples = len(ard_heldout_loader.dataset) if hasattr(ard_heldout_loader, 'dataset') else 0
+    print(f"[ARD] Estimating priors using all {total_samples} samples from DataLoader...")
     
     # Validate required parameters
     if target_attention_layers is None:
@@ -801,30 +808,8 @@ def estimate_ard_priors_clm(model, eval_dataset, device, num_samples, tokenizer,
     was_training = model.training
     model.eval()
     
-    # Create dataloader if needed
-    if not isinstance(eval_dataset, DataLoader):
-        from transformers import DataCollatorForLanguageModeling
-        
-        # CRITICAL: Tokenizer is required - fail fast if None
-        if tokenizer is None:
-            raise RuntimeError("[ARD] CRITICAL: Tokenizer is required for ARD prior estimation but was None. This indicates a serious configuration error.")
-        
-        # Check tokenizer validity
-        if not hasattr(tokenizer, 'pad_token_id') or tokenizer.pad_token_id is None:
-            raise RuntimeError(f"[ARD] CRITICAL: Invalid tokenizer (no pad_token_id) - this will cause training failures")
-        
-        data_collator = DataCollatorForLanguageModeling(
-            tokenizer=tokenizer,
-            mlm=False
-        )
-        eval_dataloader = DataLoader(
-            eval_dataset, 
-            batch_size=batch_size, 
-            collate_fn=data_collator,
-            shuffle=False
-        )
-    else:
-        eval_dataloader = eval_dataset
+    # Use the pre-configured DataLoader directly
+    eval_dataloader = ard_heldout_loader
     
     # Collect ProbLoRA layers and initialize beta accumulators (following DeBERTa pattern)
     prob_lora_layers = {}
@@ -864,8 +849,6 @@ def estimate_ard_priors_clm(model, eval_dataset, device, num_samples, tokenizer,
     sample_count = 0
     
     for batch_idx, batch in enumerate(eval_dataloader):
-        if sample_count >= num_samples:
-            break
         
         # Move to device
         inputs = {k: v.to(device) if torch.is_tensor(v) else v for k, v in batch.items()}
@@ -1044,367 +1027,18 @@ def emergency_memory_cleanup():
     print("[MEMORY] Emergency cleanup completed")
 
 
-def debug_dataset_filtering(dataset, tokenizer, max_len=2048, sample_size=1000):
-    """
-    Debug dataset filtering to identify why samples are being lost.
-    
-    Args:
-        dataset: The dataset to analyze
-        tokenizer: Tokenizer used for processing
-        max_len: Maximum sequence length
-        sample_size: Number of samples to analyze
-    
-    Returns:
-        Dictionary with filtering statistics
-    """
-    print("\n🔍 DEBUGGING DATASET FILTERING")
-    print("=" * 50)
-    
-    total_samples = len(dataset)
-    sample_size = min(sample_size, total_samples)
-    
-    # Analysis counters
-    stats = {
-        'total_samples': total_samples,
-        'analyzed_samples': sample_size,
-        'valid_samples': 0,
-        'too_long_samples': 0,
-        'empty_samples': 0,
-        'tokenization_failed': 0,
-        'other_issues': 0,
-        'sequence_lengths': []
-    }
-    
-    print(f"Analyzing {sample_size} samples from {total_samples} total samples...")
-    
-    # Sample random indices to analyze
-    import random
-    random.seed(42)
-    sample_indices = random.sample(range(total_samples), sample_size)
-    
-    for idx in sample_indices:
-        try:
-            sample = dataset[idx]
-            
-            # Check if sample has required fields
-            if not sample or 'input_ids' not in sample:
-                stats['empty_samples'] += 1
-                continue
-            
-            # Get sequence length
-            input_ids = sample['input_ids']
-            if isinstance(input_ids, (list, tuple)):
-                seq_len = len(input_ids)
-            elif hasattr(input_ids, 'shape'):
-                seq_len = input_ids.shape[-1] if len(input_ids.shape) > 0 else 0
-            else:
-                seq_len = 0
-            
-            stats['sequence_lengths'].append(seq_len)
-            
-            # Check sequence length
-            if seq_len > max_len:
-                stats['too_long_samples'] += 1
-                continue
-            elif seq_len == 0:
-                stats['empty_samples'] += 1
-                continue
-            
-            # Check labels if available
-            if 'labels' in sample:
-                labels = sample['labels']
-                if isinstance(labels, (list, tuple)):
-                    # Check if all labels are -100 (masked)
-                    if hasattr(labels, '__iter__') and all(l == -100 for l in labels):
-                        stats['empty_samples'] += 1
-                        continue
-            
-            stats['valid_samples'] += 1
-            
-        except Exception as e:
-            stats['tokenization_failed'] += 1
-            if sample_size <= 10:  # Only print errors for small samples
-                print(f"   Error processing sample {idx}: {e}")
-    
-    # Calculate statistics
-    if stats['sequence_lengths']:
-        import numpy as np
-        seq_lengths = np.array(stats['sequence_lengths'])
-        stats['avg_seq_length'] = np.mean(seq_lengths)
-        stats['median_seq_length'] = np.median(seq_lengths)
-        stats['max_seq_length'] = np.max(seq_lengths)
-        stats['min_seq_length'] = np.min(seq_lengths)
-        stats['seq_lengths_over_max'] = np.sum(seq_lengths > max_len)
-    
-    # Print results
-    print(f"\n📊 FILTERING ANALYSIS RESULTS:")
-    print(f"   Total samples: {stats['total_samples']:,}")
-    print(f"   Analyzed samples: {stats['analyzed_samples']:,}")
-    print(f"   Valid samples: {stats['valid_samples']:,} ({stats['valid_samples']/stats['analyzed_samples']*100:.1f}%)")
-    print(f"   Too long (>{max_len}): {stats['too_long_samples']:,} ({stats['too_long_samples']/stats['analyzed_samples']*100:.1f}%)")
-    print(f"   Empty/invalid: {stats['empty_samples']:,} ({stats['empty_samples']/stats['analyzed_samples']*100:.1f}%)")
-    print(f"   Tokenization failed: {stats['tokenization_failed']:,} ({stats['tokenization_failed']/stats['analyzed_samples']*100:.1f}%)")
-    
-    if stats['sequence_lengths']:
-        print(f"\n📏 SEQUENCE LENGTH STATISTICS:")
-        print(f"   Average length: {stats['avg_seq_length']:.1f}")
-        print(f"   Median length: {stats['median_seq_length']:.1f}")
-        print(f"   Min length: {stats['min_seq_length']}")
-        print(f"   Max length: {stats['max_seq_length']}")
-        print(f"   Sequences > {max_len}: {stats['seq_lengths_over_max']:,}")
-    
-    return stats
 
 
-def analyze_data_collator_filtering(dataset, tokenizer, batch_size=4, max_len=2048, num_batches=10):
-    """
-    Analyze how DataCollatorForLanguageModeling filters data.
-    
-    Args:
-        dataset: Dataset to test
-        tokenizer: Tokenizer to use
-        batch_size: Batch size for testing
-        max_len: Maximum sequence length
-        num_batches: Number of batches to test
-    
-    Returns:
-        Dictionary with collator filtering statistics
-    """
-    print("\n🔍 ANALYZING DATA COLLATOR FILTERING")
-    print("=" * 50)
-    
-    from transformers import DataCollatorForLanguageModeling
-    from torch.utils.data import DataLoader
-    
-    # Create data collator
-    data_collator = DataCollatorForLanguageModeling(tokenizer, mlm=False)
-    
-    # Create dataloader
-    dataloader = DataLoader(
-        dataset,
-        batch_size=batch_size,
-        collate_fn=data_collator,
-        shuffle=False
-    )
-    
-    stats = {
-        'total_batches_attempted': 0,
-        'successful_batches': 0,
-        'failed_batches': 0,
-        'total_samples_attempted': 0,
-        'total_samples_in_successful_batches': 0,
-        'errors': []
-    }
-    
-    print(f"Testing {num_batches} batches with batch_size={batch_size}...")
-    
-    try:
-        for batch_idx, batch in enumerate(dataloader):
-            if batch_idx >= num_batches:
-                break
-            
-            stats['total_batches_attempted'] += 1
-            stats['total_samples_attempted'] += batch_size
-            
-            try:
-                # Check batch contents
-                if 'input_ids' in batch:
-                    input_ids = batch['input_ids']
-                    batch_actual_size = input_ids.shape[0] if hasattr(input_ids, 'shape') else len(input_ids)
-                    stats['total_samples_in_successful_batches'] += batch_actual_size
-                    stats['successful_batches'] += 1
-                    
-                    if batch_idx == 0:  # Print details for first batch
-                        print(f"\n   First batch details:")
-                        print(f"     Requested batch size: {batch_size}")
-                        print(f"     Actual batch size: {batch_actual_size}")
-                        print(f"     Input shape: {input_ids.shape if hasattr(input_ids, 'shape') else 'N/A'}")
-                        if 'labels' in batch:
-                            labels = batch['labels']
-                            print(f"     Labels shape: {labels.shape if hasattr(labels, 'shape') else 'N/A'}")
-                else:
-                    stats['failed_batches'] += 1
-                    stats['errors'].append(f"Batch {batch_idx}: No input_ids in batch")
-                    
-            except Exception as e:
-                stats['failed_batches'] += 1
-                stats['errors'].append(f"Batch {batch_idx}: {str(e)}")
-                
-    except Exception as e:
-        print(f"   DataLoader error: {e}")
-        stats['errors'].append(f"DataLoader error: {str(e)}")
-    
-    # Calculate filtering rate
-    if stats['total_samples_attempted'] > 0:
-        filtering_rate = (stats['total_samples_attempted'] - stats['total_samples_in_successful_batches']) / stats['total_samples_attempted'] * 100
-    else:
-        filtering_rate = 0
-    
-    print(f"\n📊 DATA COLLATOR ANALYSIS RESULTS:")
-    print(f"   Attempted batches: {stats['total_batches_attempted']}")
-    print(f"   Successful batches: {stats['successful_batches']}")
-    print(f"   Failed batches: {stats['failed_batches']}")
-    print(f"   Total samples attempted: {stats['total_samples_attempted']}")
-    print(f"   Samples in successful batches: {stats['total_samples_in_successful_batches']}")
-    print(f"   Data collator filtering rate: {filtering_rate:.1f}%")
-    
-    if stats['errors']:
-        print(f"\n⚠️  ERRORS ENCOUNTERED:")
-        for error in stats['errors'][:5]:  # Show first 5 errors
-            print(f"     {error}")
-        if len(stats['errors']) > 5:
-            print(f"     ... and {len(stats['errors']) - 5} more errors")
-    
-    return stats
 
 
-def get_effective_dataset_size(trainer):
-    """
-    Calculate the effective dataset size used by the trainer.
-    
-    Args:
-        trainer: The ARDCLMTrainer instance
-    
-    Returns:
-        Dictionary with dataset size information
-    """
-    print("\n📊 CALCULATING EFFECTIVE DATASET SIZE")
-    print("=" * 50)
-    
-    # Get trainer's dataloader
-    train_dataloader = trainer.get_train_dataloader()
-    
-    stats = {
-        'reported_dataset_size': len(trainer.train_dataset) if trainer.train_dataset else 0,
-        'dataloader_batch_count': len(train_dataloader) if train_dataloader else 0,
-        'per_device_batch_size': trainer.args.per_device_train_batch_size,
-        'gradient_accumulation_steps': trainer.args.gradient_accumulation_steps,
-        'world_size': trainer.args.world_size if hasattr(trainer.args, 'world_size') else 1,
-        'effective_batch_size': None,
-        'effective_dataset_size': None,
-        'filtering_percentage': None
-    }
-    
-    # Calculate effective batch size
-    stats['effective_batch_size'] = (
-        stats['per_device_batch_size'] * 
-        stats['gradient_accumulation_steps'] * 
-        stats['world_size']
-    )
-    
-    # Calculate effective dataset size
-    if stats['dataloader_batch_count'] > 0:
-        stats['effective_dataset_size'] = (
-            stats['dataloader_batch_count'] * stats['effective_batch_size']
-        )
-        
-        # Calculate filtering percentage
-        if stats['reported_dataset_size'] > 0:
-            stats['filtering_percentage'] = (
-                (stats['reported_dataset_size'] - stats['effective_dataset_size']) / 
-                stats['reported_dataset_size'] * 100
-            )
-    
-    print(f"   Reported dataset size: {stats['reported_dataset_size']:,}")
-    print(f"   DataLoader batch count: {stats['dataloader_batch_count']:,}")
-    print(f"   Per-device batch size: {stats['per_device_batch_size']}")
-    print(f"   Gradient accumulation steps: {stats['gradient_accumulation_steps']}")
-    print(f"   World size: {stats['world_size']}")
-    print(f"   Effective batch size: {stats['effective_batch_size']}")
-    
-    if stats['effective_dataset_size'] is not None:
-        print(f"   Effective dataset size: {stats['effective_dataset_size']:,}")
-        print(f"   Samples lost to filtering: {stats['reported_dataset_size'] - stats['effective_dataset_size']:,}")
-        if stats['filtering_percentage'] is not None:
-            print(f"   Filtering percentage: {stats['filtering_percentage']:.1f}%")
-    
-    return stats
 
 
-def apply_dataset_filtering_fixes(dataset, tokenizer, max_len=2048, verbose=True):
-    """
-    Apply common fixes for dataset filtering issues.
-    
-    Args:
-        dataset: Dataset to fix
-        tokenizer: Tokenizer to use
-        max_len: Maximum sequence length
-        verbose: Whether to print progress
-    
-    Returns:
-        Fixed dataset
-    """
-    if verbose:
-        print("\n🔧 APPLYING DATASET FILTERING FIXES")
-        print("=" * 50)
-        print(f"Original dataset size: {len(dataset):,}")
-    
-    # Fix 1: Remove samples that are too long
-    def filter_length(example):
-        if 'input_ids' in example:
-            input_ids = example['input_ids']
-            if isinstance(input_ids, (list, tuple)):
-                return len(input_ids) <= max_len
-            elif hasattr(input_ids, 'shape'):
-                return input_ids.shape[-1] <= max_len
-        return True
-    
-    # Fix 2: Remove empty samples
-    def filter_empty(example):
-        if 'input_ids' not in example:
-            return False
-        input_ids = example['input_ids']
-        if isinstance(input_ids, (list, tuple)):
-            return len(input_ids) > 0
-        elif hasattr(input_ids, 'shape'):
-            return input_ids.shape[-1] > 0
-        return True
-    
-    # Fix 3: Remove samples with all masked labels
-    def filter_all_masked(example):
-        if 'labels' in example:
-            labels = example['labels']
-            if isinstance(labels, (list, tuple)):
-                return not all(l == -100 for l in labels)
-            elif hasattr(labels, '__iter__'):
-                try:
-                    return not all(l == -100 for l in labels)
-                except:
-                    pass
-        return True
-    
-    # Apply filters if dataset supports filtering
-    if hasattr(dataset, 'filter'):
-        if verbose:
-            print("   Applying length filter...")
-        dataset = dataset.filter(filter_length)
-        if verbose:
-            print(f"   After length filter: {len(dataset):,}")
-        
-        if verbose:
-            print("   Applying empty sample filter...")
-        dataset = dataset.filter(filter_empty)
-        if verbose:
-            print(f"   After empty filter: {len(dataset):,}")
-        
-        if verbose:
-            print("   Applying masked labels filter...")
-        dataset = dataset.filter(filter_all_masked)
-        if verbose:
-            print(f"   After masked labels filter: {len(dataset):,}")
-    else:
-        if verbose:
-            print("   Dataset doesn't support filtering - manual filtering needed")
-    
-    if verbose:
-        print(f"\n✅ Dataset filtering fixes applied")
-        print(f"   Final dataset size: {len(dataset):,}")
-    
-    return dataset
+
+
 
 
 def create_ard_callbacks(device, output_dir, train_ds=None, val_ds=None, 
-                        ard_prior_samples=1000, batch_size=4, tokenizer=None,
+                        ard_prior_samples=1000, batch_size=4, tokenizer=None, data_collator=None,
                         enable_plotting=True, enable_resampling=True,
                         plot_start_epoch=2, plot_interval=2, plot_batch_size=16):
     """Create standard ARD training callbacks.
@@ -1447,18 +1081,16 @@ def create_ard_callbacks(device, output_dir, train_ds=None, val_ds=None,
             val_ds=val_ds,
             ard_prior_samples=ard_prior_samples,
             batch_size=batch_size,
-            tokenizer=tokenizer
+            tokenizer=tokenizer,
+            data_collator=data_collator  # Pass data_collator for dynamic ARD DataLoader creation
         ))
     
     return callbacks
 
 
 def build_clm_trainer(model, tokenizer, train_dataset, eval_dataset, cfg, output_dir, 
-                     ard_prior_samples=100, enable_callbacks=True, tb_log_dir=None, use_deberta_pattern=False):
-    """Build enhanced CLM trainer with uncertainty evaluation, ARD callbacks, and prior estimation.
-    
-    Args:
-        use_deberta_pattern: If True, use DeBERTa-style heldout_loader approach
+                     ard_prior_samples, enable_callbacks, tb_log_dir):
+    """Build enhanced CLM trainer with uncertainty evaluation, ARD callbacks, and prior estimation.    
     """
     
     # Split validation dataset for ARD and uncertainty evaluation
@@ -1516,10 +1148,10 @@ def build_clm_trainer(model, tokenizer, train_dataset, eval_dataset, cfg, output
         pad_to_multiple_of=cfg.get("pad_to_multiple_of")  # Optimize for A100 tensor cores
     )
 
-    # Create heldout_loader if using DeBERTa pattern
-    heldout_loader = None
-    if use_deberta_pattern and ard_dataset is not None:
-        heldout_loader = DataLoader(
+    # Create ard_heldout_loader for ARD prior estimation
+    ard_heldout_loader = None
+    if ard_dataset is not None:
+        ard_heldout_loader = DataLoader(
             ard_dataset,
             batch_size=cfg["batch_size"],
             collate_fn=data_collator,
@@ -1569,9 +1201,7 @@ def build_clm_trainer(model, tokenizer, train_dataset, eval_dataset, cfg, output
         data_collator=data_collator,
         tokenizer=tokenizer,
         beta=cfg["kl_loss_beta"],
-        heldout_loader=heldout_loader,  # DeBERTa-style heldout loader
-        ard_eval_dataset=ard_dataset,  # Separate dataset for ARD prior estimation
-        uncertainty_eval_samples=cfg["uncertainty_eval_samples"],
+        ard_heldout_loader=ard_heldout_loader,  # Pre-configured DataLoader for ARD prior estimation
         n_bins=cfg["uncertainty_n_bins"],
         output_dir=output_dir,
         ard_prior_samples=ard_prior_samples,
@@ -1732,6 +1362,7 @@ def build_clm_trainer(model, tokenizer, train_dataset, eval_dataset, cfg, output
             ard_prior_samples=ard_prior_samples,  # Use parameter passed to function
             batch_size=cfg["batch_size"],
             tokenizer=tokenizer,
+            data_collator=data_collator,  # Pass data_collator for dynamic ARD DataLoader creation
             enable_plotting=cfg["enable_plotting"],
             enable_resampling=cfg["enable_resampling"],
             plot_start_epoch=cfg["plot_start_epoch"],
