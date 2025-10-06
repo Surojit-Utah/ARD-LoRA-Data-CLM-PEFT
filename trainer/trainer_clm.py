@@ -306,10 +306,21 @@ class ARDCLMTrainer(Trainer):
     
     def on_epoch_begin(self, args, state, control, model=None, **kwargs):
         """Called at the beginning of each epoch to run uncertainty evaluation."""
+        print(f"\n🔍 [DEBUG] on_epoch_begin called for epoch {state.epoch}")
+        print(f"🔍 [DEBUG] self.eval_dataset type: {type(self.eval_dataset)}")
+        print(f"🔍 [DEBUG] self.eval_dataset is None: {self.eval_dataset is None}")
+        if self.eval_dataset is not None:
+            try:
+                print(f"🔍 [DEBUG] self.eval_dataset length: {len(self.eval_dataset)}")
+            except Exception as e:
+                print(f"🔍 [DEBUG] Error getting eval_dataset length: {e}")
+        
         super().on_epoch_begin(args, state, control, model=model, **kwargs)
         
         # Run uncertainty evaluation at the beginning of each epoch
+        print(f"🔍 [DEBUG] About to check if eval_dataset is not None...")
         if self.eval_dataset is not None:
+            print(f"🔍 [DEBUG] ✅ eval_dataset exists - proceeding with uncertainty evaluation")
             print(f"\n📊 Running uncertainty evaluation at beginning of epoch {state.epoch}...")
             metrics = self.evaluate_uncertainty()
             
@@ -340,6 +351,8 @@ class ARDCLMTrainer(Trainer):
             else:
                 print(f"[WARNING] No uncertainty metrics available for epoch {state.epoch}")
         else:
+            print(f"🔍 [DEBUG] ❌ eval_dataset is None - skipping uncertainty evaluation")
+            print(f"🔍 [DEBUG] This is why you don't see uncertainty evaluation messages!")
             print(f"[INFO] No evaluation dataset available for uncertainty evaluation at epoch {state.epoch}")
     
     def on_epoch_end(self, args, state, control, model=None, **kwargs):
