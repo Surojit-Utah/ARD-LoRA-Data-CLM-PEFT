@@ -693,8 +693,9 @@ class HeldoutResampleCallback(TrainerCallback):
         perm = np.random.permutation(total_val)
         
         # Split: first portion for ARD, remaining for evaluation
-        ard_indices = perm[:ard_samples].tolist()
-        eval_indices = perm[ard_samples:].tolist()
+        # Convert numpy indices to Python integers to avoid type errors
+        ard_indices = [int(idx) for idx in perm[:ard_samples]]
+        eval_indices = [int(idx) for idx in perm[ard_samples:]]
         
         # Create subset datasets
         if hasattr(self.val_ds, 'select'):
@@ -789,6 +790,8 @@ def split_validation_dataset(val_dataset, ard_prior_samples, seed, train_dataset
         
         np.random.seed(seed)
         val_indices = np.random.choice(total_train, val_size, replace=False)
+        # Convert numpy indices to Python integers to avoid type errors
+        val_indices = [int(idx) for idx in val_indices]
         val_dataset = Subset(train_dataset, val_indices)
         
         print(f"[INFO] Created validation split with {len(val_dataset)} samples from training data ({len(val_dataset)/total_train:.1%} of training data)")
@@ -813,8 +816,9 @@ def split_validation_dataset(val_dataset, ard_prior_samples, seed, train_dataset
     np.random.seed(seed)
     indices = np.random.permutation(total_size)
     
-    ard_indices = indices[:ard_size]
-    uncertainty_indices = indices[ard_size:ard_size + uncertainty_size] if uncertainty_size > 0 else []
+    # Convert numpy indices to Python integers to avoid type errors
+    ard_indices = [int(idx) for idx in indices[:ard_size]]
+    uncertainty_indices = [int(idx) for idx in indices[ard_size:ard_size + uncertainty_size]] if uncertainty_size > 0 else []
     
     # Create subset datasets
     ard_dataset = Subset(val_dataset, ard_indices)
