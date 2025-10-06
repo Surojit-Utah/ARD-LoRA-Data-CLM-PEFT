@@ -305,112 +305,16 @@ class ARDCLMTrainer(Trainer):
         return metrics
     
     def on_epoch_begin(self, args, state, control, model=None, **kwargs):
-        """Called at the beginning of each epoch to run uncertainty evaluation."""
-        print(f"\n🔍 [DEBUG] on_epoch_begin called for epoch {state.epoch}")
-        print(f"🔍 [DEBUG] self.eval_dataset type: {type(self.eval_dataset)}")
-        print(f"🔍 [DEBUG] self.eval_dataset is None: {self.eval_dataset is None}")
-        if self.eval_dataset is not None:
-            try:
-                print(f"🔍 [DEBUG] self.eval_dataset length: {len(self.eval_dataset)}")
-            except Exception as e:
-                print(f"🔍 [DEBUG] Error getting eval_dataset length: {e}")
-        
+        """Called at the beginning of each epoch. Uncertainty evaluation now handled by UncertaintyEvaluationCallback."""
+        print(f"\n🔍 [DEBUG] ARDCLMTrainer.on_epoch_begin called for epoch {state.epoch}")
+        print(f"[INFO] Uncertainty evaluation is now handled by UncertaintyEvaluationCallback")
         super().on_epoch_begin(args, state, control, model=model, **kwargs)
-        
-        # Run uncertainty evaluation at the beginning of each epoch
-        print(f"🔍 [DEBUG] About to check if eval_dataset is not None...")
-        if self.eval_dataset is not None:
-            print(f"🔍 [DEBUG] ✅ eval_dataset exists - proceeding with uncertainty evaluation")
-            print(f"\n📊 Running uncertainty evaluation at beginning of epoch {state.epoch}...")
-            metrics = self.evaluate_uncertainty()
-            
-            if metrics is not None:
-                # Add epoch information
-                metrics['epoch'] = state.epoch
-                metrics['global_step'] = state.global_step
-                
-                # Store results
-                self.uncertainty_results.append(metrics)
-                
-                # Print formatted results
-                print(f"\n📈 Epoch {state.epoch} Uncertainty Results (Pre-Training):")
-                print(f"   Accuracy (ACC): {metrics['accuracy']:.4f}")
-                print(f"   Expected Calibration Error (ECE): {metrics['ece']:.4f}")
-                print(f"   Negative Log-Likelihood (NLL): {metrics['nll']:.4f}")
-                
-                # Log uncertainty metrics to tensorboard
-                if self.args.report_to and 'tensorboard' in self.args.report_to:
-                    uncertainty_metrics = {}
-                    for key, value in metrics.items():
-                        if isinstance(value, (int, float)):
-                            uncertainty_metrics[f"uncertainty_pre_epoch/{key}"] = value
-                    self.log(uncertainty_metrics)
-                
-                # Save results to file
-                self._save_uncertainty_results()
-            else:
-                print(f"[WARNING] No uncertainty metrics available for epoch {state.epoch}")
-        else:
-            print(f"🔍 [DEBUG] ❌ eval_dataset is None - skipping uncertainty evaluation")
-            print(f"🔍 [DEBUG] This is why you don't see uncertainty evaluation messages!")
-            print(f"[INFO] No evaluation dataset available for uncertainty evaluation at epoch {state.epoch}")
     
     def on_epoch_end(self, args, state, control, model=None, **kwargs):
-        """Called at the end of each epoch to run uncertainty evaluation and log metrics."""
-        print(f"\n🔍 [DEBUG] on_epoch_end called for epoch {state.epoch}")
-        print(f"🔍 [DEBUG] Training args eval_strategy: {self.args.eval_strategy}")
-        print(f"🔍 [DEBUG] Training args eval_steps: {getattr(self.args, 'eval_steps', 'None')}")
+        """Called at the end of each epoch. Eval loss component logging now handled by EvalLossComponentsCallback."""
+        print(f"\n🔍 [DEBUG] ARDCLMTrainer.on_epoch_end called for epoch {state.epoch}")
+        print(f"[INFO] Evaluation loss component logging is now handled by EvalLossComponentsCallback")
         super().on_epoch_end(args, state, control, model=model, **kwargs)
-        
-        # Log training loss components to TensorBoard
-        if self.args.report_to and 'tensorboard' in self.args.report_to:
-            training_metrics = {
-                'train/ce_loss': self.last_ce_loss,
-                'train/kl_loss': self.last_kl_loss, 
-                'train/total_loss': self.last_total_loss,
-                'train/kl_beta': self.beta
-            }
-            self.log(training_metrics)
-            print(f"\n📊 Training Loss Components (Epoch {state.epoch}):")
-            print(f"   CE Loss: {self.last_ce_loss:.4f}")
-            print(f"   KL Loss: {self.last_kl_loss:.4f}")
-            print(f"   Total Loss: {self.last_total_loss:.4f}")
-            print(f"   KL Beta: {self.beta:.4f}")
-        
-        # Run evaluation and log eval losses
-        print(f"\n🔍 [DEBUG] Checking eval_dataset: {self.eval_dataset is not None}")
-        if self.eval_dataset is not None:
-            print(f"🔍 [DEBUG] eval_dataset length: {len(self.eval_dataset)}")
-            print(f"\n📊 Running evaluation after epoch {state.epoch}...")
-            
-            # Get evaluation metrics including loss
-            eval_results = self.evaluate()
-            
-            # Extract eval loss components if available
-            eval_loss = eval_results.get('eval_loss', 0.0)
-            
-            # Run one forward pass on eval set to get loss components
-            eval_ce_loss, eval_kl_loss = self._compute_eval_loss_components(model)
-            
-            # Log evaluation loss components to TensorBoard
-            if self.args.report_to and 'tensorboard' in self.args.report_to:
-                eval_metrics = {
-                    'eval/ce_loss': eval_ce_loss,
-                    'eval/kl_loss': eval_kl_loss,
-                    'eval/total_loss': eval_loss
-                }
-                self.log(eval_metrics)
-                
-            print(f"\n📊 Evaluation Loss Components (Epoch {state.epoch}):")
-            print(f"   CE Loss: {eval_ce_loss:.4f}")
-            print(f"   KL Loss: {eval_kl_loss:.4f}")
-            print(f"   Total Loss: {eval_loss:.4f}")
-            
-            # MOVED: Uncertainty evaluation moved to on_epoch_begin for better timing
-            print(f"[INFO] Uncertainty evaluation now handled at epoch beginning for better model state assessment")
-        else:
-            print(f"\n🔍 [DEBUG] eval_dataset is None - skipping custom evaluation block")
-            print(f"🔍 [DEBUG] This means the evaluation output you see is from HuggingFace's automatic evaluation")
     
     def _compute_eval_loss_components(self, model):
         """Compute CE and KL loss components on evaluation dataset.
@@ -564,6 +468,136 @@ class PriorEstimationCallback(TrainerCallback):
         gc.collect()
         if torch.cuda.is_available():
             torch.cuda.empty_cache()
+
+
+class UncertaintyEvaluationCallback(TrainerCallback):
+    """Callback to run uncertainty evaluation at the beginning of each epoch."""
+    
+    def __init__(self):
+        super().__init__()
+    
+    def on_epoch_begin(self, args, state, control, **kwargs):
+        """Run uncertainty evaluation at the beginning of each epoch."""
+        model = kwargs["model"]
+        trainer = getattr(model, 'trainer', None)
+        
+        if trainer is None:
+            print("[UncertaintyEvaluationCallback] No trainer reference found")
+            return
+        
+        print(f"\n🔍 [DEBUG] UncertaintyEvaluationCallback.on_epoch_begin called for epoch {state.epoch}")
+        print(f"🔍 [DEBUG] trainer.eval_dataset type: {type(trainer.eval_dataset)}")
+        print(f"🔍 [DEBUG] trainer.eval_dataset is None: {trainer.eval_dataset is None}")
+        if trainer.eval_dataset is not None:
+            try:
+                print(f"🔍 [DEBUG] trainer.eval_dataset length: {len(trainer.eval_dataset)}")
+            except Exception as e:
+                print(f"🔍 [DEBUG] Error getting eval_dataset length: {e}")
+        
+        # Run uncertainty evaluation at the beginning of each epoch
+        print(f"🔍 [DEBUG] About to check if eval_dataset is not None...")
+        if trainer.eval_dataset is not None:
+            print(f"🔍 [DEBUG] ✅ eval_dataset exists - proceeding with uncertainty evaluation")
+            print(f"\n📊 Running uncertainty evaluation at beginning of epoch {state.epoch}...")
+            metrics = trainer.evaluate_uncertainty()
+            
+            if metrics is not None:
+                # Add epoch information
+                metrics['epoch'] = state.epoch
+                metrics['global_step'] = state.global_step
+                
+                # Store results
+                trainer.uncertainty_results.append(metrics)
+                
+                # Print formatted results
+                print(f"\n📈 Epoch {state.epoch} Uncertainty Results (Pre-Training):")
+                print(f"   Accuracy (ACC): {metrics['accuracy']:.4f}")
+                print(f"   Expected Calibration Error (ECE): {metrics['ece']:.4f}")
+                print(f"   Negative Log-Likelihood (NLL): {metrics['nll']:.4f}")
+                
+                # Log uncertainty metrics to tensorboard
+                if trainer.args.report_to and 'tensorboard' in trainer.args.report_to:
+                    uncertainty_metrics = {}
+                    for key, value in metrics.items():
+                        if isinstance(value, (int, float)):
+                            uncertainty_metrics[f"uncertainty_pre_epoch/{key}"] = value
+                    trainer.log(uncertainty_metrics)
+                
+                # Save results to file
+                trainer._save_uncertainty_results()
+            else:
+                print(f"[WARNING] No uncertainty metrics available for epoch {state.epoch}")
+        else:
+            print(f"🔍 [DEBUG] ❌ eval_dataset is None - skipping uncertainty evaluation")
+            print(f"🔍 [DEBUG] This is why you don't see uncertainty evaluation messages!")
+            print(f"[INFO] No evaluation dataset available for uncertainty evaluation at epoch {state.epoch}")
+
+
+class EvalLossComponentsCallback(TrainerCallback):
+    """Callback to compute and log evaluation loss components at the end of each epoch."""
+    
+    def __init__(self):
+        super().__init__()
+    
+    def on_epoch_end(self, args, state, control, **kwargs):
+        """Compute and log evaluation loss components at the end of each epoch."""
+        model = kwargs["model"]
+        trainer = getattr(model, 'trainer', None)
+        
+        if trainer is None:
+            print("[EvalLossComponentsCallback] No trainer reference found")
+            return
+        
+        print(f"\n🔍 [DEBUG] EvalLossComponentsCallback.on_epoch_end called for epoch {state.epoch}")
+        print(f"🔍 [DEBUG] Training args eval_strategy: {trainer.args.eval_strategy}")
+        print(f"🔍 [DEBUG] Training args eval_steps: {getattr(trainer.args, 'eval_steps', 'None')}")
+        
+        # Log training loss components to TensorBoard
+        if trainer.args.report_to and 'tensorboard' in trainer.args.report_to:
+            training_metrics = {
+                'train/ce_loss': trainer.last_ce_loss,
+                'train/kl_loss': trainer.last_kl_loss, 
+                'train/total_loss': trainer.last_total_loss,
+                'train/kl_beta': trainer.beta
+            }
+            trainer.log(training_metrics)
+            print(f"\n📊 Training Loss Components (Epoch {state.epoch}):")
+            print(f"   CE Loss: {trainer.last_ce_loss:.4f}")
+            print(f"   KL Loss: {trainer.last_kl_loss:.4f}")
+            print(f"   Total Loss: {trainer.last_total_loss:.4f}")
+            print(f"   KL Beta: {trainer.beta:.4f}")
+        
+        # Run evaluation and log eval losses
+        print(f"\n🔍 [DEBUG] Checking eval_dataset: {trainer.eval_dataset is not None}")
+        if trainer.eval_dataset is not None:
+            print(f"🔍 [DEBUG] eval_dataset length: {len(trainer.eval_dataset)}")
+            print(f"\n📊 Running evaluation after epoch {state.epoch}...")
+            
+            # Get evaluation metrics including loss
+            eval_results = trainer.evaluate()
+            
+            # Extract eval loss components if available
+            eval_loss = eval_results.get('eval_loss', 0.0)
+            
+            # Run one forward pass on eval set to get loss components
+            eval_ce_loss, eval_kl_loss = trainer._compute_eval_loss_components(model)
+            
+            # Log evaluation loss components to TensorBoard
+            if trainer.args.report_to and 'tensorboard' in trainer.args.report_to:
+                eval_metrics = {
+                    'eval/ce_loss': eval_ce_loss,
+                    'eval/kl_loss': eval_kl_loss,
+                    'eval/total_loss': eval_loss
+                }
+                trainer.log(eval_metrics)
+                
+            print(f"\n📊 Evaluation Loss Components (Epoch {state.epoch}):")
+            print(f"   CE Loss: {eval_ce_loss:.4f}")
+            print(f"   KL Loss: {eval_kl_loss:.4f}")
+            print(f"   Total Loss: {eval_loss:.4f}")
+        else:
+            print(f"\n🔍 [DEBUG] eval_dataset is None - skipping custom evaluation block")
+            print(f"🔍 [DEBUG] This means the evaluation output you see is from HuggingFace's automatic evaluation")
 
 
 class LatentPlotCallback(TrainerCallback):
@@ -1040,16 +1074,6 @@ def emergency_memory_cleanup():
     print("[MEMORY] Emergency cleanup completed")
 
 
-
-
-
-
-
-
-
-
-
-
 def create_ard_callbacks(device, output_dir, train_ds=None, val_ds=None, 
                         ard_prior_samples=1000, batch_size=4, tokenizer=None, data_collator=None,
                         enable_plotting=True, enable_resampling=True,
@@ -1074,6 +1098,12 @@ def create_ard_callbacks(device, output_dir, train_ds=None, val_ds=None,
     """
     callbacks = []
     
+    # Always add uncertainty evaluation callback
+    callbacks.append(UncertaintyEvaluationCallback())
+    
+    # Always add eval loss components callback
+    callbacks.append(EvalLossComponentsCallback())
+
     # Always add prior estimation callback
     callbacks.append(PriorEstimationCallback(device))
     
