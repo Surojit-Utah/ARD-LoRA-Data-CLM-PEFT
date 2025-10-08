@@ -20,7 +20,7 @@ defaults:
   lr_scheduler_type: "cosine"
   warmup_ratio: 0.03
   weight_decay: 0.0
-  train_epochs: 3
+  train_epochs: 6
   batch_size: 32  # Increased from 4 to 32 for better A100 utilization
   gradient_accumulation_steps: 4  # Reduced from 16 to 4 (maintains effective batch size of 128)
 

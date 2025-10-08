@@ -501,6 +501,20 @@ def main():
         # Skip initial evaluation to avoid eval_dataset requirement
         print("\n[EVAL] Skipping initial evaluation - proceeding directly to training")
         
+        last_checkpoint = None
+        if os.path.isdir(model_ckpt_dir):
+            checkpoints = [os.path.join(model_ckpt_dir, d) for d in os.listdir(model_ckpt_dir) if "checkpoint" in d]
+            if checkpoints:
+                last_checkpoint = max(checkpoints, key=os.path.getmtime)
+
+        if last_checkpoint:
+            print(f"Resuming from checkpoint: {last_checkpoint}")
+            trainer.train(resume_from_checkpoint=last_checkpoint)
+        else:
+            print("Starting training from scratch...")
+            trainer.train()
+
+
         # Train with automatic uncertainty evaluation after each epoch
         print("\n[TRAIN] Starting ARD-LoRA training with uncertainty evaluation...")
         train_results = trainer.train()
