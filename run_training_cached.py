@@ -509,15 +509,12 @@ def main():
 
         if last_checkpoint:
             print(f"Resuming from checkpoint: {last_checkpoint}")
-            trainer.train(resume_from_checkpoint=last_checkpoint)
+            print("\n[TRAIN] Starting ARD-LoRA training with uncertainty evaluation from checkpoint...")
+            train_results = trainer.train(resume_from_checkpoint=last_checkpoint)
         else:
             print("Starting training from scratch...")
-            trainer.train()
-
-
-        # Train with automatic uncertainty evaluation after each epoch
-        print("\n[TRAIN] Starting ARD-LoRA training with uncertainty evaluation...")
-        train_results = trainer.train()
+            print("\n[TRAIN] Starting ARD-LoRA training with uncertainty evaluation...")
+            train_results = trainer.train()
 
         print(f"\n[SUCCESS] Training completed!")
         print(f"[INFO] Final loss: {train_results.training_loss:.4f}")
