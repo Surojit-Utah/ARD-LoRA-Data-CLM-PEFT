@@ -8,7 +8,7 @@ defaults:
   train_type: "causal_lm"  # Specify training type for validation
   attn_implementation: "flash_attention_2"  # Use Flash Attention 2 for better memory efficiency
   dataset_name: "BayesianPEFT"
-  dataset_name_specific: "sst2"  # Which specific dataset from Bayesian-PEFT
+  dataset_name_specific: "winogrande_m"  # Which specific dataset from Bayesian-PEFT
   
   # Cache configuration
   cache_root: "/content/drive/MyDrive/ARD_LoRA_Data_Cache"  # Google Drive cache
@@ -64,7 +64,7 @@ defaults:
   
   # ProbLoRA Model Parameters
   num_tokens: ${max_len}  # Always match max_len for full sequence ARD coverage
-  ard_prior_samples: 25  # Reduced from 100 to 25 for faster training
+  ard_prior_samples: 100  # Reduced from 100 to 25 for faster training
   
   # Numerical Stability Parameters - ULTRA CONSERVATIVE
   logvar_clamp_min: -5.0  # Very tight bounds to prevent overflow
@@ -155,16 +155,6 @@ datasets:
       max_ard_ratio: 0.8
       random_seed: 42
 
-    winogrande:
-      dataset_name: "winogrande"
-      dataset_class: "S2ClassDataset"
-      # max_len: removed to use global max_len=1024 consistently
-      num_labels: 2
-      validation_split_ratio: 0.1
-      min_validation_samples: 2000
-      max_ard_ratio: 0.8
-      random_seed: 42
-
     arc_easy:
       dataset_name: "arc_easy"
       dataset_class: "S2ClassDataset"
@@ -190,6 +180,39 @@ datasets:
       dataset_name: "boolq"
       dataset_class: "S2ClassDataset"
       # max_len: removed to use global max_len=1024 consistently
+      num_labels: 2
+      validation_split_ratio: 0.1
+      min_validation_samples: 2000
+      max_ard_ratio: 0.8
+      random_seed: 42
+
+    # Open-domain science QA
+    openbookqa:
+      dataset_name: "openbookqa"        # aka OBQA
+      dataset_class: "S2ClassDataset"
+      # max_len: removed to use global max_len=1024 consistently
+      num_labels: 4                      # 4-way multiple choice
+      validation_split_ratio: 0.1
+      min_validation_samples: 2000
+      max_ard_ratio: 0.8
+      random_seed: 42
+
+    winogrande_s:
+      dataset_name: "winogrande"         # same base dataset
+      dataset_class: "S2ClassDataset"
+      subset: "small"                    # distinguish WG-S
+      max_len: 300
+      num_labels: 2
+      validation_split_ratio: 0.1
+      min_validation_samples: 2000
+      max_ard_ratio: 0.8
+      random_seed: 42
+
+    winogrande_m:
+      dataset_name: "winogrande"         # same base dataset
+      dataset_class: "S2ClassDataset"
+      subset: "medium"                   # distinguish WG-M
+      max_len: 300
       num_labels: 2
       validation_split_ratio: 0.1
       min_validation_samples: 2000

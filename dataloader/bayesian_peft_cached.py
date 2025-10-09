@@ -154,14 +154,28 @@ class BayesianPEFTDataManager:
                 
                 datasets = {"train": train_data, "validation": val_data}
                 
-            elif dataset_name.lower() in ["piqa", "hellaswag", "winogrande", "arc_easy", "arc_challenge", "boolq", "anli", "rte", "cb", "copa"]:
+            elif dataset_name.lower() in ["piqa", "hellaswag", "winogrande_s", "winogrande_m", "arc_easy", "arc_challenge", "boolq", "anli", "rte", "cb", "copa"]:
                 # Handle other classification datasets following their approach
                 if dataset_name.lower() == "piqa":
                     raw_dataset = load_dataset("piqa")
                 elif dataset_name.lower() == "hellaswag":
                     raw_dataset = load_dataset("hellaswag")
-                elif dataset_name.lower() == "winogrande":
-                    raw_dataset = load_dataset("winogrande", "winogrande_xl")
+                elif dataset_name.lower() in ["winogrande_s", "winogrande_m"]:
+                    # Support winogrande subset parameter from config
+                    subset_map = {
+                        "small": "winogrande_s",
+                        "medium": "winogrande_m", 
+                        "large": "winogrande_l",
+                        "xl": "winogrande_xl"
+                    }
+                    # Determine subset from dataset name
+                    if dataset_name.lower() == "winogrande_s":
+                        subset = "small"
+                    elif dataset_name.lower() == "winogrande_m":
+                        subset = "medium"
+                    subset_name = subset_map.get(subset)
+                    print(f"[INFO] Loading WinoGrande subset: {subset} -> {subset_name}")
+                    raw_dataset = load_dataset("winogrande", subset_name)
                 elif dataset_name.lower() == "arc_easy":
                     raw_dataset = load_dataset("ai2_arc", "ARC-Easy")
                 elif dataset_name.lower() == "arc_challenge":

@@ -26,3 +26,11 @@ env/
 # Logs
 logs/
 *.log
+
+# Backup files
+*.backup
+
+# Text files
+*.txt
+docs/
+*.md
