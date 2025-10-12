@@ -2,22 +2,20 @@
 Bayesian-PEFT Dataset Integration with Google Drive Caching for CLM
 ===================================================================
 
-This module leverages Bayesian-PEFT's dataset classes while ensuring
-data is downloaded and cached in Google Drive for 
-persistent access across training runs.
+This module provides ARD-LoRA compatible dataset loading with Google Drive caching
+for persistent access across training runs.
 
 Strategy:
-1. Clone Bayesian-PEFT repo for dataset utilities
-2. Download datasets using their loaders
+1. Use HuggingFace datasets directly (following Bayesian-PEFT approach)
+2. Download and process datasets using standard loaders
 3. Cache processed datasets in Google Drive 
-4. Provide ARD-LoRA compatible interface
+4. Provide ARD-LoRA compatible interface with 3-way data flow
 """
 
 import os
 import sys
 import json
 import pickle
-import subprocess
 from pathlib import Path
 from typing import Dict, Any, Tuple, Optional
 import torch
@@ -32,28 +30,9 @@ class BayesianPEFTDataManager:
     Downloads data once and caches in Google Drive for future use.
     """
     
-    def __init__(self, cache_root: str = "/content/drive/MyDrive/ARD_LoRA_Data_Cache", repo_path: str = "./external/bayesian-peft"):
+    def __init__(self, cache_root: str = "/content/drive/MyDrive/ARD_LoRA_Data_Cache"):
         self.cache_root = Path(cache_root)
-        self.repo_path = Path(repo_path)
         self.cache_root.mkdir(parents=True, exist_ok=True)
-        
-        # Ensure Bayesian-PEFT repo is available
-        self._setup_repo()
-    
-    def _setup_repo(self):
-        """Clone Bayesian-PEFT repo if not exists"""
-        if not self.repo_path.exists():
-            print(f"[INFO] Cloning Bayesian-PEFT repo to {self.repo_path}")
-            self.repo_path.parent.mkdir(parents=True, exist_ok=True)
-            subprocess.run([
-                "git", "clone", 
-                "https://github.com/Wang-ML-Lab/bayesian-peft",
-                str(self.repo_path)
-            ], check=True)
-        
-        # Add to Python path for imports
-        if str(self.repo_path) not in sys.path:
-            sys.path.insert(0, str(self.repo_path))
     
     def get_dataset_cache_path(self, dataset_name: str, split: str = "train") -> Path:
         """Get cache path for a specific dataset split"""
@@ -62,7 +41,15 @@ class BayesianPEFTDataManager:
     def is_cached(self, dataset_name: str) -> bool:
         """Check if dataset is already cached"""
         train_cache = self.get_dataset_cache_path(dataset_name, "train")
-        return train_cache.exists()
+        val_cache = self.get_dataset_cache_path(dataset_name, "validation")
+        
+        # Consider cached if both train and validation files exist
+        both_exist = train_cache.exists() and val_cache.exists()
+        
+        if both_exist:
+            print(f"[CACHE] Found cached {dataset_name}: train={train_cache.exists()}, val={val_cache.exists()}")
+        
+        return both_exist
     
     def cache_dataset(self, dataset_name: str, data: Dict[str, Any]):
         """Cache dataset to Google Drive storage"""
@@ -103,16 +90,21 @@ class BayesianPEFTDataManager:
                 
                 print(f"[CACHE] Loaded {len(cached_data[split])} examples from {cache_path}")
         
-        # If we have train data but no validation data, create validation split from train
-        if "train" in cached_data and "validation" not in cached_data and len(cached_data["train"]) > 0:
-            print(f"[INFO] No cached validation data found. Creating validation split from cached train data...")
+        # Check if we have both train and validation cached - if so, use them directly
+        if "train" in cached_data and "validation" in cached_data:
+            print(f"[CACHE] ✅ Using existing cached train/validation split (train={len(cached_data['train'])}, val={len(cached_data['validation'])})")
+            return cached_data
+        
+        # Only create validation split if we ONLY have training data cached
+        elif "train" in cached_data and "validation" not in cached_data and len(cached_data["train"]) > 0:
+            print(f"[INFO] Found cached training data without validation. Creating validation split...")
             
             train_ds = cached_data["train"]
             split_data = train_ds.train_test_split(test_size=0.1, seed=42)
             cached_data["train"] = split_data['train']
             cached_data["validation"] = split_data['test']
             
-            print(f"[INFO] Created validation split from cache - Train: {len(cached_data['train'])}, Validation: {len(cached_data['validation'])}")
+            print(f"[INFO] Created validation split from cached training data - Train: {len(cached_data['train'])}, Validation: {len(cached_data['validation'])}")
             
             # Cache the new validation split for future use
             self.cache_dataset(dataset_name, {"validation": cached_data["validation"]})
@@ -126,6 +118,11 @@ class BayesianPEFTDataManager:
         Download dataset using Bayesian-PEFT approach and cache locally.
         This mimics how they construct datasets in their repository.
         """
+        # Double-check cache before downloading (defensive programming)
+        if self.is_cached(dataset_name):
+            print(f"[CACHE] Dataset {dataset_name} found in cache during download attempt, using cached version...")
+            return self.load_cached_dataset(dataset_name)
+        
         print(f"[DOWNLOAD] Fetching {dataset_name} using Bayesian-PEFT approach...")
         
         try:
@@ -148,9 +145,13 @@ class BayesianPEFTDataManager:
                         "prompt_text": example["sentence"]  # For prompt construction
                     }
                 
-                # Apply processing to both splits
-                train_data = raw_dataset["train"].map(process_sst2_sample)
-                val_data = raw_dataset["validation"].map(process_sst2_sample)
+                # ALWAYS use only training data and create our own validation split
+                # Combine all available data and split from training data only
+                all_train_data = raw_dataset["train"].map(process_sst2_sample)
+                print(f"[INFO] Creating validation split from training data only (ignoring natural validation split)")
+                split_data = all_train_data.train_test_split(test_size=0.1, seed=42)
+                train_data = split_data['train']
+                val_data = split_data['test']
                 
                 datasets = {"train": train_data, "validation": val_data}
                 
@@ -214,18 +215,13 @@ class BayesianPEFTDataManager:
                 
                 # Get train and validation splits
                 train_split = "train" if "train" in raw_dataset else list(raw_dataset.keys())[0]
-                val_split = "validation" if "validation" in raw_dataset else "test" if "test" in raw_dataset else None
                 
+                # ALWAYS create validation from training data only (ignore natural validation splits)
                 train_data = raw_dataset[train_split].map(process_classification_sample)
-                
-                if val_split and val_split in raw_dataset:
-                    val_data = raw_dataset[val_split].map(process_classification_sample)
-                else:
-                    # Create validation split from train (following their approach)
-                    print(f"[INFO] Creating validation split from training data...")
-                    split_data = train_data.train_test_split(test_size=0.1, seed=42)
-                    train_data = split_data['train']
-                    val_data = split_data['test']
+                print(f"[INFO] Creating validation split from training data only (ignoring any natural validation split)")
+                split_data = train_data.train_test_split(test_size=0.1, seed=42)
+                train_data = split_data['train']
+                val_data = split_data['test']
                 
                 datasets = {"train": train_data, "validation": val_data}
                 
@@ -244,15 +240,13 @@ class BayesianPEFTDataManager:
                         "prompt_text": text
                     }
                 
-                # Process splits
+                # Process splits - ALWAYS create validation from training data only
                 if "train" in raw_dataset:
                     train_data = raw_dataset["train"].map(process_generic_sample)
-                    if "validation" in raw_dataset:
-                        val_data = raw_dataset["validation"].map(process_generic_sample)
-                    else:
-                        split_data = train_data.train_test_split(test_size=0.1, seed=42)
-                        train_data = split_data['train']
-                        val_data = split_data['test']
+                    print(f"[INFO] Creating validation split from training data only (ignoring any natural validation split)")
+                    split_data = train_data.train_test_split(test_size=0.1, seed=42)
+                    train_data = split_data['train']
+                    val_data = split_data['test']
                     
                     datasets = {"train": train_data, "validation": val_data}
                 else:
@@ -277,10 +271,10 @@ class BayesianPEFTDataManager:
         Downloads once, then uses cache for subsequent calls.
         """
         if self.is_cached(dataset_name):
-            print(f"[INFO] Loading {dataset_name} from cache...")
+            print(f"[CACHE] ✅ Loading {dataset_name} from cache (no download needed)...")
             return self.load_cached_dataset(dataset_name)
         else:
-            print(f"[INFO] Downloading and caching {dataset_name}...")
+            print(f"[DOWNLOAD] ⬇️ {dataset_name} not cached, downloading and caching...")
             return self.download_and_cache_dataset(dataset_name, config)
 
 
@@ -310,15 +304,24 @@ class ARDLoRADatasetWrapper:
         """
         Get tokenized datasets ready for ARD-LoRA training.
         Returns (train_dataset, validation_dataset)
+        
+        Data flow:
+        1. Training data -> FULL training dataset (used for both SGD and dynamic ARD sampling each epoch)
+        2. Validation data -> kept fixed for evaluation only
+        3. ARD samples -> dynamically resampled from train_ds each epoch (not pre-split)
         """
         train_ds = self.datasets.get("train")
         val_ds = self.datasets.get("validation")
         
+        # Process FULL training dataset (no splitting - used for both SGD and ARD)
         if train_ds is not None:
             train_ds = self._process_dataset(train_ds)
+            print(f"[INFO] Training: {len(train_ds)} samples (for both SGD and dynamic ARD sampling)")
         
+        # Process validation dataset (fixed, for evaluation only)
         if val_ds is not None:
             val_ds = self._process_dataset(val_ds)
+            print(f"[INFO] Validation: {len(val_ds)} samples (for evaluation only)")
         
         return train_ds, val_ds
     
@@ -397,6 +400,9 @@ def load_bayesian_peft_with_caching(dataset_name: str, tokenizer_name: str, conf
     
     Returns:
         (train_dataset, val_dataset, tokenizer)
+        - train_dataset: Full training data for both SGD and dynamic ARD sampling
+        - val_dataset: Fixed validation data for evaluation only
+        - tokenizer: Configured tokenizer
     """
     wrapper = ARDLoRADatasetWrapper(
         dataset_name=dataset_name,
@@ -418,5 +424,13 @@ def load_bayesian_peft_with_caching(dataset_name: str, tokenizer_name: str, conf
         selected_indices = random.sample(indices, max_val_samples)
         val_ds = val_ds.select(selected_indices)
         print(f"[INFO] Validation dataset capped to {len(val_ds)} samples")
+    
+    # Print final dataset summary
+    print(f"\n[DATASET SUMMARY]")
+    print(f"  Training (SGD + ARD): {len(train_ds) if train_ds else 0} samples")
+    print(f"  Validation (eval): {len(val_ds) if val_ds else 0} samples") 
+    print(f"  Total samples: {(len(train_ds) if train_ds else 0) + (len(val_ds) if val_ds else 0)}")
+    print(f"[INFO] ARD samples will be dynamically sampled from training data each epoch")
+    print(f"[INFO] Validation samples are fixed and used ONLY for evaluation")
     
     return train_ds, val_ds, wrapper.tokenizer

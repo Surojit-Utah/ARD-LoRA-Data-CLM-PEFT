@@ -54,7 +54,7 @@ def _validate_config_types(config):
     float_params = ["learning_rate", "kl_loss_beta", "warmup_ratio", "weight_decay", "scaling"]
     int_params = ["rank", "batch_size", "train_epochs", "max_len", "ard_prior_samples", 
                   "uncertainty_eval_samples", "uncertainty_n_bins", "gradient_accumulation_steps",
-                  "runId", "num_labels", "max_validation_samples", "plot_start_epoch", "plot_interval"]
+                  "runId", "num_labels", "plot_start_epoch", "plot_interval"]
     bool_params = ["fp16", "bf16", "load_in_4bit", "use_cache", "gradient_checkpointing", 
                    "enable_callbacks", "enable_plotting", "enable_resampling", "use_google_drive"]
     

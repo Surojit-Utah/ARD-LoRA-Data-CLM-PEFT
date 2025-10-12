@@ -1,0 +1,10434 @@
+{
+  "id": [
+    "14-709",
+    "14-423",
+    "10-42",
+    "13-76",
+    "10-940",
+    "9-69",
+    "8-436",
+    "11-469",
+    "12-216",
+    "11-199",
+    "14-165",
+    "7-530",
+    "7-695",
+    "9-1125",
+    "11-741",
+    "8-315",
+    "13-452",
+    "10-268",
+    "12-1077",
+    "1091",
+    "10-432",
+    "14-883",
+    "12-1061",
+    "14-973",
+    "1652",
+    "14-266",
+    "12-934",
+    "12-227",
+    "14-1034",
+    "14-1147",
+    "14-38",
+    "13-261",
+    "13-1058",
+    "334",
+    "10-513",
+    "7-1006",
+    "10-163",
+    "13-805",
+    "11-489",
+    "10-585",
+    "14-270",
+    "12-1171",
+    "1144",
+    "1228",
+    "1435",
+    "13-1060",
+    "9-536",
+    "14-1112",
+    "7-104",
+    "14-1278",
+    "10-912",
+    "9-233",
+    "12-29",
+    "7-1193",
+    "9-460",
+    "7-124",
+    "12-731",
+    "14-489",
+    "7-6",
+    "13-252",
+    "14-1295",
+    "9-625",
+    "12-849",
+    "13-339",
+    "12-438",
+    "12-602",
+    "14-1282",
+    "14-1428",
+    "9-769",
+    "13-482",
+    "12-1111",
+    "14-720",
+    "12-582",
+    "7-703",
+    "13-1039",
+    "8-272",
+    "12-769",
+    "874",
+    "14-1104",
+    "11-478",
+    "14-836",
+    "14-665",
+    "13-875",
+    "14-617",
+    "12-550",
+    "13-26",
+    "14-1407",
+    "10-1113",
+    "13-129",
+    "14-19",
+    "12-1212",
+    "9-210",
+    "9-445",
+    "10-668",
+    "9-605",
+    "13-385",
+    "12-1211",
+    "11-325",
+    "12-490",
+    "14-1114",
+    "8-229",
+    "9-841",
+    "13-980",
+    "14-1423",
+    "11-5",
+    "14-1139",
+    "13-870",
+    "217",
+    "11-530",
+    "10-1178",
+    "12-546",
+    "14-1095",
+    "12-929",
+    "14-1443",
+    "14-742",
+    "595",
+    "10-684",
+    "9-667",
+    "9-1143",
+    "12-1058",
+    "13-949",
+    "1046",
+    "196",
+    "12-344",
+    "11-358",
+    "1111",
+    "10-789",
+    "10-1200",
+    "641",
+    "11-536",
+    "14-689",
+    "14-1225",
+    "8-222",
+    "12-524",
+    "9-1174",
+    "12-93",
+    "8-17",
+    "14-287",
+    "14-31",
+    "10-350",
+    "11-508",
+    "12-1084",
+    "10-833",
+    "14-55",
+    "9-954",
+    "14-1020",
+    "7-30",
+    "13-902",
+    "7-804",
+    "10-622",
+    "8-330",
+    "10-38",
+    "12-266",
+    "13-10",
+    "7-1023",
+    "10-123",
+    "12-1022",
+    "9-413",
+    "10-491",
+    "14-877",
+    "11-642",
+    "9-9",
+    "11-612",
+    "14-593",
+    "14-405",
+    "12-984",
+    "14-436",
+    "14-754",
+    "13-212",
+    "8-113",
+    "13-958",
+    "7-901",
+    "8-42",
+    "14-245",
+    "413",
+    "13-303",
+    "12-467",
+    "13-848",
+    "10-370",
+    "12-300",
+    "1366",
+    "9-745",
+    "13-85",
+    "10-892",
+    "10-397",
+    "10-776",
+    "8-291",
+    "12-600",
+    "10-251",
+    "11-360",
+    "357",
+    "12-719",
+    "12-824",
+    "828",
+    "12-1160",
+    "12-547",
+    "9-439",
+    "12-433",
+    "13-382",
+    "958",
+    "11-751",
+    "7-763",
+    "14-843",
+    "1640",
+    "13-51",
+    "14-1371",
+    "9-859",
+    "13-963",
+    "11-258",
+    "10-287",
+    "10-328",
+    "14-1047",
+    "7-164",
+    "10-380",
+    "13-936",
+    "11-298",
+    "9-842",
+    "7-629",
+    "13-598",
+    "12-622",
+    "12-451",
+    "12-608",
+    "12-811",
+    "9-872",
+    "9-744",
+    "10-1211",
+    "11-601",
+    "12-121",
+    "14-116",
+    "12-543",
+    "1834",
+    "10",
+    "10-300",
+    "12-264",
+    "13-454",
+    "13-77",
+    "12-373",
+    "13-425",
+    "12-661",
+    "13-334",
+    "10-20",
+    "11-302",
+    "10-297",
+    "14-1357",
+    "12-108",
+    "10-932",
+    "12-883",
+    "9-929",
+    "12-16",
+    "14-1384",
+    "12-790",
+    "14-171",
+    "13-830",
+    "13-437",
+    "13-861",
+    "14-922",
+    "7-312",
+    "10-114",
+    "14-90",
+    "12-253",
+    "297",
+    "10-192",
+    "14-1045",
+    "13-313",
+    "11-702",
+    "14-1275",
+    "7-813",
+    "10-358",
+    "12-1116",
+    "14-1284",
+    "10-371",
+    "11-372",
+    "12-863",
+    "7-912",
+    "10-381",
+    "10-917",
+    "13-106",
+    "14-11",
+    "9-129",
+    "12-132",
+    "12-348",
+    "14-770",
+    "11-415",
+    "115",
+    "9-1050",
+    "12-346",
+    "7-1126",
+    "14-986",
+    "14-1445",
+    "7-178",
+    "13-1025",
+    "12-620",
+    "14-694",
+    "12-105",
+    "14-466",
+    "10-1168",
+    "10-919",
+    "14-739",
+    "9-887",
+    "12-139",
+    "10-753",
+    "13-79",
+    "10-439",
+    "9-286",
+    "11-490",
+    "14-524",
+    "14-1178",
+    "10-1130",
+    "10-1212",
+    "11-30",
+    "7-943",
+    "14-854",
+    "1494",
+    "12-245",
+    "9-1063",
+    "10-436",
+    "13-536",
+    "12-47",
+    "12-965",
+    "12-474",
+    "13-626",
+    "7-874",
+    "1878",
+    "699",
+    "11-195",
+    "11-2",
+    "10-91",
+    "12-287",
+    "12-911",
+    "14-790",
+    "12-1064",
+    "64",
+    "11-412",
+    "12-318",
+    "750",
+    "13-959",
+    "13-503",
+    "853",
+    "9-174",
+    "11-119",
+    "13-900",
+    "10-1154",
+    "14-903",
+    "10-126",
+    "10-217",
+    "11-424",
+    "10-440",
+    "12-782",
+    "14-1088",
+    "11-485",
+    "10-935",
+    "10-751",
+    "12-625",
+    "14-428",
+    "14-291",
+    "9-649",
+    "14-645",
+    "14-416",
+    "13-23",
+    "14-821",
+    "10-1023",
+    "13-841",
+    "13-938",
+    "13-892",
+    "13-429",
+    "13-801",
+    "10-1046",
+    "9-441",
+    "11-313",
+    "10-673",
+    "14-152",
+    "11-219",
+    "12-999",
+    "13-366",
+    "11-697",
+    "7-721",
+    "14-72",
+    "11-414",
+    "9-291",
+    "14-241",
+    "10-212",
+    "10-527",
+    "10-812",
+    "14-1229",
+    "7-642",
+    "13-954",
+    "9-162",
+    "1547",
+    "13-787",
+    "11-357",
+    "13-915",
+    "10-1210",
+    "14-221",
+    "1703",
+    "9-1121",
+    "8-82",
+    "13-383",
+    "14-683",
+    "9-357",
+    "10-560",
+    "1365",
+    "7-86",
+    "13-4",
+    "12-101",
+    "9-795",
+    "10-290",
+    "14-1254",
+    "10-76",
+    "10-1183",
+    "1573",
+    "14-718",
+    "14-984",
+    "12-37",
+    "10-810",
+    "9-836",
+    "14-595",
+    "12-95",
+    "12-355",
+    "9-770",
+    "14-1196",
+    "12-532",
+    "7-1175",
+    "14-1336",
+    "14-1499",
+    "14-114",
+    "14-458",
+    "1721",
+    "9-33",
+    "11-79",
+    "12-1182",
+    "9-1028",
+    "12-320",
+    "10-624",
+    "12-421",
+    "1107",
+    "14-1509",
+    "14-222",
+    "10-1197",
+    "12-91",
+    "13-941",
+    "14-552",
+    "1537",
+    "12-1071",
+    "9-968",
+    "14-1176",
+    "14-775",
+    "9-855",
+    "12-331",
+    "8-447",
+    "9-787",
+    "11-539",
+    "10-1077",
+    "14-495",
+    "10-252",
+    "7-1163",
+    "14-1116",
+    "12-702",
+    "11-137",
+    "11-53",
+    "13-843",
+    "10-232",
+    "14-803",
+    "10-1152",
+    "11-229",
+    "10-1017",
+    "12-674",
+    "8-242",
+    "7-994",
+    "1860",
+    "12-1065",
+    "13-430",
+    "13-767",
+    "10-40",
+    "14-527",
+    "13-86",
+    "10-1138",
+    "14-384",
+    "11-514",
+    "9-628",
+    "13-753",
+    "11-329",
+    "14-308",
+    "14-702",
+    "9-171",
+    "12-1127",
+    "14-1068",
+    "11-564",
+    "10-393",
+    "10-682",
+    "12-758",
+    "1589",
+    "10-1115",
+    "10-840",
+    "14-636",
+    "13-668",
+    "10-345"
+  ],
+  "question_stem": [
+    "With the addition of thrusters your forward momentum will",
+    "Nocturnal predators hunt when?",
+    "What can genes do?",
+    "When both a dominant and recessive gene are present, the dominate what will be visible?",
+    "What could be used as a conductor?",
+    "sunlight is a heat source emitted from",
+    "A waste product of human respiration",
+    "Which of the following is most likely to make a person shiver?",
+    "if a tunnel had a modern facility for seeing, what can we infer from this?",
+    "A plant needing to photosynthesize will want to be placed nearest to a",
+    "What environment has low rainfall?",
+    "Carbon dioxide exists where it does because",
+    "The best way to start a fire is to use",
+    "a cloudy day may obstruct visibility of which of these?",
+    "Jane's hat flew off her head while standing still on a hilltop. This could be because",
+    "A bird is about to lay an egg, so it needs to construct a safe, round place to place the egg in. The bird constructs using",
+    "in which one of these classes are you most likely to find graphite?",
+    "What decreases in an environment as the amount of rain increases?",
+    "What is a riverbank made of?",
+    "A heavier object",
+    "A puppy was uneducated on how to go through a doggy door until",
+    "All of the following contain chloroplasts but this",
+    "When I hear news of a warm front I make sure to bring",
+    "Where is a portable way of creating light most useful?",
+    "Which organism uses xylem for materials transport?",
+    "Which is more likely the result of a big earthquake",
+    "A thermal insulator slows the transfer of what?",
+    "The bear in the wild needs to find other animals to feast.",
+    "If the part of a tree that contains chloroplasts has flatter surfaces they have more",
+    "If your dog is getting noticeably skinnier, you need to",
+    "Which two forces are likely the cause of canyons?",
+    "A tuna would prefer to consume",
+    "Who can hear sounds?",
+    "What best describes the relationship with the moon, Earth, and the sun?",
+    "Magma pours out a volcano and what off a cliff",
+    "A way to keep a cup of coffee warm is to",
+    "A pulley is used to do what with objects?",
+    "A decomposer might thrive more on",
+    "Which organism likely contains chlorophyll?",
+    "A light bulb turns on when it receives energy from",
+    "Magma is sourced in volcanoes and",
+    "how does an animal know to perform certain crucial life actions before exposure to it?",
+    "Winter in the Northern Hemisphere means",
+    "A coal mine is what?",
+    "Preparing food at the proper temperatures",
+    "What requires nutrients for survival?",
+    "Sound can be used for communication by",
+    "Other than sight bloodhounds can find a meal by",
+    "In a warm room, it is likely that the source of heat is",
+    "A thing which is measured, such as a bucket of salt, needs to first be",
+    "Cycles of day and night occur how often in a day?",
+    "In order to assemble a bike, the following are needed with exception of?",
+    "When would you want a radiator the most?",
+    "What kind of animal returns to the same beaches each year to give birth?",
+    "What does water taste like after a substance is dissolved in it?",
+    "Producers in the food chain",
+    "If a river is flowing down the east side of a hill, then the hill",
+    "When the sun rises, there is light and it is daytime. When is it night time?",
+    "Fungi",
+    "Succulents will die during winter months in canada without the aide of a",
+    "Plants are like all other organisms, in that they need what to survive?",
+    "Which type of energy is the most environmentally friendly?",
+    "MRIs can make",
+    "A bird of prey is hunting a scaly meal. How might this creature avoid being spotted?",
+    "When a hurricane glides over a continent it",
+    "adobe works as an electrical",
+    "A nightcrawler will most likely reside and consume nearest",
+    "What would a sedimentary rock likely hold?",
+    "evaporation is the first stage in the what cycle",
+    "Why do companies heat up milk before they bottle it?",
+    "If a plane is landing on a strip where someone is standing, the plane's blinking will look",
+    "What is undesirable in a vegetable garden?",
+    "Which is likely to spread seed?",
+    "National parks have rules",
+    "which of these would make a better material for an electronic device component?",
+    "There are creatures which, depending on species, have varying numbers of body parts. Arachnids have a certain number, while humans have a different number, and these numerous parts can be attributed to",
+    "A human can, merely by pushing on it, cause a visible alteration in the shape of a",
+    "Standing in a canyon and yelling your name",
+    "An example of an offspring receiving a gene is",
+    "A plane takes off from the ground, lights blazing, and flies into the sky. As the plane ascends and travels to its destination,",
+    "A cousin to the mole survives on",
+    "A plant needing to photosynthesize will best be able to",
+    "What is a likely product of a timber companies activities?",
+    "Which would least refract light?",
+    "a typical rabbit diet includes",
+    "changes in an environment cause plants to",
+    "A thing which moves very little over quite a lot of time is a",
+    "Unlike trees in the forest or a pond full of fish, metal is only available until",
+    "After seeing her give birth, the zookeepers discovered that Harry the ____ was actually a girl.",
+    "What resources can be used over again?",
+    "A skunk produces a bad what?",
+    "Over the years, the desert rat has evolved traits that help it live with low supplies of water, what is this an example of?",
+    "what role does some plankton have that is similar to farmer in ohio?",
+    "When light energy enters a prism it emits all the colors by",
+    "The air was cold, so all night the sheep kept",
+    "If acorns are moved around a neighborhood, then the most reasonable culprit is",
+    "if the particles in an electric rig were immobile, what would result from that?",
+    "Which of the following is a learned behavior?",
+    "Small animals will leave their habitat and look for new shelter when there is a",
+    "As water increases in an environment the number of aquatic animals such as zooplankton, nekton, and benthos will",
+    "which one of these would be most nourished?",
+    "December is in the summer in what",
+    "Unlike bird eggs, reptile's eggs are",
+    "Breath includes which of the following?",
+    "A particular bird has very bright multi-colored feathers. This could help them",
+    "An example of camouflage is when an organism looks like what?",
+    "A person may inherit their mom's",
+    "A piece of paper is a different shape when it",
+    "A hang-glider that is soaring runs into gales head-on. The gales",
+    "The four stages of the water cycle are evaporation, condensation, precipitation, and collection. What happens after the last step of this cycle, and all cycles?",
+    "the availability of soil nutrients in the food chain can be explained by which of these?",
+    "Even items such as rocks mass can be changed due to which process?",
+    "If a person is blind and needs to know the color of a sign, they",
+    "It is easiest for a rose to grow",
+    "Which is likely to rot?",
+    "What would you measure in a graduated cylinder?",
+    "An example of something that contains sugar is",
+    "A a switch turns something with batteies on because:",
+    "A glacier is made of",
+    "Wind can be used to",
+    "Which of these could be separated with a sifter",
+    "As a car approaches you in the night",
+    "What does a squirrel not eat?",
+    "If a beach is below a farm it can make swimmers ill if",
+    "Which of the following results from a chemical reaction involving baking soda?",
+    "What contains seeds",
+    "As you go from farther away from an object to closer to it, the object will",
+    "A person stuck alone in the woods could keep themselves a bit more protected by building a",
+    "Light that can burn skin is produced by a",
+    "Which would be prevented by safety goggles?",
+    "Who stalks dragonflies south?",
+    "A caterpillar is a part one of the mundane four stage life cycle of",
+    "air masses are pushed by westerlies but stopped by",
+    "Which is likely true?",
+    "A balance can measure the weight of",
+    "Moles are underground a lot of the time, and since few animals live there, they are unlikely to be",
+    "When a new suburb was built there was less room for what?",
+    "Sparrows gain lift with more grace than a vulture due to",
+    "Things occurring in stoney areas produces all of these:",
+    "Just below the Earth's crust is something that sounds like it should be over a",
+    "What phenomenon is best described as evaporation?",
+    "Which creature is built to move though wet currents?",
+    "A glacier moved through an area years and years ago, and scientists can tell this by",
+    "Wind can",
+    "A locations climate is what in the area?",
+    "To calculate distance divided by time you would need a",
+    "The moon's surface",
+    "The earth has completed half of its yearly orbit of the sun and will complete the other half in",
+    "After a long, hard workout, many professionals will help their body to heal by consuming",
+    "Bananas spread their chromosomes because of",
+    "which of these would you most likely find in a log with a hole in it?",
+    "A person fills their tank with fossil fuels, and knows that in one hundred years",
+    "Which is likely to have to highest kinetic energy?",
+    "Some flowers are unable to get enough sunlight because trees hover over them and do what to it",
+    "Leaving coconut oil out on a counter, as the day grows hotter, what happens to the oil?",
+    "The earth has continents that experience different things at different times, depending on where on Earth's axis it is, such as",
+    "Which would be a learned trait?",
+    "A person needs to find a way to shore while on a raft. Another person tells the first person which direction to go in order to safely reach land, so the person directing is",
+    "A person paints a white door a different color, so the door is probably now",
+    "A  cast iron stove uses what as fuel",
+    "Where would a short-beaked animal likely die?",
+    "Using a menstrual cup instead of pads or tampons can help avoid",
+    "The crawling pace of limestone removal from an area produces",
+    "What requires sunlight to grow?",
+    "A thing which makes shifts to different forms may be gaining the ability to do so due to",
+    "High areas can be visually represented by:",
+    "What typically occurs from a few seconds to under half of a minute?",
+    "Which relationship is likely true?",
+    "Which creature would be safest from predators in its natural underground habitat?",
+    "A boy might have brown hair due to",
+    "Coral get their ____ from algae",
+    "To positively affect the environment",
+    "Paleontologists study",
+    "Which would you use a graduated cylinder for?",
+    "Vegetables provide a lot of nutrients for",
+    "John Muir would likely set aside an area for",
+    "Hawks eat",
+    "Someone with Lupus is probably in",
+    "A creature that sometimes attaches to sharks is",
+    "which one of these would be needed to power up a torch light?",
+    "Pressing your appendages against an object can allow one to",
+    "A switch is used to stop the flow of currents which causes Joule heating in",
+    "Portable energy is useful for",
+    "There are many changes that can occur to the earth, quickly or overtime. Which would occur over millions of years?",
+    "A large turbine in a field can produce electricity to power devices when",
+    "A bear snacks on a tiny bird and the person watching this will know that the bear may be all aside from",
+    "Removing the tree an owl makes it's home in",
+    "Which of the following relationships are true?",
+    "when the needle of a compass lines up with Earth 's magnetic poles , the needle is",
+    "A person wants to discover how much time they've spent on something, so when they think about data, they need to",
+    "As a liquid's temperatures get hotter",
+    "The below surface pebbles of the columbia river are of non rough edges because of?",
+    "What could loosen the soil by creating tunnels?",
+    "Humans grow thinner when they",
+    "Polar bears grew thick fur because",
+    "The desert rat has evolved traits that help it live with low supplies of water, what is this an example of?",
+    "an example of an excellent earth mover is",
+    "A peach pit holds the beginning",
+    "Someone stops living when",
+    "One full rotation on Earth's axis takes",
+    "A month that is in the summer in the Northern Hemisphere directly follows which month?",
+    "If you plug this into an outlet, current will flow through it.",
+    "Which would likely cause an injury to a baby?",
+    "Chimpanzees dig for insects with sticks; what is another example of using tools?",
+    "A micro-scratch test is able to determine which rock formations deep inside the earth's sub-surface are the hardest and how resistant the formations are to being",
+    "Which relationship is true?",
+    "Two females usually can produce",
+    "amphibians hatch from",
+    "Why would a lightbulb be dark?",
+    "What color is a stick bug?",
+    "When an object moves, how will its kinetic energy be affected?",
+    "Which is likely considered soft?",
+    "To warm yourself up on a chilly day",
+    "A simple pulley example could be",
+    "What is something that could be made from iron?",
+    "The more hawks that chow down on voles, the",
+    "Snowfall takes place during the winter in what area?",
+    "Some birds find locations with",
+    "Single cell organisms can put an animal in the",
+    "If a bird is moving through the sky, someone wanting to know the speed would",
+    "Most of the pollutants in the air and in our world are there due to",
+    "which one of these would be a migratory outcome?",
+    "A 40 foot wide hole is found in the dessert. It's shaped like a ball had hit it. What could have happened?",
+    "A person is lost in a dense forest, and needs to find their home. They know their home is to the south, and they are headed north. They can find home by using a",
+    "If a tree in your backyard rots away for is knocked over by the wind, you can just",
+    "When a lake receives too much rain it will",
+    "Adding heat energy to something can cook it, such as heating",
+    "Which feels hotter?",
+    "A supermodel with a big nose probably",
+    "Who would refrain from eating a salad?",
+    "Shorter periods of daylight happen",
+    "If a snow storm is coming you should?",
+    "Which is an inherited characteristic?",
+    "if a person has a scar on the face, at what point did they get it?",
+    "Living near any body of water puts your home at risk of flooding, if there is?",
+    "If enough dirt is able to accumulate over a carcass, then eventually that carcass may",
+    "If a bear has thick legs fur, then",
+    "Which animal will eat only plants?",
+    "if a spoon was placed outside under our closest star, what could happen to it?",
+    "If an animal gets too cold for its body to perform its functions, that animal will",
+    "An iron horseshoe with red stripes is held over a paperclip and",
+    "Cars driving over a stone road throughout a year, including hot days and cool nights, may cause the road to",
+    "A lack of water has a direct connection on the amount of available",
+    "An arid sandy place has very little",
+    "Which animal might catch it's sustenance faster?",
+    "Squirrels eat a variety of foods including",
+    "A bear in the arctic can go a long time without eating",
+    "Electricity causes less damage to the Earth's atmosphere than",
+    "If the ground is fully shaded, and plants there barely grow, likely the reason is",
+    "Which have a positive impact on the environment?",
+    "What could be used to find out how much carpet is needed for a room?",
+    "Naomi looks around outside on a prairie and it is cloudless but the sun is nowhere to be seen. It is",
+    "An example of a conductor might be",
+    "Your body goes into starvation mode when you insufficient amounts of",
+    "If a reptile were taken to the iceland it would",
+    "Why would philanthropists donate special straws to help poor countries?",
+    "Melting of polar icecaps will",
+    "If an organism dies what happens to that organisms population?",
+    "diamonds exist because of the existence of",
+    "Which of the following is true?",
+    "Pushing on a pedal is an example of",
+    "Carnivores devour omnivores which eat",
+    "A tree can be replaced by planting a new what?",
+    "An example of combined substances could be",
+    "An action that may provide a small bit of warmth could be",
+    "What loosens soil?",
+    "A camera can take an image and",
+    "The moon's surface",
+    "In a drought, a resource that will be lacking is",
+    "A lizard that passed away centuries ago may be viewed most easily today in some ways through",
+    "A blue colored item will only reflect",
+    "A load of earth and stone that folds upon itself repeatedly could be considered",
+    "If a screwdriver is bought from a high end store known for high quality, it will most likely end up",
+    "If your pet bird is having trouble flying",
+    "A large body of salty water drying up is responsible for the creation of the",
+    "A shark is looking for a quick bite, so it",
+    "What is the source of energy for physical cycles on Earth?",
+    "If the days are more chilled than before, and yet still avoid freezing degrees, a likely assumption is that",
+    "An indian hawthorn that has received more water will usually be",
+    "In order for trees to use sunlight they must",
+    "An example of a chemical change is",
+    "A cardinal makes brief contact with a picnic table, and between them there is",
+    "A family moves into an old home that mice have moved into. Soon after the human family moves in, the family of mice are likely to",
+    "Maps may be redrawn because of",
+    "Miletinae in the air above will have gone through a transmutation and would have already gone through what pre imago but post egg stage ?",
+    "Which of the following relies on vibrating matter to work?",
+    "In a bog, when water levels become low,",
+    "In order for a crane to operate properly it requires",
+    "If a tree falls then it is what?",
+    "what characterizes a cycle",
+    "A crowd-source worker wants to track when a certain task drops. They would",
+    "the gravitational pull between two objects increases as they are",
+    "Which substance is likely present for the birth of a mountain?",
+    "crops need to be switched on a continual basis why?",
+    "Living things all require energy for what?",
+    "Plants can use what as a pollinator?",
+    "What prohibits cells from contorting into deformed shapes?",
+    "Robins will often devour",
+    "My dad gave me",
+    "What might be harder to digest?",
+    "What purpose does a plant light serve?",
+    "When will the humidity increase in relation to bodies of water?",
+    "What do hawks eat?",
+    "How many odorant receptors do honey bees have?",
+    "Instinctive behavior may be viewed when observing",
+    "The topography of our only natural satellite's surface is",
+    "What is a vehicle for the flow of electricity?",
+    "A plastic bag is filled with milk and is placed in a chest. The chest has a device which takes all of the warm air away, so eventually, the milk will",
+    "Solar energy called sunlight originates from",
+    "Which would reach the other side of a room the fastest?",
+    "If a lizard is unable to obtain sufficient nutrients in a period of time, the resulting effect may be",
+    "Which would likely protect a rabbit?",
+    "Phase changing occurs when",
+    "A reason there is so much debris and damage during tornadoes is due to rocks that are getting",
+    "Stems are to flowers as",
+    "Gravitational force never affects",
+    "The sidewalk next to a house having a crack in it and having vegetation growing from it is considered?",
+    "It's June in Australia so I should make sure to wear",
+    "Reproduction means a development of genes like",
+    "Which of the following statements is true",
+    "Baking soda can react chemically with what?",
+    "The wolf raises his family near a",
+    "condensation is a stage in the water cycle process when",
+    "You couldn't discover the shape of an object if you had",
+    "A skunk wards off predators with",
+    "A piglet was accidentally stepped on. In order to heal up, the piglet is offered",
+    "To see an example of xylem in work",
+    "A person who has a job of making discoveries also",
+    "which of these need to be present for a tectonic plate movement",
+    "A lake with two buckets of ice water poured into it each day will likely",
+    "Which is likely to boil?",
+    "Lions eat animals",
+    "A solution could be",
+    "A kumquat is more likely than a steak to have",
+    "Which would a carnivore eat?",
+    "Bacteria in the soil feed on",
+    "usually plants die or become dormant after the",
+    "How many times per 365.3 days does an equinox occur?",
+    "I need electrical energy to",
+    "A squirrel expires in the spring and in the fall",
+    "One odd fossil that may have been discovered is",
+    "Compost, small rocks, and organic material make up",
+    "Above 100 degrees Celsius a kind of water is what?",
+    "A mole can avoid being detected by hawks, owls and other predators by",
+    "Limestone is formed by water evaporating from a solution of water and mineral and a hard sedimentary rock used as building material and for making",
+    "Which of the following would be least likely to reproduce?",
+    "A puppy has a kink in his tail, but he lacked it yesterday. The puppy ______ a broken tail.",
+    "what do planets orbit?",
+    "A bunch of lava that is sitting somewhere could create on its own",
+    "A person wanting to find a live bear in a forest will have difficulty because bears",
+    "A full moon is visible",
+    "To protect yourself from blisters you may try",
+    "A series of horrible earthquakes can effect deer populations by forcing",
+    "Which contain seeds?",
+    "In the food chain process what has the role of producer?",
+    "do all insects have to undergo every stage of change before becoming full grown?",
+    "if an object undergoes chemical change then that object will have new chemical what?",
+    "Which converts sunlight, water, and carbon dioxide to grow?",
+    "if a student asked a teacher about the size of a certain item, what could be an indicator?",
+    "Digestion is when stomach acid breaks down what?",
+    "Reducing bacteria in food prevents what?",
+    "The elements will over time level",
+    "Ground has",
+    "What does the earth orbit that causes the seasons to change?",
+    "If birds are singing, the sun is shining, and temps are high, then",
+    "Poison causes harm to",
+    "What contains chlorophyll?",
+    "Two ships grazing each other as they pass will",
+    "A shout is made into the night sky and carries",
+    "A person wants to make some tomato plants grow, so they get",
+    "A piece of pizza is placed within a box and becomes this when something is conducted throughout the box into the food:",
+    "John was able to read at night even though the electricity had gone out. John was using",
+    "Turning a piece of paper into a ball is an example of",
+    "DNA is a vehicle for passing inherited characteristics from parent to what?",
+    "A navigator may be in charge of",
+    "If a room is going to be humid, or dry, depends on how much water vapor is in the air, so if a room wants to be humid",
+    "A dark cave fulfills what need for a wild, roaming grizzly bear?",
+    "What activity changes the local environment the most?",
+    "Where might you find eggs?",
+    "A seaman will likely use this tool more than other:",
+    "A river rushes and pebbles are smacked around one another until",
+    "What orbits the earth 13 times per year?",
+    "A bird such as a penguin can survive in arctic weather due to",
+    "What are predators?",
+    "A chipmunk will consume all of these things with just one that it refuses to:",
+    "A circuit is parallel when more than one pathway has flowing what?",
+    "During a thunderstorm an animal is most likely going to relocate to a",
+    "During the time the moon orbits the Earth 13 times the Earth orbits the sun",
+    "if a tree stands firm during a windy day, which of these could be holding it in place?",
+    "A person wants to dry pips from sunflowers and then can plant those pips knowing that they have enough",
+    "A mother births what?",
+    "Photosynthesis features",
+    "Which likely occurs in the digestive system?",
+    "Bananas, pineapples, and coconuts are from places that are",
+    "This type of energy resource often results in particulates that are very toxic to breathe:",
+    "A human who goes long periods of time without nourishment will experience",
+    "If a thing is going to be a planet, it must orbit in a certain amount of time, which can exclude",
+    "Animals are just like humans in that if they run out of oxygen, breathing is impossible and",
+    "a student notices a large number of hawks in the playground, what will likely happen to the lizards?",
+    "When you increase the viability of food, you increase the ability to",
+    "Trees grow growth-rings one time each year; so which of these is correct?",
+    "When looking at an eclipse, an important thing to remember is",
+    "Unless the animal is native to a cold climate like Antarctica, it is going to need to stay warm enough in winter so it",
+    "When a plant is water the liquid goes from the soil area to where it is needed using what system?",
+    "Seasons of the year highly impact what?",
+    "An acquired characteristic is",
+    "a hawk will use their claws to touch which of the following?",
+    "A person has sand in their shoe from the beach, and they dump the sand out at their doorstep many miles away. The sand could end up back on that beach if",
+    "If an electric circuit has six paths and another electric circuit has one path, the six path circuit is",
+    "How long does it take Earth to fully revolve one time",
+    "Pollination is required for what reproduction?",
+    "In the morning, Rebecca saw some fluid in the gutter. Later, it was gone. What happened to it?",
+    "A source of heat might be",
+    "What dissolves in water when combined?",
+    "which of these can be considered a stage in the water cycle?",
+    "In order for crops to grow food safely, pesticides are used on them. When it floods, this causes what to be poisonous?",
+    "A bird that finds itself endangered is",
+    "A boy hates summer with a burning passion, so luckily the longest he should ever have to endure the season is",
+    "Mammals are one of a few animals that's core temp",
+    "Which is a byproduct of a lightbulb?",
+    "Which is the best thing to do for a neighborhood?",
+    "If a cow is offered a choice, it will turn down",
+    "Like humans, when some animals get hot, they do what in order to lower their body temperature",
+    "A skunk produces a bad what?",
+    "If a tree is cut down what will happen to it?",
+    "Which of these animals could keep itself warmest?",
+    "Conservation is",
+    "Why should people conserve gas when fueling their cars?",
+    "An iris may have trouble thriving in an arid location, or even in a frozen location, because it needs",
+    "Coral gets some help with algae for their",
+    "A kangaroo can have multiple babies at various stages of life at the same time. These joeys can show remarkable instincts, in that they",
+    "Having food has a positive impact on the health of what?",
+    "the nervous system sends observations in the form of electrical signals to what?",
+    "If a day has passed, so has",
+    "An incandescent light bulb requires a filament to",
+    "An organism that can survive without the help of other cells is",
+    "A creature that is incapable of giving birth to offspring that are living as they exit is the",
+    "The sun setting occurs",
+    "Xenons use current to produce light as well as",
+    "Coal might start out as",
+    "Which only needs sparse water?",
+    "The mantle is a layer of the Earth; what is something other than a layer?",
+    "Which is most likely a cause of camouflage's effectiveness?",
+    "if food has lack of immediate use for energy then it will",
+    "The usual kind of weather in a location is called what?",
+    "Which evaporates from its container when used?",
+    "which of these will attract a magnet in a student's pocket?",
+    "Which of the following would best describe why a lizard would live in a desert?",
+    "You can let someone know you are at the door thanks to a",
+    "Which of these is usually green in color?",
+    "A small dish that is in space will do this as it nears an enormous mass.",
+    "A boy wants to collect clams for supper and must therefore spend time",
+    "What's used by migrating animals to find locations?",
+    "A penguin, while a bird, would avoid living in",
+    "A vehicle stops when brakes are pressed because",
+    "Butterflies will often times have coloring that at look like eyes on their wings for",
+    "What is likely true?",
+    "How long would it take for you to notice the sun's movement?",
+    "John's shadow looks like it's directly underneath him. What time is it?",
+    "A frog eats",
+    "A renewable resource you can find on Earth is",
+    "This animal evolved to reproduce using protective containers instead of live little entities:",
+    "How long might a bear likely to remain its den without eating, drinking, or excreting after November?",
+    "Two iron bars that are similarly charged will likely",
+    "This famous mountain range in Europe came about due to",
+    "On continents nearer the north pole than the south, winter months such as November see",
+    "A cacti is basically an enormous stem, which means that",
+    "A thermal conductor is made of",
+    "In which situation might most rescues be conducted via air?",
+    "Where might you see light reflect?",
+    "Which stores sustenance in the seed form?",
+    "Some animals change their appearance completely during a stage of the life cycle known as",
+    "Hummingbirds gather nectar using their",
+    "A thing which is a producer in the food chain is most likely to be a",
+    "If a park becomes more and more arid, the animals there will probably",
+    "A plant's roots break down rocks as the roots do what?",
+    "The state of a gas vaporized from a surface liquid under increased pressure and higher temperatures is",
+    "Fluids are relocated through a daffodil due to the",
+    "35 percent of what depends on pollination?",
+    "Without the sun providing warmth and light, life on Earth would",
+    "Which of these is determined by heredity?",
+    "Two felled trees, split in twain, with the same number of rings, means they're the same",
+    "_____ tide is a stage in the tide cycle process that surfers like the best",
+    "braille is read by using your fingers to",
+    "You can bake cookies with the sun using",
+    "Organisms exist only because of the energy from",
+    "As a pond is slowly evaporated, the food for ducks in that area",
+    "If it's been twelve weeks since you put on shorts, and you notice today the hours of light and dark are just about equal, how long will it be until Winter?",
+    "As the population of zebra decreases",
+    "Which of the following would occur in nature?",
+    "Peddling a bicycle can be accomplished by",
+    "A rose bush photosynthesizes and nearby people",
+    "One arctic animal, the polar bear may spend their time doing what",
+    "If soil is loose, it makes it what for oxygen to get in?",
+    "To measure the length of a elephant's trunk you would need",
+    "giant walls of froze H2O carved out"
+  ],
+  "choices": [
+    {
+      "text": [
+        "stop",
+        "increase",
+        "decrease",
+        "stall"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "sleep time",
+        "midday",
+        "morning",
+        "noon"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "Give a young goat hair that looks like its mother's hair",
+        "Make a baby chubby",
+        "Make a horse break its leg",
+        "Attack viruses and bacteria"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "society",
+        "feature",
+        "person",
+        "path"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "a cat",
+        "A penny",
+        "a cloud",
+        "wood"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "a white dwarf star",
+        "our only yellow star",
+        "a nearby quasar star",
+        "a red giant star"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "is a vital resource to pigs",
+        "is a vital resource to daffodils",
+        "is a vital resource to oceans",
+        "is a vital resource to bees"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "being in a gym",
+        "being in a sauna",
+        "being in a fridge",
+        "being in a pool"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "there is water in use",
+        "Thomas Edison's work is in use",
+        "there is sunlight in use",
+        "there is petrol in use"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "fridge",
+        "bed",
+        "skylight",
+        "basement"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "tropics",
+        "sandy zone",
+        "sandbox",
+        "forests"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "humans expel it",
+        "deer eat it",
+        "birds use it",
+        "trees absorb it"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "moisture deprived logs",
+        "old branches",
+        "green branches",
+        "chopped logs"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "the screen on a smartphone",
+        "our planet's closest star",
+        "the teacher in the class",
+        "the waitress's name tag"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "her head blew the hat off",
+        "there was uneven heating of the ground",
+        "a squirrel jumped up and grabbed it off of her head",
+        "a spaceship pulled her hat off her head"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "sticks",
+        "gum",
+        "rocks",
+        "tape"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "in a yoga class",
+        "in a philosophy class",
+        "in a physical education class",
+        "in a visual art class"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "solar light",
+        "water",
+        "rivers",
+        "hydration"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "oceans",
+        "loam",
+        "rivers",
+        "dirty clothing"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "requires less force to move",
+        "requires minimal effort to move",
+        "requires more muscle power to shift",
+        "requires a light touch to move"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "the mom did it",
+        "it read how to",
+        "it went to school",
+        "it made a plan"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "rose bushes",
+        "sea anemones",
+        "seaweed",
+        "algae"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "game boy",
+        "clocks",
+        "guns",
+        "waterproof appendage covers"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "pitch-black caverns",
+        "sunny days",
+        "a bright rooms",
+        "the sun"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "saguaro cactus",
+        "liverwort",
+        "green algae",
+        "sphagnum moss"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "a mountain",
+        "a big house",
+        "a modern airplane.",
+        "a fancy car"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "warmness",
+        "light",
+        "energy",
+        "liquid"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "they are killers",
+        "they only eat",
+        "they never kill",
+        "they are docile"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "vibrant colors",
+        "absorbing mass",
+        "life",
+        "friends"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "increase its food intake",
+        "play some video games",
+        "feed it less food",
+        "Make it fly away"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "water plus fire",
+        "fire and brimstone",
+        "water plus gravity",
+        "H20 and lemmings"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "An Apple",
+        "beef",
+        "Nemo",
+        "dogs"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "boulders",
+        "giraffes",
+        "rocks",
+        "stone statues"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "the Earth is absorbing sunlight",
+        "the moon is equidistant from the sun and Earth",
+        "the moon is a star",
+        "the sun travels around the Earth"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "drips",
+        "suspends",
+        "freezes",
+        "sticks"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "cook it in the oven",
+        "heat it with a torch",
+        "put it in the sun",
+        "use a heated plate"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "crush",
+        "cool",
+        "increase altitude",
+        "elevate significance"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "Magic",
+        "Jupiter",
+        "Time Traveling",
+        "Old turkey"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "bamboo",
+        "pandas",
+        "protozoa",
+        "humans"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "a cable",
+        "an oven",
+        "gasoline",
+        "a person"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "is high enough kelvin to melt steel",
+        "on the desert plains",
+        "is beneath the aliens",
+        "can freeze water at all times"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "it is built into their very being",
+        "it is taught in school",
+        "they are trained at a special school",
+        "they have magical powers"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "the Northern Hemisphere is experiencing scorching hot weather",
+        "the Northern Hemisphere is experiencing daily torrential rain",
+        "the Southern Hemisphere is experiencing warm sunny days",
+        "the Southern Hemisphere is experiencing frigid temperatures"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "a person who mines for coal",
+        "a rare type of stone",
+        "a place where coal is processed",
+        "a mine that is beneath the earth where coal is found"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "is too much work and should be avoided",
+        "eradicates potential illness causing organisms",
+        "allows bacteria to flourish",
+        "leaves meat raw and under cooked"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "sand",
+        "plastic",
+        "metal",
+        "an anaconda"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "creatures",
+        "plants",
+        "water",
+        "planets"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "social media",
+        "their phone",
+        "the internet",
+        "stench"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "a series of metal pipes along a wall",
+        "a small ceiling fan",
+        "a stove which is turned off",
+        "a pile of boxes"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "evaded",
+        "burned",
+        "gathered",
+        "lost"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "5 times",
+        "singular instances",
+        "forty times",
+        "once a year"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "Nails",
+        "Bolts",
+        "Screws",
+        "Bars"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "winter",
+        "spring",
+        "fall",
+        "summer"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "saltwater crocodile",
+        "carnivorous bird",
+        "semiaquatic mammal",
+        "tiger shark"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "watery",
+        "the same",
+        "similar to object",
+        "full of life"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "are self sufficient",
+        "rely on predators",
+        "struggle to survive",
+        "decompose organisms"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "drops at a slow rate",
+        "drops sharply right there",
+        "drops sharply on the west",
+        "is evenly sloped everywhere"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "when its blue and Pink",
+        "when its down and lightless",
+        "when its seven and eight.",
+        "when its dead and gone"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "can do their food chain jobs without ingestion",
+        "act as predators in the food chain",
+        "are always safe to ingest",
+        "occupy the top of the food chain"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "glass structure",
+        "firehouse",
+        "smokehouse",
+        "bonfire"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "sustenance",
+        "shoes",
+        "games",
+        "internet"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "Coal",
+        "Petroleum",
+        "Natural Gas",
+        "Sunlight"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "fillings dance",
+        "great yogurt",
+        "programs for assembly",
+        "a mess"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "Lure the hunter into a trap and eat it first",
+        "Close its eyes and hope for the best",
+        "Altering its hues to look like the leaves",
+        "Flee at breakneck speeds"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "runs for president",
+        "becomes an earthquake",
+        "increases in strength",
+        "decreases in strength"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "paper weight",
+        "pie filler",
+        "chiller",
+        "anti-conductor"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "a rain cloud",
+        "an un-raked yard",
+        "a river rapids",
+        "a mountain avalanche"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "a trilobyte",
+        "a cookie",
+        "a wheatgrass shake",
+        "a diner"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "H2O",
+        "lunar",
+        "growth",
+        "menstrual"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "the milk is probably sour",
+        "it tastes bad that way",
+        "small organisms could make you sick",
+        "the cow could get angry"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "more intense",
+        "duller",
+        "more distant",
+        "more dim"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "tomatoes",
+        "green peppers",
+        "corn",
+        "dandelions"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "a car",
+        "a sun beam",
+        "a whale",
+        "a hummingbird"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "that curtail the growth of fragile animal species",
+        "that open the parks to mining of natural resources",
+        "that allow for littering",
+        "that protect vulnerable animal inhabitants int he parks"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "a brown copper panel",
+        "a string of cotton",
+        "a coil of rubber",
+        "a strip of plastic"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "survival",
+        "environmental growth",
+        "inherited characteristics",
+        "developmental abilities"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "manly sculpture",
+        "inhumanly tall building",
+        "plastic dinner container",
+        "standard burning sun"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "will cause the canyon to shake",
+        "will cause your name to reverberate thru the canyon",
+        "will cause complete silence",
+        "will cause animals to run up to you"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "cooking",
+        "driving",
+        "cartwheels",
+        "moles"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "the lights are brighter",
+        "the lights appear duller",
+        "the lights are closer",
+        "the lights are bigger"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "plants",
+        "rocks",
+        "rats",
+        "rabbits"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "in a roofless room",
+        "in a cardboard box",
+        "in a windowless room",
+        "in a car with tinted windows"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "the battery of your cell phone",
+        "the ruler in your backpack",
+        "the porcelain in your toilet",
+        "the bottle you drink from"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "a cardboard box",
+        "a bottle",
+        "a gem",
+        "a diamond"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "crickets",
+        "mice",
+        "fish",
+        "weeds"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "morph for continuation",
+        "boogie",
+        "bake cakes",
+        "take long naps"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "pack of wolves",
+        "racing horses",
+        "falling rocks",
+        "giant ice brick"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "it is depleted for good",
+        "it is found on catfish scales",
+        "it becomes necessary to conduct electricity long distances",
+        "it is used to make diamond rings"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "hen",
+        "hotcake",
+        "healfish",
+        "hare"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "finite",
+        "fuels",
+        "sustainable",
+        "one use"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "job",
+        "plastic",
+        "energy",
+        "nose experience"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "Acquired statistics",
+        "Acquired interests",
+        "Acquired characteristics",
+        "Acquired heuristics"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "needs food",
+        "produces food",
+        "can get sick",
+        "lives in ocean"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "deflecting the light",
+        "reflecting the light",
+        "consuming the light",
+        "refracting the light"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "sleeping",
+        "shaking",
+        "jumping",
+        "running."
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "snakes",
+        "ferrets",
+        "sharks",
+        "bees"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "there will be a shock current",
+        "the circuit will fail to power",
+        "there would be a short circuit",
+        "there would be current overload"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "thinking",
+        "cooking",
+        "hearing",
+        "breathing"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "less animals around",
+        "too much food",
+        "destruction",
+        "better food"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "on the up",
+        "fall",
+        "stagnate",
+        "face extinction"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "a person who eats once daily",
+        "a person fasting all day",
+        "a person who only drinks water",
+        "a person who feeds thrice daily"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "the southern part of cities",
+        "the northern part of Earth",
+        "the southern part of the third rock",
+        "the southern part of every rock"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "symmetrical",
+        "Neon green",
+        "magical",
+        "watermelons"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "Energy",
+        "Chemical",
+        "Vapor",
+        "Cells"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "find the mother of its future children",
+        "attract a plane to rescue them",
+        "find a good source of food",
+        "become famous in movies"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "clouds",
+        "local flora",
+        "buildings",
+        "oceans"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "boat",
+        "stooped shoulders",
+        "cat",
+        "building"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "is made into a paper fan",
+        "is on a desk",
+        "has a drawing on it",
+        "has words on it"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "sinks the glider",
+        "speeds the glider",
+        "crashes the glider",
+        "slow the glider"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "explosion",
+        "a new step",
+        "it repeats",
+        "it ends"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "the soil emanates nutrients into the air",
+        "the primary producers depend on the soil",
+        "all living things eat sand",
+        "the water we drink is from the soil"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "Weathering",
+        "Climate",
+        "Weatherization",
+        "Weather"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "have someone describe it",
+        "fill out a form",
+        "are out of luck",
+        "make a best guess"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "in concrete jungles",
+        "on tilled ground",
+        "in someone's stomach",
+        "on a brick"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "flying birds",
+        "a formerly-living organism",
+        "compressed oxygen",
+        "a shiny rock"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "nitrogen",
+        "Perfume",
+        "Oxygen",
+        "helium"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "air",
+        "cats",
+        "wind",
+        "Peppers"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "electrons are then disturbed",
+        "a piece of metal closes the circuit",
+        "it lets the acid free",
+        "the circuit is opened"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "ice trays",
+        "solid water",
+        "warm water",
+        "buckets of oil"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "make pasta",
+        "turn back time",
+        "make magic",
+        "time travel"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "a cup of coffee",
+        "a bowl of melted ice cream",
+        "a bottle of water",
+        "a bowl of cereal"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "the headlights become more intense",
+        "the headlights recede into the dark",
+        "the headlights remain at a constant",
+        "the headlights turn off"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "plants",
+        "seeds",
+        "fruits",
+        "animals"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "people go to the movies",
+        "field fluid drips down",
+        "humans enjoy eating meat",
+        "some cattle eat cheese"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "Mixing play-doh",
+        "Making cereal",
+        "A dog's saliva",
+        "Science fair volcanoes"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "human.",
+        "whole pumpkin",
+        "soda can",
+        "leaf"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "get smaller",
+        "hit you",
+        "die",
+        "get big"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "cage",
+        "clock",
+        "tepee",
+        "religion"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "flashlight",
+        "laser",
+        "light bulb",
+        "fluorescent light"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "skin burns",
+        "blindness",
+        "fashion disasters",
+        "bad grades"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "clouds",
+        "electricity",
+        "kestrels",
+        "polar bears"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "a machine",
+        "a company",
+        "an engine",
+        "a colorful invertebrate"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "gravity",
+        "meandering air currents",
+        "currents",
+        "sunlight"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "two negatively charged iron ingots pull together",
+        "two negatively charged lemons pull together",
+        "two negatively charged rats pull together",
+        "two negatively charged dogs pull together"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "sugar",
+        "tea",
+        "salt water",
+        "chocolate milk"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "dirty",
+        "killed by others",
+        "in dirt",
+        "near worms"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "Tadpoles",
+        "Crime",
+        "Guns",
+        "Air"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "mental capacity",
+        "will power",
+        "feather color",
+        "size"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "species of orange bees",
+        "places where geese breed",
+        "paper towel holding tubes",
+        "materials such as talc"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "window",
+        "house",
+        "door",
+        "fireplace"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "caffeine coming from hot cocoa",
+        "heat coming from hot cocoa",
+        "steam coming from hot cocoa",
+        "flavor coming from hot cocoa"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "a human",
+        "a porpoise",
+        "a cat",
+        "a bird"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "looking at the moon",
+        "looking at the dogs",
+        "looking at the sky conditions",
+        "glancing at nearby stone"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "feel emotions like love",
+        "turn a statue to dust",
+        "raise a family of four",
+        "have a baby child"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "Common forecast",
+        "water tide",
+        "rare storms",
+        "earthquakes"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "multi-meter",
+        "speedometer",
+        "Geiger counter",
+        "seismograph"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "is smooth on the entire surface",
+        "contains large cavities cause by explosions",
+        "contains an internal core of cheese",
+        "is filled with lakes"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "two weeks",
+        "seven months",
+        "365 days",
+        "182 days"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "electrolytes",
+        "protein",
+        "sugar",
+        "carbohydrates"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "bats",
+        "apples and oranges",
+        "snakes",
+        "Jamaican singers"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "a fish with large gills",
+        "a dinosaur from the Jurassic era",
+        "none of these",
+        "a small sized raccoon"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "they may be more bountiful",
+        "they may be more frequent",
+        "they may cease existing",
+        "they may be free"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "a beach ball",
+        "a tossed balloon",
+        "a sleeping person",
+        "a thrown racquetballl"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "sing to it",
+        "nothing",
+        "sell it",
+        "intercept it"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "changes from solid to wet",
+        "it hardens up a lot",
+        "it begins to rot",
+        "it needs to be refrigerated"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "cartoons",
+        "forests",
+        "lunch",
+        "Christmas"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "skin color",
+        "nose shape",
+        "hair color",
+        "favorite cookie variety"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "navigating",
+        "negating",
+        "relying",
+        "destroying"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "still white",
+        "grey",
+        "white",
+        "clear"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "lasers",
+        "timber",
+        "light",
+        "sound"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "in a habitat with only insects who live in tight spaces",
+        "in a habitat with lots of fruits and nuts",
+        "in a habitat where it is fed and cared for",
+        "in a habitat with plentiful insects"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "pills",
+        "waste",
+        "blood",
+        "flu"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "giant slugs",
+        "new crops",
+        "homes for bats",
+        "land mines"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "lakes",
+        "deep sea fish",
+        "rose bushes",
+        "mountains"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "ear changes",
+        "understanding chemistry",
+        "temperature changes",
+        "growing teeth"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "deep sea",
+        "mountains",
+        "valleys",
+        "basins"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "an hour",
+        "an earthquake",
+        "a television series",
+        "a volcano"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "sharks eat seaweed",
+        "cats eat grass",
+        "dogs eat light",
+        "ospreys eat perch"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "eagles",
+        "lizards",
+        "moles",
+        "sardines"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "inheritance",
+        "luck",
+        "magic",
+        "fire"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "vibrance",
+        "love",
+        "apples",
+        "candles"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "cut down trees and shrubs",
+        "drive a gas guzzling car",
+        "use Styrofoam plates and cups",
+        "cultivate dogwoods and oaks"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "Stars",
+        "Grass",
+        "Old Animal Feces",
+        "Cats"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "to measure bone shards",
+        "to measure a solid",
+        "to measure a dog",
+        "to measure grape kool-aid"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "cats",
+        "dogs",
+        "humans",
+        "snakes"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "superheroes and villains",
+        "oaks and chipmunks",
+        "bankers and politicians",
+        "cars and boats"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "eggs",
+        "eagles",
+        "dogs",
+        "geckos"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "robust health",
+        "excellent health",
+        "tip top health",
+        "shoddy health"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "another shark",
+        "a ray-finned fish",
+        "a jellyfish",
+        "a turtle"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "a hard wood chip",
+        "a set of AAA cells",
+        "a metal iron rod",
+        "a sachet of water"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "sense differences in atomic structure",
+        "sense differences in color",
+        "sense differences in atomic value",
+        "sense differences in material makeup"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "thermostat",
+        "solar energy",
+        "magnetic fields",
+        "electrical circuit."
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "soda bottles",
+        "drool",
+        "cascading style sheets",
+        "cattle prods"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "earthquake",
+        "canyon",
+        "tornado",
+        "Tsunami"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "a breeze is floating",
+        "a child is crying",
+        "a dog is barking",
+        "clouds are very thin"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "a herbivore",
+        "an omnivore",
+        "a carnivore",
+        "a predator"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "demolishes the owl's home",
+        "means the owl will go with the tree",
+        "allows the owl to remodel",
+        "causes the owl to perish"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "lemons :: sound energy",
+        "doorbells :: sound energy",
+        "doorbells :: light energy",
+        "lightbulbs :: sound energy"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "pointing east",
+        "pointing west",
+        "pointing at arctic",
+        "pointing to space"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "accumulate it",
+        "ignore it",
+        "lose it",
+        "forget it"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "ice cream will deliquesce faster when the liquid is poured over it",
+        "rocks will melt faster when the liquid is poured over it",
+        "the liquid will harden as it's poured",
+        "the liquid will cool down anything it touches"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "rough rocks",
+        "river movement",
+        "smoothness",
+        "fish movement"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "candles",
+        "spaceships",
+        "love",
+        "rabbits"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "lack food",
+        "eat too much.",
+        "overeat",
+        "eat food"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "they wanted to be hunted and end up on someone's living room floor",
+        "it helps them survive in frigid places",
+        "it helps them live in the desert",
+        "it's helpful in a rain forest"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "acquired heuristics",
+        "acquired characteristics",
+        "acquired interests",
+        "acquired statistics"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "cat",
+        "dog",
+        "annelids",
+        "fish"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "nutrients",
+        "high school students",
+        "water",
+        "pocket change"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "They cut their hair",
+        "They stick their head in a trash can",
+        "They are without air",
+        "They eat disgusting food"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "12 hours",
+        "1 month",
+        "2 days",
+        "1440 minutes"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "March",
+        "November",
+        "January",
+        "May"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "sword tip",
+        "rubber",
+        "plastic",
+        "air."
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "a bath",
+        "a pacifier",
+        "a bottle",
+        "a wasp"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "birds using twigs to build nests",
+        "otters using rocks to open clams",
+        "anteaters using their tongue to catch ants",
+        "koalas using their pouch to hold infants"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "scratched, fractured or otherwise deformed",
+        "transformed into different minerals",
+        "melted and otherwise liquified",
+        "scratched with ice breakers"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "wind is renewable; metal is nonrenewable",
+        "wind is recyclable, metal is other",
+        "wind is happy, metal is other",
+        "wind is nonrenewable; metal is renewable"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "children",
+        "a progeny",
+        "offspring",
+        "nothing"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "trees",
+        "rocks",
+        "the sky",
+        "calcium life pods"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "the bulb needs to be charged",
+        "the room is too bright",
+        "the circuit is incomplete",
+        "it ran out of electricity"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "brown",
+        "gray",
+        "green",
+        "black"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "lower",
+        "reduced",
+        "escalate",
+        "lessen"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "taffy",
+        "steel",
+        "diamond",
+        "hard pretzels"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "rub your palms together",
+        "wear short sleeve shirts",
+        "go without any socks",
+        "stand still in one place"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "Going running on a treadmill",
+        "Swimming lap in a pool",
+        "Riding a bike outside",
+        "pulling water from a well"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "Cats",
+        "RVs",
+        "Wood",
+        "Feelings"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "the happier voles in an area",
+        "the bigger voles in the area",
+        "fewer voles in that area",
+        "more voles in the area"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "Arctic",
+        "Atlantic",
+        "Rain forest",
+        "Tropics"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "landmarks",
+        "road signs",
+        "eggs",
+        "magnetic patterns"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "funny farm",
+        "space program",
+        "emergency room",
+        "hall of fame"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "speedily enjoy viewing",
+        "observe quickness",
+        "watch slowly",
+        "look away"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "wolves attacking deer",
+        "dolphins under water",
+        "man made reasons",
+        "naturally occurring reasons"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "animals feeling more comfortable being outside",
+        "animals getting more sick",
+        "animals getting more aggressive",
+        "animals dying from sub-zero weather"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "something from space entered the atmosphere",
+        "a lizard built the hole",
+        "the moon's gravity pulled sand out of the hole",
+        "a dust storm filled it in"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "northern-directing device",
+        "northern light reader",
+        "northeastern winds",
+        "north central credit"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "plant another",
+        "Draw one",
+        "climb one",
+        "do nothing"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "swell beyond it's banks",
+        "reverse direction of flow",
+        "lower it's water level",
+        "dry up all together"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "ice",
+        "wood",
+        "seashells",
+        "cookie dough"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "90 degrees Fahrenheit, high humidity",
+        "low temperature, low humidity",
+        "low temperature, high humidity",
+        "90 degrees Fahrenheit, low humidity"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "ate an animal with a big nose",
+        "had a parent also with one",
+        "didn't pay the photographer enough",
+        "ate dog food a lot"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "horses",
+        "cows",
+        "wolves",
+        "rabbits"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "October to December",
+        "November to March",
+        "December to April",
+        "December to March"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "Go out",
+        "Find pizza",
+        "Buy supplies",
+        "Watch Tv"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "hair length",
+        "clothing style",
+        "bone thickness",
+        "language skills"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "after they were born",
+        "at the time of delivery",
+        "at the time of conception",
+        "at the time of fetus development"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "too much rainfall",
+        "West Virginia",
+        "Jelly Beans",
+        "Tape"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "be solidified in stone",
+        "be frozen in carbonate",
+        "be melted to a tree",
+        "become a source of water"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "her mom was very old",
+        "his hair is blonde",
+        "her arms are wide",
+        "his ancestors had the same"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "snake",
+        "fish",
+        "slug",
+        "deer"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "it would shrink smaller",
+        "it would feel warmer to touch",
+        "it would freeze over",
+        "it would become a gas"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "perish due coldness",
+        "laugh to death",
+        "do math",
+        "float"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "melts it",
+        "drops it",
+        "burns it",
+        "yanks it"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "evaporate",
+        "burn",
+        "flood",
+        "break up"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "shelters",
+        "sustenance",
+        "rainy days",
+        "mates"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "sustenance",
+        "sand",
+        "sun",
+        "heat"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "Snail",
+        "Frigate Bird",
+        "turtle",
+        "Sloth"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "beef",
+        "tender leaf buds",
+        "pork",
+        "cotton candy"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "if it is focused",
+        "if it is determined",
+        "if it is working",
+        "if it has excess chub"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "Gasoline",
+        "Potatoes",
+        "The sun",
+        "Water"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "water there is clean",
+        "people there are silly",
+        "oaks there are mighty",
+        "birds there are fat"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "driving gas guzzlers",
+        "canvas grocery sacks",
+        "littering",
+        "unchecked consumerism"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "a tape measure",
+        "a compass",
+        "a barometer",
+        "a beam balance"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "night",
+        "noon",
+        "morning",
+        "afternoon"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "carrots",
+        "wood",
+        "a nickel",
+        "magic"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "shoes",
+        "fun",
+        "pants",
+        "sustenance"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "have many babies",
+        "thrive",
+        "build a home",
+        "die"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "they pollute water",
+        "they need straws",
+        "they treat water",
+        "they poison water"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "lead to more some US states gaining surface area",
+        "lead to more animal species roaming the Earth",
+        "cause the loss of animal habitats",
+        "cause a boom in the polar bear population"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "relaxes",
+        "cries",
+        "increases",
+        "subsides"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "raw carbon",
+        "work force",
+        "plant feeding",
+        "machines"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "gut flora can make you more healthy",
+        "bacteria is always bad",
+        "bacteria in your brain helps digest food",
+        "gut bacteria always makes you sick"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "force",
+        "patching",
+        "practice",
+        "speed"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "flora",
+        "rocks",
+        "crustaceans",
+        "sand"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "tall bush",
+        "farm",
+        "grass",
+        "ford"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "diamonds",
+        "tin",
+        "cake",
+        "water"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "looking out of a window",
+        "putting the radio on",
+        "looking at a snow storm",
+        "smashing hands together repeatedly"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "gopher homes",
+        "wind",
+        "heat",
+        "bird nests"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "preserve it",
+        "edit it",
+        "lock it in",
+        "produce it"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "features of variety of landscape features",
+        "is covered completely in water",
+        "is 100% flat and smooth",
+        "is 100% covered in asteroid created craters"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "soil",
+        "land",
+        "droplets",
+        "cheese"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "globes",
+        "mirrors",
+        "telescopes",
+        "sediment"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "all colors in the spectrum",
+        "only the color white",
+        "a combination of colors",
+        "an exact matching color"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "a still",
+        "a group",
+        "a range",
+        "a pond"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "falling apart quite fast",
+        "breaking in half immediately",
+        "with rotting wood this week",
+        "passed down from parent to child"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "lock them in their cage more",
+        "give up and get a new bird",
+        "try putting them on a diet",
+        "take away all their perches"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "salt flats",
+        "salt water taffy",
+        "Rocky mountains",
+        "ocean winds"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "eats some seeds",
+        "eats a sandbar",
+        "eats some seaweed",
+        "eats an eel"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "the closest planet to earth",
+        "the closest yellow dwarf star",
+        "the seven different oceans",
+        "various gas powered engines"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "daylight lasts longer",
+        "daylight has lessened",
+        "daylight is brighter",
+        "nights are shorter"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "taller",
+        "older",
+        "less healthy",
+        "colder"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "their roots",
+        "the light switch",
+        "CPR",
+        "respire"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "milk to yogurt",
+        "mixing marbles",
+        "my chemical romance",
+        "shredding paper"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "death",
+        "transactions",
+        "animosity",
+        "abrasion"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "be frozen",
+        "be ejected",
+        "be happy",
+        "be welcomed"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "an avalanche",
+        "a deep freeze",
+        "a glacier",
+        "an earthquake"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "egg stage",
+        "old stage",
+        "stage after larva",
+        "moth stage"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "soda cans",
+        "dog food",
+        "baseball caps",
+        "violas"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "bog animals may be thirsty",
+        "bog animals may search longer for nutrients",
+        "the bog produces more water",
+        "bog predators need more prey"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "sand",
+        "the wind",
+        "solar power",
+        "a fulcrum"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "alive",
+        "expired",
+        "lush",
+        "growing"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "a steady recurrence",
+        "none of these",
+        "a stagnant pattern",
+        "a circle shape"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "use a notebook",
+        "randomly play tracks",
+        "buy expensive sneakers",
+        "run for miles"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "spun around",
+        "brought together",
+        "exposed to light",
+        "moved apart"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "venom",
+        "peat",
+        "magma",
+        "sunlight"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "the animal habitats",
+        "for more pests",
+        "bees and birds",
+        "more wanted vitamins"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "dying",
+        "observing",
+        "staying perky",
+        "decaying"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "bees wax",
+        "small extinct birds",
+        "rhinos",
+        "windy air"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "helpful viruses help them retain their function",
+        "a prison cell wall contains them",
+        "the thin membrane which surrounds them",
+        "they have a Chilton's manual to guide them"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "rocks",
+        "wood",
+        "glue",
+        "grasshoppers"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "my head windows",
+        "a building",
+        "air",
+        "the sun"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "corn",
+        "spinach",
+        "water",
+        "eggs"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "Comfort them",
+        "Mimic sunlight",
+        "Keep plants warm",
+        "Protect from bugs"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "when you get closer",
+        "when you are shooting",
+        "when you get farther",
+        "when you are laughing"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "lizard droppings",
+        "bearded dragons",
+        "cows",
+        "grass"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "4",
+        "270",
+        "170",
+        "70"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "freshly hatched turtles seeking water",
+        "birds being trained to play games",
+        "cats being fed salami",
+        "dogs riding in cars"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "smooth",
+        "made of cheese",
+        "full of gold",
+        "mountainous"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "a metal sword",
+        "a wooden chair",
+        "a plastic ring",
+        "a dry towel"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "quake",
+        "be seared",
+        "be solid",
+        "melt"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "jupiter",
+        "center of universe",
+        "our celestial star",
+        "deep space"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "the world's fastest bird",
+        "the world's fastest sprinter",
+        "the light from a flashlight",
+        "an extremely loud audio signal"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "ceased existence",
+        "moving slowly",
+        "feeling cold",
+        "finding food"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "surfing",
+        "above ground nesting",
+        "swimming",
+        "living under ground"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "water is poured into a glass",
+        "cake is left to cool on the counter",
+        "jello mix is refrigerated",
+        "turkey is sliced into pieces"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "broken apart",
+        "eaten",
+        "evaporated",
+        "stolen"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "dogs are to cats",
+        "cows are to cud",
+        "bees are to pollen",
+        "silos are to grains"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "balloons",
+        "stars",
+        "sunshine",
+        "air"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "insects",
+        "weathering",
+        "erosion",
+        "lava"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "mittens",
+        "shorts",
+        "flip flops",
+        "a bathing suit"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "time travel",
+        "a personality",
+        "magical powers",
+        "hairline"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "biofuel releases CO2 but is better than oil",
+        "biofuel is without flaws",
+        "biofuel can single-handedly end CO2 production",
+        "biofuel is perfect for the environment"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "oxidized alcohol",
+        "sunlight",
+        "dirt",
+        "wind"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "den",
+        "field",
+        "tree",
+        "mother."
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "ice splashes water in my glass",
+        "a raindrop lands in my eye",
+        "a moist film is on my spectacles",
+        "sweat falls into my eyes"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "nose plug",
+        "tape over mouth",
+        "ear plugs",
+        "hands behind back"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "a noxious spray",
+        "bad taste",
+        "a powerful nose",
+        "smelling good"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "a new toy",
+        "a pet puppy",
+        "slop",
+        "a warm bath"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "organize flowers in a bouquet",
+        "put a rose in food dye",
+        "pull a plant from the root",
+        "poor water on a plant"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "watches",
+        "fights",
+        "slaughters",
+        "explodes"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "a pool of molten lava",
+        "an ocean with fish",
+        "a river flowing north",
+        "a crack in the core"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "shrink",
+        "dehydrate",
+        "swell",
+        "drain"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "a cup of dirt",
+        "a cup of tacos",
+        "a cup of plasma",
+        "a cup of Earl Grey"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "in a different environment from where they live",
+        "in the water",
+        "underground",
+        "in the same environment where they live"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "pebbles and soil",
+        "peas and corn",
+        "juice and vodka",
+        "toothpaste and bristles"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "fluid",
+        "seeds",
+        "fibers",
+        "skin"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "fiddleheads",
+        "ramps",
+        "dulse",
+        "blobfish"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "uranium",
+        "expired creatures",
+        "crowd sourced work",
+        "kryptonite"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "lowest solstice",
+        "naptime",
+        "a good book",
+        "lunch"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "3",
+        "1",
+        "2",
+        "4"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "Go running",
+        "cook some bread",
+        "Ride a bike",
+        "Go swimming"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "the corpse is glowing",
+        "the corpse is decomposed",
+        "the corpse is melted",
+        "the corpse is flying"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "feelings",
+        "love",
+        "vortexes",
+        "poop"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "air",
+        "stone",
+        "land",
+        "water"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "vapor particles",
+        "solid",
+        "ice",
+        "frigid"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "moving slowly",
+        "setting traps",
+        "traveling beneath soil",
+        "building decoys"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "lipstick",
+        "cement",
+        "lemon-lime soda",
+        "mineral water"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "2 protozoa",
+        "2 oak trees",
+        "2 female cats",
+        "2 bacteria"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "inherited",
+        "absorbed",
+        "wanted",
+        "acquired"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "volcanos",
+        "starlight",
+        "astral beings",
+        "people"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "an icy, frozen villa",
+        "a flat raised area",
+        "a new oak tree",
+        "a happy landscape portrait"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "avoid humanity",
+        "are domesticated",
+        "are friendly",
+        "are camouflaged"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "bimonthly",
+        "biweekly",
+        "every two months",
+        "every four weeks"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "a bandaid",
+        "fur",
+        "a rainbow",
+        "a chicken"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "relocation",
+        "planting seeds",
+        "breeding",
+        "studying"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "mandarins",
+        "corn",
+        "carrots",
+        "potatoes"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "eaters",
+        "flora",
+        "carnivore",
+        "consumers"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "all of these",
+        "insects are born live",
+        "pupa stage is sometimes skipped",
+        "pupa is a required stage"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "warmth",
+        "temperature",
+        "appearance",
+        "attributes"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "a thing that flowers",
+        "a thing that goes around the Earth",
+        "a thing that flies in the sky",
+        "a thing that lives in caves"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "the volume of the item",
+        "the color of the item",
+        "the luster of the item",
+        "the depth of the item"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "food essays",
+        "sustenance",
+        "water",
+        "air"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "electricity",
+        "maladies",
+        "observation",
+        "signals"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "mountains",
+        "the seas",
+        "god",
+        "giants"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "electricity",
+        "divorce",
+        "elements",
+        "common understanding"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "plasma star",
+        "venus",
+        "saturn",
+        "mercury"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "daylight is short",
+        "luminescence is long",
+        "winter is here",
+        "nights are freezing"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "car engines",
+        "televisions",
+        "wombats",
+        "corpses"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "plastic",
+        "water",
+        "green organelles",
+        "paper"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "cause mayhem",
+        "sink them",
+        "speed them up",
+        "slow them down"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "a paper bag",
+        "a baby",
+        "a stick",
+        "on the gales"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "older",
+        "dirt",
+        "corn",
+        "married"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "toasted",
+        "meaty",
+        "frozen",
+        "cool"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "a pepperoni and cheese pizza",
+        "a heavy maple desk",
+        "an item made from a petroleum product with a cord sticking out the top",
+        "an old step ladder"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "folding",
+        "flattening",
+        "squashing",
+        "restoring"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "pets",
+        "homes",
+        "younglings",
+        "food"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "shoveling a sidewalk",
+        "clearing a tree",
+        "conducting a car",
+        "riding a bike"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "run a bath",
+        "use a dehumidifier",
+        "open a window",
+        "hope it rains"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "exercise for its health",
+        "shelter for its safety",
+        "food for it to eat",
+        "friends for some companionship"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "people sometimes camping",
+        "moderate rain",
+        "over-logging",
+        "rabbit breeding"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "forest",
+        "space",
+        "lava",
+        "ocean"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "plate with a plug",
+        "candle with a wick",
+        "disc with an arrow",
+        "card with a strip"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "they are wet",
+        "they are clear",
+        "they are rough",
+        "they are velvety"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "night illuminator",
+        "clouds",
+        "oceans",
+        "moon pictures"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "sunlight",
+        "bears",
+        "weather",
+        "feathers"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "herbivores",
+        "plant eaters",
+        "meat devourers",
+        "peaceful"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "jerky",
+        "grapes",
+        "nuts",
+        "acorn"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "ideas",
+        "stocks",
+        "water",
+        "zapping energy"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "cave",
+        "beach",
+        "mountain",
+        "pond"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "once",
+        "twice",
+        "three times",
+        "four times"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "the leaves on the branches",
+        "the sap in the tree",
+        "the branches on the stem",
+        "the roots in the ground"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "financing",
+        "nutriment",
+        "grain",
+        "solar wind"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "light",
+        "elements",
+        "younglings",
+        "nothing"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "single celled organisms",
+        "humans",
+        "cats",
+        "fish"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "twinkies are converted to usable material",
+        "air comes in and out",
+        "twinkies are baked fresh",
+        "plastic is found here"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "warm",
+        "islands",
+        "wet",
+        "far away"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "wood",
+        "coal",
+        "oil",
+        "solar"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "Starvation",
+        "Perspiration",
+        "Fullness",
+        "happiness"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "mercury",
+        "the ninth planet",
+        "the third planet",
+        "venus"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "They will perish",
+        "they will type.",
+        "they will program",
+        "they will Laugh"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "they will flourish and thrive",
+        "their kind will dwindle",
+        "they will become predators",
+        "all of these"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "waste it",
+        "modify it",
+        "disperse it",
+        "displace it"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "a tree with nine rings is nine years old",
+        "a tree with six rings is seven years old",
+        "a tree with eight rings is five years old",
+        "telling how old a tree is is impossible based on rings"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "to take a photograph",
+        "to look through a window",
+        "to use hands to shield eyes",
+        "avert eyes at all costs"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "Stays alive",
+        "stays dead",
+        "in cream",
+        "in juice"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "xylem",
+        "flowering pistols",
+        "sprinkler",
+        "leaves"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "Moods",
+        "Environment",
+        "Behavior",
+        "Consumption"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "a jagged raised welt you've had since you fell down the stairs 6 years ago",
+        "freckles from your mom's genes",
+        "brown, curly hair that resembles your sister's",
+        "a large nose just like your dad's"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "mouse entity",
+        "nuts and berries",
+        "lion",
+        "rhino"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "magic creatures move it",
+        "someone goes to the zoo",
+        "a large gust passes",
+        "people wish for it"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "really broken",
+        "singular",
+        "equidistant",
+        "slowly burning"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "28 hours",
+        "46 hours",
+        "1400 minutes",
+        "1440 minutes"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "elephant",
+        "bug",
+        "bird",
+        "flora"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "condensation",
+        "evaporation",
+        "magic",
+        "deposition"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "rubbing noses",
+        "swimming in Antartica",
+        "touching ice",
+        "sitting in freezers"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "crystal carbohydrates",
+        "iron",
+        "oil",
+        "plastic"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "all of these",
+        "the combination of nails and hammers",
+        "the presence of H20",
+        "the combination of chlorine and gas"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "air",
+        "farmers",
+        "Corn",
+        "Runoff"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "sees others of its species in large amounts",
+        "friendly with many other birds",
+        "glad to have so much company",
+        "unlikely to meet more of its type"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "twelve weeks",
+        "three years",
+        "nine months",
+        "two days"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "fluctuates",
+        "stays the same",
+        "drops suddenly",
+        "heats up"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "taste",
+        "death",
+        "warmth",
+        "sound"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "growing local daffodils and weeding",
+        "spreading trash and garbage",
+        "planting fast spreading plants",
+        "introducing a new species"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "a bale of hay",
+        "a piece of carrot",
+        "a chunk of apple",
+        "a chunk of pork"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "spend money",
+        "raise blood temperature",
+        "fly away",
+        "perspire"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "heat",
+        "smeller perception",
+        "cold",
+        "color"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "vitality extinguishing",
+        "growth",
+        "vigor",
+        "life"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "a squirrel",
+        "a whale",
+        "a chihuahua",
+        "a cat"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "using Styrofoam plates for every meal",
+        "reusing gift bags again and again",
+        "throwing plastic bottles in the landfill",
+        "driving a gas guzzling truck"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "because it can only be used once",
+        "because it is hard to find",
+        "because the more it is used the more it costs",
+        "because it can mess up their engines"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "to be dried and preserved",
+        "a certain climate to boom",
+        "a bucket of ice water",
+        "to be buried in snow"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "love",
+        "dating advice",
+        "happiness",
+        "vibrance"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "hallucinate",
+        "nurse",
+        "scream",
+        "are born"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "organism charts",
+        "water",
+        "sunlight",
+        "critters"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "cell towers",
+        "persons flesh",
+        "computers",
+        "plugs"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "most of a month",
+        "most of thirty hours",
+        "most of a week",
+        "most of a year"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "emit illumination",
+        "emit radiation",
+        "convert mechanical energy",
+        "convert chemical energy"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "Brewer's yeast",
+        "air",
+        "sand",
+        "sugar"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "bear",
+        "human",
+        "beaver",
+        "salamander"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "30 days in January",
+        "28 days in February",
+        "every other day in April",
+        "every third day in May"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "rainbows",
+        "thermal exchange",
+        "darkness",
+        "heat sinks"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "a mean fairy-godmother",
+        "pinecones",
+        "happiness",
+        "a troll"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "fish",
+        "frogs",
+        "whales",
+        "chuckwallas"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "crust",
+        "inner core",
+        "outer core",
+        "lava pit"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "a predator's eye sight",
+        "a predator's sense of hearing",
+        "a predator's sense of style",
+        "a predator's poor smelling"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "be discarded immediately",
+        "kept for later",
+        "left to rot",
+        "be thrown up"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "warmth",
+        "fog",
+        "zone conditions",
+        "visibility"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "spray deodorant",
+        "pretzels",
+        "water",
+        "dog food"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "an old stapler pin",
+        "a piece of gum",
+        "all of these",
+        "a piece of chicken"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "it can eat bugs and withstand very cold weather",
+        "it can eat fish and withstand very cold weather",
+        "it can eat bugs and withstand very hot weather",
+        "it can eat fish and withstand very cold weather"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "lemonade",
+        "cars",
+        "grass.",
+        "power plant"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "The Alps",
+        "Antarctica",
+        "Redwood National Park",
+        "The Pacific"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "be blown up",
+        "be yanked in",
+        "be pushed away",
+        "be evaporated"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "in lake shallows",
+        "in desert sands",
+        "in rocky hills",
+        "in sea depths"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "global positioning system satellites",
+        "a sense of smell",
+        "our planet's magnetic patterns",
+        "the stars in the night sky"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "a cold pole",
+        "a zoo",
+        "a frozen habitat",
+        "a native forest"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "the tires are being halted by pressure",
+        "the streets are bumpy",
+        "the roads have friction",
+        "the tires are unable to create friction"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "to look pretty",
+        "fun",
+        "to see flowers",
+        "protection"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "cacti will be in snowy regions",
+        "cacti will be in rocky regions",
+        "cacti will be in sandy regions",
+        "cacti will be in watery regions"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "half an hour",
+        "15 seconds",
+        "half a minute",
+        "one nanosecond"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "9am",
+        "12pm",
+        "12am",
+        "2pm"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "flowers",
+        "grains",
+        "six legged creatures",
+        "cheeseburgers"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "stars",
+        "Oil",
+        "sand clay",
+        "fossil fuels"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "rhino",
+        "hamster",
+        "platypus",
+        "mongoose"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "The first few weeks of December",
+        "Until it hears the call of the wild",
+        "For around twenty weeks",
+        "until hunters kill it for its pelt"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "pull each other",
+        "touch each other",
+        "shove each other",
+        "grab each other"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "rocks floating on underground water sources",
+        "the work of an intelligent force",
+        "the folding of numerous layers of rock",
+        "the accumulation of soil over millions of years"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "the most daylight",
+        "the longest daylight",
+        "growing daylight hours",
+        "short daylight"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "it can be drunk from",
+        "it is very thin",
+        "it holds up bright green leaves",
+        "it can hide in grass"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "types of rubber",
+        "types of wire",
+        "electrodes",
+        "that which conducts"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "eviction",
+        "flooding",
+        "fire",
+        "bomb"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "rocks",
+        "bottled liquid",
+        "sand",
+        "wood"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "giraffes",
+        "cats",
+        "cattle",
+        "hydrangea"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "metamorphosing",
+        "metal",
+        "Seven",
+        "drawing"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "bills",
+        "wings",
+        "hands",
+        "feet"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "squid",
+        "clover",
+        "mouse",
+        "hawk"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "start increasing in population",
+        "have more food available",
+        "have less to drink",
+        "start becoming more friendly"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "decay",
+        "grow old",
+        "develop",
+        "dcerease"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "part of how nature replenishes, purifies and recirculates water",
+        "a stage when water molecules are prevented from escaping into the atmosphere",
+        "a stage when moisture leaves the atmosphere without being recirculated",
+        "a stage that only occurs once"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "ears",
+        "eyes",
+        "mouth",
+        "shoot"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "flowers",
+        "people",
+        "crops",
+        "bees"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "nothing",
+        "flying",
+        "an impossibility",
+        "Mars"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "If a plant produces gymnosperms",
+        "If someone has blue contacts in their eyes",
+        "If a child can build tall walls",
+        "If a plant receives enough sunlight"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "emotionally",
+        "crab",
+        "type of tree",
+        "age"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "low",
+        "mud",
+        "high",
+        "earthy"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "hold the book",
+        "hold the flashlight",
+        "turn the page",
+        "feel the words"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "melting ice",
+        "aluminium foil",
+        "blocks of ice",
+        "soft cheese"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "the moon",
+        "coffee",
+        "our yellow dwarf",
+        "the kardashians"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "is tasteless",
+        "is more",
+        "is booming",
+        "is less"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "just over a year",
+        "around thirteen weeks or so",
+        "when G.R.R. Martin says it's here",
+        "when the groundhog sees its shadow"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "competition among African wild dogs increases",
+        "predators learn to swim",
+        "prey communities get larger",
+        "prey will be more visible"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "an osprey catches a fish with claws",
+        "a fish catches a fish with its claws",
+        "a dog catches a fish with its claws",
+        "a worm catches a fish with its claws"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "dolphins",
+        "dogs",
+        "possessors of thumbs",
+        "emus"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "are stung by bees",
+        "visit a foreign country",
+        "get new fresh air",
+        "drink more iced tea"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "racing",
+        "swimming",
+        "creating",
+        "reading"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "seven",
+        "boring",
+        "harder",
+        "simpler"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "a tape measure",
+        "a tusk",
+        "a scale",
+        "a pool"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "the great plains",
+        "the pacific ocean",
+        "the great lakes",
+        "the grand canyon"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    }
+  ],
+  "answerKey": [
+    "B",
+    "A",
+    "A",
+    "B",
+    "B",
+    "B",
+    "B",
+    "C",
+    "B",
+    "C",
+    "B",
+    "A",
+    "A",
+    "B",
+    "B",
+    "A",
+    "D",
+    "A",
+    "B",
+    "C",
+    "A",
+    "B",
+    "D",
+    "A",
+    "A",
+    "A",
+    "A",
+    "A",
+    "B",
+    "A",
+    "C",
+    "C",
+    "B",
+    "A",
+    "A",
+    "D",
+    "C",
+    "D",
+    "A",
+    "A",
+    "A",
+    "A",
+    "C",
+    "D",
+    "B",
+    "D",
+    "A",
+    "D",
+    "A",
+    "C",
+    "B",
+    "A",
+    "A",
+    "C",
+    "C",
+    "A",
+    "B",
+    "B",
+    "A",
+    "A",
+    "A",
+    "D",
+    "A",
+    "C",
+    "D",
+    "D",
+    "B",
+    "A",
+    "A",
+    "C",
+    "A",
+    "D",
+    "D",
+    "D",
+    "A",
+    "C",
+    "C",
+    "B",
+    "D",
+    "B",
+    "A",
+    "A",
+    "B",
+    "A",
+    "D",
+    "A",
+    "D",
+    "A",
+    "D",
+    "C",
+    "D",
+    "C",
+    "B",
+    "D",
+    "B",
+    "B",
+    "B",
+    "B",
+    "C",
+    "A",
+    "D",
+    "C",
+    "A",
+    "C",
+    "A",
+    "B",
+    "B",
+    "A",
+    "D",
+    "C",
+    "B",
+    "A",
+    "A",
+    "B",
+    "B",
+    "B",
+    "D",
+    "B",
+    "B",
+    "A",
+    "D",
+    "A",
+    "D",
+    "B",
+    "D",
+    "B",
+    "D",
+    "C",
+    "B",
+    "B",
+    "C",
+    "D",
+    "B",
+    "A",
+    "A",
+    "B",
+    "A",
+    "D",
+    "D",
+    "D",
+    "C",
+    "B",
+    "D",
+    "B",
+    "A",
+    "B",
+    "B",
+    "D",
+    "B",
+    "A",
+    "D",
+    "C",
+    "D",
+    "D",
+    "A",
+    "D",
+    "D",
+    "A",
+    "B",
+    "B",
+    "A",
+    "B",
+    "C",
+    "C",
+    "C",
+    "B",
+    "B",
+    "D",
+    "C",
+    "A",
+    "A",
+    "D",
+    "C",
+    "D",
+    "C",
+    "B",
+    "D",
+    "D",
+    "B",
+    "B",
+    "D",
+    "D",
+    "D",
+    "B",
+    "A",
+    "A",
+    "A",
+    "B",
+    "C",
+    "A",
+    "A",
+    "B",
+    "D",
+    "A",
+    "B",
+    "B",
+    "C",
+    "A",
+    "C",
+    "D",
+    "D",
+    "A",
+    "D",
+    "B",
+    "A",
+    "A",
+    "D",
+    "D",
+    "C",
+    "A",
+    "C",
+    "A",
+    "A",
+    "D",
+    "B",
+    "C",
+    "A",
+    "D",
+    "C",
+    "B",
+    "C",
+    "A",
+    "A",
+    "A",
+    "A",
+    "A",
+    "D",
+    "A",
+    "B",
+    "C",
+    "D",
+    "C",
+    "C",
+    "A",
+    "A",
+    "A",
+    "D",
+    "D",
+    "B",
+    "A",
+    "D",
+    "D",
+    "B",
+    "A",
+    "B",
+    "B",
+    "D",
+    "A",
+    "C",
+    "B",
+    "A",
+    "A",
+    "C",
+    "D",
+    "D",
+    "C",
+    "C",
+    "D",
+    "A",
+    "A",
+    "A",
+    "A",
+    "A",
+    "C",
+    "D",
+    "A",
+    "A",
+    "A",
+    "C",
+    "D",
+    "D",
+    "C",
+    "D",
+    "C",
+    "A",
+    "D",
+    "B",
+    "B",
+    "A",
+    "D",
+    "A",
+    "D",
+    "B",
+    "D",
+    "C",
+    "D",
+    "B",
+    "D",
+    "B",
+    "A",
+    "A",
+    "B",
+    "C",
+    "D",
+    "C",
+    "D",
+    "C",
+    "D",
+    "A",
+    "A",
+    "B",
+    "A",
+    "B",
+    "C",
+    "A",
+    "D",
+    "A",
+    "C",
+    "C",
+    "C",
+    "A",
+    "D",
+    "C",
+    "A",
+    "D",
+    "C",
+    "B",
+    "A",
+    "D",
+    "A",
+    "A",
+    "A",
+    "C",
+    "D",
+    "A",
+    "C",
+    "B",
+    "A",
+    "D",
+    "C",
+    "D",
+    "D",
+    "C",
+    "B",
+    "D",
+    "B",
+    "A",
+    "C",
+    "B",
+    "B",
+    "D",
+    "C",
+    "A",
+    "C",
+    "B",
+    "C",
+    "D",
+    "C",
+    "B",
+    "A",
+    "D",
+    "A",
+    "A",
+    "A",
+    "B",
+    "C",
+    "D",
+    "A",
+    "A",
+    "B",
+    "B",
+    "A",
+    "C",
+    "A",
+    "B",
+    "C",
+    "C",
+    "D",
+    "D",
+    "B",
+    "A",
+    "C",
+    "C",
+    "C",
+    "C",
+    "A",
+    "B",
+    "C",
+    "A",
+    "C",
+    "D",
+    "A",
+    "D",
+    "C",
+    "A",
+    "D",
+    "A",
+    "A",
+    "D",
+    "B",
+    "C",
+    "A",
+    "A",
+    "A",
+    "B",
+    "A",
+    "B",
+    "A",
+    "B",
+    "C",
+    "A",
+    "D",
+    "A",
+    "A",
+    "B",
+    "A",
+    "A",
+    "C",
+    "C",
+    "D",
+    "D",
+    "B",
+    "A",
+    "A",
+    "C",
+    "D",
+    "D",
+    "A",
+    "B",
+    "C",
+    "A",
+    "D",
+    "D",
+    "B",
+    "A",
+    "B",
+    "B",
+    "A",
+    "B",
+    "D",
+    "B",
+    "D",
+    "B",
+    "B",
+    "A",
+    "A",
+    "D",
+    "B",
+    "B",
+    "B",
+    "D",
+    "D",
+    "A",
+    "B",
+    "C",
+    "A",
+    "A",
+    "C",
+    "D",
+    "C",
+    "B",
+    "D",
+    "C",
+    "D",
+    "A",
+    "D",
+    "C",
+    "A",
+    "B",
+    "C",
+    "C",
+    "C",
+    "C",
+    "C",
+    "C",
+    "D",
+    "A",
+    "D",
+    "B",
+    "B",
+    "D",
+    "A",
+    "A",
+    "B",
+    "C",
+    "C",
+    "A",
+    "D",
+    "C",
+    "C",
+    "A",
+    "D",
+    "C",
+    "D",
+    "B",
+    "C",
+    "D",
+    "B",
+    "A",
+    "A",
+    "C",
+    "C",
+    "B",
+    "D",
+    "A",
+    "C"
+  ],
+  "text": [
+    "14-709",
+    "14-423",
+    "10-42",
+    "13-76",
+    "10-940",
+    "9-69",
+    "8-436",
+    "11-469",
+    "12-216",
+    "11-199",
+    "14-165",
+    "7-530",
+    "7-695",
+    "9-1125",
+    "11-741",
+    "8-315",
+    "13-452",
+    "10-268",
+    "12-1077",
+    "1091",
+    "10-432",
+    "14-883",
+    "12-1061",
+    "14-973",
+    "1652",
+    "14-266",
+    "12-934",
+    "12-227",
+    "14-1034",
+    "14-1147",
+    "14-38",
+    "13-261",
+    "13-1058",
+    "334",
+    "10-513",
+    "7-1006",
+    "10-163",
+    "13-805",
+    "11-489",
+    "10-585",
+    "14-270",
+    "12-1171",
+    "1144",
+    "1228",
+    "1435",
+    "13-1060",
+    "9-536",
+    "14-1112",
+    "7-104",
+    "14-1278",
+    "10-912",
+    "9-233",
+    "12-29",
+    "7-1193",
+    "9-460",
+    "7-124",
+    "12-731",
+    "14-489",
+    "7-6",
+    "13-252",
+    "14-1295",
+    "9-625",
+    "12-849",
+    "13-339",
+    "12-438",
+    "12-602",
+    "14-1282",
+    "14-1428",
+    "9-769",
+    "13-482",
+    "12-1111",
+    "14-720",
+    "12-582",
+    "7-703",
+    "13-1039",
+    "8-272",
+    "12-769",
+    "874",
+    "14-1104",
+    "11-478",
+    "14-836",
+    "14-665",
+    "13-875",
+    "14-617",
+    "12-550",
+    "13-26",
+    "14-1407",
+    "10-1113",
+    "13-129",
+    "14-19",
+    "12-1212",
+    "9-210",
+    "9-445",
+    "10-668",
+    "9-605",
+    "13-385",
+    "12-1211",
+    "11-325",
+    "12-490",
+    "14-1114",
+    "8-229",
+    "9-841",
+    "13-980",
+    "14-1423",
+    "11-5",
+    "14-1139",
+    "13-870",
+    "217",
+    "11-530",
+    "10-1178",
+    "12-546",
+    "14-1095",
+    "12-929",
+    "14-1443",
+    "14-742",
+    "595",
+    "10-684",
+    "9-667",
+    "9-1143",
+    "12-1058",
+    "13-949",
+    "1046",
+    "196",
+    "12-344",
+    "11-358",
+    "1111",
+    "10-789",
+    "10-1200",
+    "641",
+    "11-536",
+    "14-689",
+    "14-1225",
+    "8-222",
+    "12-524",
+    "9-1174",
+    "12-93",
+    "8-17",
+    "14-287",
+    "14-31",
+    "10-350",
+    "11-508",
+    "12-1084",
+    "10-833",
+    "14-55",
+    "9-954",
+    "14-1020",
+    "7-30",
+    "13-902",
+    "7-804",
+    "10-622",
+    "8-330",
+    "10-38",
+    "12-266",
+    "13-10",
+    "7-1023",
+    "10-123",
+    "12-1022",
+    "9-413",
+    "10-491",
+    "14-877",
+    "11-642",
+    "9-9",
+    "11-612",
+    "14-593",
+    "14-405",
+    "12-984",
+    "14-436",
+    "14-754",
+    "13-212",
+    "8-113",
+    "13-958",
+    "7-901",
+    "8-42",
+    "14-245",
+    "413",
+    "13-303",
+    "12-467",
+    "13-848",
+    "10-370",
+    "12-300",
+    "1366",
+    "9-745",
+    "13-85",
+    "10-892",
+    "10-397",
+    "10-776",
+    "8-291",
+    "12-600",
+    "10-251",
+    "11-360",
+    "357",
+    "12-719",
+    "12-824",
+    "828",
+    "12-1160",
+    "12-547",
+    "9-439",
+    "12-433",
+    "13-382",
+    "958",
+    "11-751",
+    "7-763",
+    "14-843",
+    "1640",
+    "13-51",
+    "14-1371",
+    "9-859",
+    "13-963",
+    "11-258",
+    "10-287",
+    "10-328",
+    "14-1047",
+    "7-164",
+    "10-380",
+    "13-936",
+    "11-298",
+    "9-842",
+    "7-629",
+    "13-598",
+    "12-622",
+    "12-451",
+    "12-608",
+    "12-811",
+    "9-872",
+    "9-744",
+    "10-1211",
+    "11-601",
+    "12-121",
+    "14-116",
+    "12-543",
+    "1834",
+    "10",
+    "10-300",
+    "12-264",
+    "13-454",
+    "13-77",
+    "12-373",
+    "13-425",
+    "12-661",
+    "13-334",
+    "10-20",
+    "11-302",
+    "10-297",
+    "14-1357",
+    "12-108",
+    "10-932",
+    "12-883",
+    "9-929",
+    "12-16",
+    "14-1384",
+    "12-790",
+    "14-171",
+    "13-830",
+    "13-437",
+    "13-861",
+    "14-922",
+    "7-312",
+    "10-114",
+    "14-90",
+    "12-253",
+    "297",
+    "10-192",
+    "14-1045",
+    "13-313",
+    "11-702",
+    "14-1275",
+    "7-813",
+    "10-358",
+    "12-1116",
+    "14-1284",
+    "10-371",
+    "11-372",
+    "12-863",
+    "7-912",
+    "10-381",
+    "10-917",
+    "13-106",
+    "14-11",
+    "9-129",
+    "12-132",
+    "12-348",
+    "14-770",
+    "11-415",
+    "115",
+    "9-1050",
+    "12-346",
+    "7-1126",
+    "14-986",
+    "14-1445",
+    "7-178",
+    "13-1025",
+    "12-620",
+    "14-694",
+    "12-105",
+    "14-466",
+    "10-1168",
+    "10-919",
+    "14-739",
+    "9-887",
+    "12-139",
+    "10-753",
+    "13-79",
+    "10-439",
+    "9-286",
+    "11-490",
+    "14-524",
+    "14-1178",
+    "10-1130",
+    "10-1212",
+    "11-30",
+    "7-943",
+    "14-854",
+    "1494",
+    "12-245",
+    "9-1063",
+    "10-436",
+    "13-536",
+    "12-47",
+    "12-965",
+    "12-474",
+    "13-626",
+    "7-874",
+    "1878",
+    "699",
+    "11-195",
+    "11-2",
+    "10-91",
+    "12-287",
+    "12-911",
+    "14-790",
+    "12-1064",
+    "64",
+    "11-412",
+    "12-318",
+    "750",
+    "13-959",
+    "13-503",
+    "853",
+    "9-174",
+    "11-119",
+    "13-900",
+    "10-1154",
+    "14-903",
+    "10-126",
+    "10-217",
+    "11-424",
+    "10-440",
+    "12-782",
+    "14-1088",
+    "11-485",
+    "10-935",
+    "10-751",
+    "12-625",
+    "14-428",
+    "14-291",
+    "9-649",
+    "14-645",
+    "14-416",
+    "13-23",
+    "14-821",
+    "10-1023",
+    "13-841",
+    "13-938",
+    "13-892",
+    "13-429",
+    "13-801",
+    "10-1046",
+    "9-441",
+    "11-313",
+    "10-673",
+    "14-152",
+    "11-219",
+    "12-999",
+    "13-366",
+    "11-697",
+    "7-721",
+    "14-72",
+    "11-414",
+    "9-291",
+    "14-241",
+    "10-212",
+    "10-527",
+    "10-812",
+    "14-1229",
+    "7-642",
+    "13-954",
+    "9-162",
+    "1547",
+    "13-787",
+    "11-357",
+    "13-915",
+    "10-1210",
+    "14-221",
+    "1703",
+    "9-1121",
+    "8-82",
+    "13-383",
+    "14-683",
+    "9-357",
+    "10-560",
+    "1365",
+    "7-86",
+    "13-4",
+    "12-101",
+    "9-795",
+    "10-290",
+    "14-1254",
+    "10-76",
+    "10-1183",
+    "1573",
+    "14-718",
+    "14-984",
+    "12-37",
+    "10-810",
+    "9-836",
+    "14-595",
+    "12-95",
+    "12-355",
+    "9-770",
+    "14-1196",
+    "12-532",
+    "7-1175",
+    "14-1336",
+    "14-1499",
+    "14-114",
+    "14-458",
+    "1721",
+    "9-33",
+    "11-79",
+    "12-1182",
+    "9-1028",
+    "12-320",
+    "10-624",
+    "12-421",
+    "1107",
+    "14-1509",
+    "14-222",
+    "10-1197",
+    "12-91",
+    "13-941",
+    "14-552",
+    "1537",
+    "12-1071",
+    "9-968",
+    "14-1176",
+    "14-775",
+    "9-855",
+    "12-331",
+    "8-447",
+    "9-787",
+    "11-539",
+    "10-1077",
+    "14-495",
+    "10-252",
+    "7-1163",
+    "14-1116",
+    "12-702",
+    "11-137",
+    "11-53",
+    "13-843",
+    "10-232",
+    "14-803",
+    "10-1152",
+    "11-229",
+    "10-1017",
+    "12-674",
+    "8-242",
+    "7-994",
+    "1860",
+    "12-1065",
+    "13-430",
+    "13-767",
+    "10-40",
+    "14-527",
+    "13-86",
+    "10-1138",
+    "14-384",
+    "11-514",
+    "9-628",
+    "13-753",
+    "11-329",
+    "14-308",
+    "14-702",
+    "9-171",
+    "12-1127",
+    "14-1068",
+    "11-564",
+    "10-393",
+    "10-682",
+    "12-758",
+    "1589",
+    "10-1115",
+    "10-840",
+    "14-636",
+    "13-668",
+    "10-345"
+  ],
+  "label": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+  ],
+  "full_text": [
+    "14-709",
+    "14-423",
+    "10-42",
+    "13-76",
+    "10-940",
+    "9-69",
+    "8-436",
+    "11-469",
+    "12-216",
+    "11-199",
+    "14-165",
+    "7-530",
+    "7-695",
+    "9-1125",
+    "11-741",
+    "8-315",
+    "13-452",
+    "10-268",
+    "12-1077",
+    "1091",
+    "10-432",
+    "14-883",
+    "12-1061",
+    "14-973",
+    "1652",
+    "14-266",
+    "12-934",
+    "12-227",
+    "14-1034",
+    "14-1147",
+    "14-38",
+    "13-261",
+    "13-1058",
+    "334",
+    "10-513",
+    "7-1006",
+    "10-163",
+    "13-805",
+    "11-489",
+    "10-585",
+    "14-270",
+    "12-1171",
+    "1144",
+    "1228",
+    "1435",
+    "13-1060",
+    "9-536",
+    "14-1112",
+    "7-104",
+    "14-1278",
+    "10-912",
+    "9-233",
+    "12-29",
+    "7-1193",
+    "9-460",
+    "7-124",
+    "12-731",
+    "14-489",
+    "7-6",
+    "13-252",
+    "14-1295",
+    "9-625",
+    "12-849",
+    "13-339",
+    "12-438",
+    "12-602",
+    "14-1282",
+    "14-1428",
+    "9-769",
+    "13-482",
+    "12-1111",
+    "14-720",
+    "12-582",
+    "7-703",
+    "13-1039",
+    "8-272",
+    "12-769",
+    "874",
+    "14-1104",
+    "11-478",
+    "14-836",
+    "14-665",
+    "13-875",
+    "14-617",
+    "12-550",
+    "13-26",
+    "14-1407",
+    "10-1113",
+    "13-129",
+    "14-19",
+    "12-1212",
+    "9-210",
+    "9-445",
+    "10-668",
+    "9-605",
+    "13-385",
+    "12-1211",
+    "11-325",
+    "12-490",
+    "14-1114",
+    "8-229",
+    "9-841",
+    "13-980",
+    "14-1423",
+    "11-5",
+    "14-1139",
+    "13-870",
+    "217",
+    "11-530",
+    "10-1178",
+    "12-546",
+    "14-1095",
+    "12-929",
+    "14-1443",
+    "14-742",
+    "595",
+    "10-684",
+    "9-667",
+    "9-1143",
+    "12-1058",
+    "13-949",
+    "1046",
+    "196",
+    "12-344",
+    "11-358",
+    "1111",
+    "10-789",
+    "10-1200",
+    "641",
+    "11-536",
+    "14-689",
+    "14-1225",
+    "8-222",
+    "12-524",
+    "9-1174",
+    "12-93",
+    "8-17",
+    "14-287",
+    "14-31",
+    "10-350",
+    "11-508",
+    "12-1084",
+    "10-833",
+    "14-55",
+    "9-954",
+    "14-1020",
+    "7-30",
+    "13-902",
+    "7-804",
+    "10-622",
+    "8-330",
+    "10-38",
+    "12-266",
+    "13-10",
+    "7-1023",
+    "10-123",
+    "12-1022",
+    "9-413",
+    "10-491",
+    "14-877",
+    "11-642",
+    "9-9",
+    "11-612",
+    "14-593",
+    "14-405",
+    "12-984",
+    "14-436",
+    "14-754",
+    "13-212",
+    "8-113",
+    "13-958",
+    "7-901",
+    "8-42",
+    "14-245",
+    "413",
+    "13-303",
+    "12-467",
+    "13-848",
+    "10-370",
+    "12-300",
+    "1366",
+    "9-745",
+    "13-85",
+    "10-892",
+    "10-397",
+    "10-776",
+    "8-291",
+    "12-600",
+    "10-251",
+    "11-360",
+    "357",
+    "12-719",
+    "12-824",
+    "828",
+    "12-1160",
+    "12-547",
+    "9-439",
+    "12-433",
+    "13-382",
+    "958",
+    "11-751",
+    "7-763",
+    "14-843",
+    "1640",
+    "13-51",
+    "14-1371",
+    "9-859",
+    "13-963",
+    "11-258",
+    "10-287",
+    "10-328",
+    "14-1047",
+    "7-164",
+    "10-380",
+    "13-936",
+    "11-298",
+    "9-842",
+    "7-629",
+    "13-598",
+    "12-622",
+    "12-451",
+    "12-608",
+    "12-811",
+    "9-872",
+    "9-744",
+    "10-1211",
+    "11-601",
+    "12-121",
+    "14-116",
+    "12-543",
+    "1834",
+    "10",
+    "10-300",
+    "12-264",
+    "13-454",
+    "13-77",
+    "12-373",
+    "13-425",
+    "12-661",
+    "13-334",
+    "10-20",
+    "11-302",
+    "10-297",
+    "14-1357",
+    "12-108",
+    "10-932",
+    "12-883",
+    "9-929",
+    "12-16",
+    "14-1384",
+    "12-790",
+    "14-171",
+    "13-830",
+    "13-437",
+    "13-861",
+    "14-922",
+    "7-312",
+    "10-114",
+    "14-90",
+    "12-253",
+    "297",
+    "10-192",
+    "14-1045",
+    "13-313",
+    "11-702",
+    "14-1275",
+    "7-813",
+    "10-358",
+    "12-1116",
+    "14-1284",
+    "10-371",
+    "11-372",
+    "12-863",
+    "7-912",
+    "10-381",
+    "10-917",
+    "13-106",
+    "14-11",
+    "9-129",
+    "12-132",
+    "12-348",
+    "14-770",
+    "11-415",
+    "115",
+    "9-1050",
+    "12-346",
+    "7-1126",
+    "14-986",
+    "14-1445",
+    "7-178",
+    "13-1025",
+    "12-620",
+    "14-694",
+    "12-105",
+    "14-466",
+    "10-1168",
+    "10-919",
+    "14-739",
+    "9-887",
+    "12-139",
+    "10-753",
+    "13-79",
+    "10-439",
+    "9-286",
+    "11-490",
+    "14-524",
+    "14-1178",
+    "10-1130",
+    "10-1212",
+    "11-30",
+    "7-943",
+    "14-854",
+    "1494",
+    "12-245",
+    "9-1063",
+    "10-436",
+    "13-536",
+    "12-47",
+    "12-965",
+    "12-474",
+    "13-626",
+    "7-874",
+    "1878",
+    "699",
+    "11-195",
+    "11-2",
+    "10-91",
+    "12-287",
+    "12-911",
+    "14-790",
+    "12-1064",
+    "64",
+    "11-412",
+    "12-318",
+    "750",
+    "13-959",
+    "13-503",
+    "853",
+    "9-174",
+    "11-119",
+    "13-900",
+    "10-1154",
+    "14-903",
+    "10-126",
+    "10-217",
+    "11-424",
+    "10-440",
+    "12-782",
+    "14-1088",
+    "11-485",
+    "10-935",
+    "10-751",
+    "12-625",
+    "14-428",
+    "14-291",
+    "9-649",
+    "14-645",
+    "14-416",
+    "13-23",
+    "14-821",
+    "10-1023",
+    "13-841",
+    "13-938",
+    "13-892",
+    "13-429",
+    "13-801",
+    "10-1046",
+    "9-441",
+    "11-313",
+    "10-673",
+    "14-152",
+    "11-219",
+    "12-999",
+    "13-366",
+    "11-697",
+    "7-721",
+    "14-72",
+    "11-414",
+    "9-291",
+    "14-241",
+    "10-212",
+    "10-527",
+    "10-812",
+    "14-1229",
+    "7-642",
+    "13-954",
+    "9-162",
+    "1547",
+    "13-787",
+    "11-357",
+    "13-915",
+    "10-1210",
+    "14-221",
+    "1703",
+    "9-1121",
+    "8-82",
+    "13-383",
+    "14-683",
+    "9-357",
+    "10-560",
+    "1365",
+    "7-86",
+    "13-4",
+    "12-101",
+    "9-795",
+    "10-290",
+    "14-1254",
+    "10-76",
+    "10-1183",
+    "1573",
+    "14-718",
+    "14-984",
+    "12-37",
+    "10-810",
+    "9-836",
+    "14-595",
+    "12-95",
+    "12-355",
+    "9-770",
+    "14-1196",
+    "12-532",
+    "7-1175",
+    "14-1336",
+    "14-1499",
+    "14-114",
+    "14-458",
+    "1721",
+    "9-33",
+    "11-79",
+    "12-1182",
+    "9-1028",
+    "12-320",
+    "10-624",
+    "12-421",
+    "1107",
+    "14-1509",
+    "14-222",
+    "10-1197",
+    "12-91",
+    "13-941",
+    "14-552",
+    "1537",
+    "12-1071",
+    "9-968",
+    "14-1176",
+    "14-775",
+    "9-855",
+    "12-331",
+    "8-447",
+    "9-787",
+    "11-539",
+    "10-1077",
+    "14-495",
+    "10-252",
+    "7-1163",
+    "14-1116",
+    "12-702",
+    "11-137",
+    "11-53",
+    "13-843",
+    "10-232",
+    "14-803",
+    "10-1152",
+    "11-229",
+    "10-1017",
+    "12-674",
+    "8-242",
+    "7-994",
+    "1860",
+    "12-1065",
+    "13-430",
+    "13-767",
+    "10-40",
+    "14-527",
+    "13-86",
+    "10-1138",
+    "14-384",
+    "11-514",
+    "9-628",
+    "13-753",
+    "11-329",
+    "14-308",
+    "14-702",
+    "9-171",
+    "12-1127",
+    "14-1068",
+    "11-564",
+    "10-393",
+    "10-682",
+    "12-758",
+    "1589",
+    "10-1115",
+    "10-840",
+    "14-636",
+    "13-668",
+    "10-345"
+  ],
+  "prompt_text": [
+    "14-709",
+    "14-423",
+    "10-42",
+    "13-76",
+    "10-940",
+    "9-69",
+    "8-436",
+    "11-469",
+    "12-216",
+    "11-199",
+    "14-165",
+    "7-530",
+    "7-695",
+    "9-1125",
+    "11-741",
+    "8-315",
+    "13-452",
+    "10-268",
+    "12-1077",
+    "1091",
+    "10-432",
+    "14-883",
+    "12-1061",
+    "14-973",
+    "1652",
+    "14-266",
+    "12-934",
+    "12-227",
+    "14-1034",
+    "14-1147",
+    "14-38",
+    "13-261",
+    "13-1058",
+    "334",
+    "10-513",
+    "7-1006",
+    "10-163",
+    "13-805",
+    "11-489",
+    "10-585",
+    "14-270",
+    "12-1171",
+    "1144",
+    "1228",
+    "1435",
+    "13-1060",
+    "9-536",
+    "14-1112",
+    "7-104",
+    "14-1278",
+    "10-912",
+    "9-233",
+    "12-29",
+    "7-1193",
+    "9-460",
+    "7-124",
+    "12-731",
+    "14-489",
+    "7-6",
+    "13-252",
+    "14-1295",
+    "9-625",
+    "12-849",
+    "13-339",
+    "12-438",
+    "12-602",
+    "14-1282",
+    "14-1428",
+    "9-769",
+    "13-482",
+    "12-1111",
+    "14-720",
+    "12-582",
+    "7-703",
+    "13-1039",
+    "8-272",
+    "12-769",
+    "874",
+    "14-1104",
+    "11-478",
+    "14-836",
+    "14-665",
+    "13-875",
+    "14-617",
+    "12-550",
+    "13-26",
+    "14-1407",
+    "10-1113",
+    "13-129",
+    "14-19",
+    "12-1212",
+    "9-210",
+    "9-445",
+    "10-668",
+    "9-605",
+    "13-385",
+    "12-1211",
+    "11-325",
+    "12-490",
+    "14-1114",
+    "8-229",
+    "9-841",
+    "13-980",
+    "14-1423",
+    "11-5",
+    "14-1139",
+    "13-870",
+    "217",
+    "11-530",
+    "10-1178",
+    "12-546",
+    "14-1095",
+    "12-929",
+    "14-1443",
+    "14-742",
+    "595",
+    "10-684",
+    "9-667",
+    "9-1143",
+    "12-1058",
+    "13-949",
+    "1046",
+    "196",
+    "12-344",
+    "11-358",
+    "1111",
+    "10-789",
+    "10-1200",
+    "641",
+    "11-536",
+    "14-689",
+    "14-1225",
+    "8-222",
+    "12-524",
+    "9-1174",
+    "12-93",
+    "8-17",
+    "14-287",
+    "14-31",
+    "10-350",
+    "11-508",
+    "12-1084",
+    "10-833",
+    "14-55",
+    "9-954",
+    "14-1020",
+    "7-30",
+    "13-902",
+    "7-804",
+    "10-622",
+    "8-330",
+    "10-38",
+    "12-266",
+    "13-10",
+    "7-1023",
+    "10-123",
+    "12-1022",
+    "9-413",
+    "10-491",
+    "14-877",
+    "11-642",
+    "9-9",
+    "11-612",
+    "14-593",
+    "14-405",
+    "12-984",
+    "14-436",
+    "14-754",
+    "13-212",
+    "8-113",
+    "13-958",
+    "7-901",
+    "8-42",
+    "14-245",
+    "413",
+    "13-303",
+    "12-467",
+    "13-848",
+    "10-370",
+    "12-300",
+    "1366",
+    "9-745",
+    "13-85",
+    "10-892",
+    "10-397",
+    "10-776",
+    "8-291",
+    "12-600",
+    "10-251",
+    "11-360",
+    "357",
+    "12-719",
+    "12-824",
+    "828",
+    "12-1160",
+    "12-547",
+    "9-439",
+    "12-433",
+    "13-382",
+    "958",
+    "11-751",
+    "7-763",
+    "14-843",
+    "1640",
+    "13-51",
+    "14-1371",
+    "9-859",
+    "13-963",
+    "11-258",
+    "10-287",
+    "10-328",
+    "14-1047",
+    "7-164",
+    "10-380",
+    "13-936",
+    "11-298",
+    "9-842",
+    "7-629",
+    "13-598",
+    "12-622",
+    "12-451",
+    "12-608",
+    "12-811",
+    "9-872",
+    "9-744",
+    "10-1211",
+    "11-601",
+    "12-121",
+    "14-116",
+    "12-543",
+    "1834",
+    "10",
+    "10-300",
+    "12-264",
+    "13-454",
+    "13-77",
+    "12-373",
+    "13-425",
+    "12-661",
+    "13-334",
+    "10-20",
+    "11-302",
+    "10-297",
+    "14-1357",
+    "12-108",
+    "10-932",
+    "12-883",
+    "9-929",
+    "12-16",
+    "14-1384",
+    "12-790",
+    "14-171",
+    "13-830",
+    "13-437",
+    "13-861",
+    "14-922",
+    "7-312",
+    "10-114",
+    "14-90",
+    "12-253",
+    "297",
+    "10-192",
+    "14-1045",
+    "13-313",
+    "11-702",
+    "14-1275",
+    "7-813",
+    "10-358",
+    "12-1116",
+    "14-1284",
+    "10-371",
+    "11-372",
+    "12-863",
+    "7-912",
+    "10-381",
+    "10-917",
+    "13-106",
+    "14-11",
+    "9-129",
+    "12-132",
+    "12-348",
+    "14-770",
+    "11-415",
+    "115",
+    "9-1050",
+    "12-346",
+    "7-1126",
+    "14-986",
+    "14-1445",
+    "7-178",
+    "13-1025",
+    "12-620",
+    "14-694",
+    "12-105",
+    "14-466",
+    "10-1168",
+    "10-919",
+    "14-739",
+    "9-887",
+    "12-139",
+    "10-753",
+    "13-79",
+    "10-439",
+    "9-286",
+    "11-490",
+    "14-524",
+    "14-1178",
+    "10-1130",
+    "10-1212",
+    "11-30",
+    "7-943",
+    "14-854",
+    "1494",
+    "12-245",
+    "9-1063",
+    "10-436",
+    "13-536",
+    "12-47",
+    "12-965",
+    "12-474",
+    "13-626",
+    "7-874",
+    "1878",
+    "699",
+    "11-195",
+    "11-2",
+    "10-91",
+    "12-287",
+    "12-911",
+    "14-790",
+    "12-1064",
+    "64",
+    "11-412",
+    "12-318",
+    "750",
+    "13-959",
+    "13-503",
+    "853",
+    "9-174",
+    "11-119",
+    "13-900",
+    "10-1154",
+    "14-903",
+    "10-126",
+    "10-217",
+    "11-424",
+    "10-440",
+    "12-782",
+    "14-1088",
+    "11-485",
+    "10-935",
+    "10-751",
+    "12-625",
+    "14-428",
+    "14-291",
+    "9-649",
+    "14-645",
+    "14-416",
+    "13-23",
+    "14-821",
+    "10-1023",
+    "13-841",
+    "13-938",
+    "13-892",
+    "13-429",
+    "13-801",
+    "10-1046",
+    "9-441",
+    "11-313",
+    "10-673",
+    "14-152",
+    "11-219",
+    "12-999",
+    "13-366",
+    "11-697",
+    "7-721",
+    "14-72",
+    "11-414",
+    "9-291",
+    "14-241",
+    "10-212",
+    "10-527",
+    "10-812",
+    "14-1229",
+    "7-642",
+    "13-954",
+    "9-162",
+    "1547",
+    "13-787",
+    "11-357",
+    "13-915",
+    "10-1210",
+    "14-221",
+    "1703",
+    "9-1121",
+    "8-82",
+    "13-383",
+    "14-683",
+    "9-357",
+    "10-560",
+    "1365",
+    "7-86",
+    "13-4",
+    "12-101",
+    "9-795",
+    "10-290",
+    "14-1254",
+    "10-76",
+    "10-1183",
+    "1573",
+    "14-718",
+    "14-984",
+    "12-37",
+    "10-810",
+    "9-836",
+    "14-595",
+    "12-95",
+    "12-355",
+    "9-770",
+    "14-1196",
+    "12-532",
+    "7-1175",
+    "14-1336",
+    "14-1499",
+    "14-114",
+    "14-458",
+    "1721",
+    "9-33",
+    "11-79",
+    "12-1182",
+    "9-1028",
+    "12-320",
+    "10-624",
+    "12-421",
+    "1107",
+    "14-1509",
+    "14-222",
+    "10-1197",
+    "12-91",
+    "13-941",
+    "14-552",
+    "1537",
+    "12-1071",
+    "9-968",
+    "14-1176",
+    "14-775",
+    "9-855",
+    "12-331",
+    "8-447",
+    "9-787",
+    "11-539",
+    "10-1077",
+    "14-495",
+    "10-252",
+    "7-1163",
+    "14-1116",
+    "12-702",
+    "11-137",
+    "11-53",
+    "13-843",
+    "10-232",
+    "14-803",
+    "10-1152",
+    "11-229",
+    "10-1017",
+    "12-674",
+    "8-242",
+    "7-994",
+    "1860",
+    "12-1065",
+    "13-430",
+    "13-767",
+    "10-40",
+    "14-527",
+    "13-86",
+    "10-1138",
+    "14-384",
+    "11-514",
+    "9-628",
+    "13-753",
+    "11-329",
+    "14-308",
+    "14-702",
+    "9-171",
+    "12-1127",
+    "14-1068",
+    "11-564",
+    "10-393",
+    "10-682",
+    "12-758",
+    "1589",
+    "10-1115",
+    "10-840",
+    "14-636",
+    "13-668",
+    "10-345"
+  ]
+}

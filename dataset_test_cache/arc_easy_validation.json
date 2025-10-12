@@ -1,0 +1,4764 @@
+{
+  "id": [
+    "Mercury_SC_LBS10605",
+    "OHAT_2007_8_23",
+    "Mercury_411712",
+    "Mercury_SC_410872",
+    "Mercury_7218645",
+    "Mercury_7186078",
+    "Mercury_402217",
+    "MCAS_2016_5_12",
+    "Mercury_7283815",
+    "Mercury_7228638",
+    "Mercury_7103635",
+    "Mercury_7203280",
+    "Mercury_SC_401235",
+    "MCAS_2016_8_13",
+    "Mercury_7221305",
+    "Mercury_181195",
+    "MCAS_2005_5_30",
+    "MCAS_2013_5_29413",
+    "Mercury_SC_402624",
+    "Mercury_7017203",
+    "MCAS_2007_5_4799",
+    "Mercury_7099680",
+    "NYSEDREGENTS_2004_4_1",
+    "NYSEDREGENTS_2009_4_27",
+    "AIMS_2008_4_9",
+    "AKDE&ED_2012_8_13",
+    "Mercury_SC_401733",
+    "TIMSS_2003_4_pg24",
+    "Mercury_7043803",
+    "Mercury_7026793",
+    "Mercury_SC_400189",
+    "Mercury_7214200",
+    "AKDE&ED_2008_4_14",
+    "Mercury_SC_402250",
+    "Mercury_7245403",
+    "Mercury_7121940",
+    "CSZ_2004_5_CSZ10110",
+    "MCAS_2015_5_4",
+    "TIMSS_2011_4_pg37",
+    "Mercury_LBS10185",
+    "NYSEDREGENTS_2004_4_7",
+    "NYSEDREGENTS_2011_8_42",
+    "MCAS_2016_8_9",
+    "AKDE&ED_2012_8_34",
+    "Mercury_7135293",
+    "MEA_2013_8_5",
+    "Mercury_7001768",
+    "Mercury_SC_406744",
+    "NYSEDREGENTS_2005_8_43",
+    "Mercury_7183278",
+    "LEAP__7_10347",
+    "Mercury_7017763",
+    "Mercury_7171518",
+    "Mercury_7016713",
+    "Mercury_7221270",
+    "MCAS_2003_8_34",
+    "NAEP_2005_4_S14+2",
+    "NYSEDREGENTS_2009_8_6",
+    "Mercury_SC_408506",
+    "Mercury_7115378",
+    "LEAP_2012_4_10303",
+    "MEA_2011_8_2",
+    "NYSEDREGENTS_2016_4_11",
+    "Mercury_7056350",
+    "MCAS_2005_5_9",
+    "Mercury_7093118",
+    "Mercury_7212380",
+    "NYSEDREGENTS_2007_8_9",
+    "Mercury_7239155",
+    "NYSEDREGENTS_2007_8_10",
+    "Mercury_SC_407162",
+    "Mercury_7143325",
+    "Mercury_7235743",
+    "Mercury_416463",
+    "Mercury_7189350",
+    "Mercury_7213168",
+    "MCAS_2001_8_11",
+    "Mercury_SC_413301",
+    "Mercury_7037485",
+    "Mercury_7057190",
+    "Mercury_7014578",
+    "Mercury_7109025",
+    "Mercury_7064715",
+    "Mercury_7085960",
+    "Mercury_7187023",
+    "MCAS_2007_5_4781",
+    "Mercury_7037503",
+    "Mercury_401993",
+    "Mercury_7267750",
+    "Mercury_SC_408323",
+    "Mercury_7271635",
+    "NYSEDREGENTS_2007_8_25",
+    "Mercury_SC_409692",
+    "Mercury_7216930",
+    "Mercury_7011078",
+    "Mercury_7109550",
+    "TIMSS_1995_8_I15",
+    "Mercury_SC_413625",
+    "ACTAAP_2014_5_16",
+    "TAKS_2009_5_33",
+    "MCAS_2010_5_11990",
+    "Mercury_7269080",
+    "Mercury_7248115",
+    "Mercury_7011200",
+    "MCAS_2003_5_11",
+    "Mercury_7069440",
+    "MCAS_2000_4_2",
+    "NCEOGA_2013_8_33",
+    "Mercury_SC_400345",
+    "Mercury_7262815",
+    "Mercury_182595",
+    "Mercury_7142135",
+    "Mercury_7004970",
+    "Mercury_SC_400188",
+    "NYSEDREGENTS_2016_4_29",
+    "Mercury_7004515",
+    "Mercury_SC_415388",
+    "MCAS_2000_8_4",
+    "Mercury_7271390",
+    "Mercury_7217858",
+    "VASoL_2008_3_14",
+    "ACTAAP_2007_7_32",
+    "Mercury_SC_409886",
+    "Mercury_7205765",
+    "MCAS_1998_4_18",
+    "Mercury_7197295",
+    "WASL_2003_5_9",
+    "CSZ10286",
+    "MCAS_2005_5_28",
+    "MCAS_2007_8_5161",
+    "NYSEDREGENTS_2006_8_25",
+    "Mercury_7007403",
+    "Mercury_7110040",
+    "Mercury_7024763",
+    "NYSEDREGENTS_2007_8_3",
+    "Mercury_405938",
+    "Mercury_7114888",
+    "AKDE&ED_2008_4_1",
+    "NCEOGA_2013_5_30",
+    "Mercury_7215425",
+    "Mercury_SC_408308",
+    "Mercury_7172130",
+    "Mercury_7043120",
+    "Mercury_7013493",
+    "Mercury_SC_401368",
+    "MCAS_2008_8_5708",
+    "Mercury_7269115",
+    "Mercury_7206080",
+    "Mercury_7150378",
+    "Mercury_7033618",
+    "Mercury_SC_413305",
+    "NCEOGA_2013_5_55",
+    "AIMS_2008_8_14",
+    "Mercury_SC_406463",
+    "Mercury_SC_405651",
+    "Mercury_417120",
+    "Mercury_7218295",
+    "TAKS_2009_8_2",
+    "VASoL_2008_5_30",
+    "TIMSS_2007_8_pg97",
+    "Mercury_SC_400570",
+    "Mercury_7159408",
+    "Mercury_7004813",
+    "NYSEDREGENTS_2009_8_39",
+    "Mercury_SC_409672",
+    "MCAS_2005_9_5",
+    "MSA_2013_5_12",
+    "NAEP_2000_4_S12+1",
+    "NCEOGA_2013_5_8",
+    "Mercury_7215495",
+    "MCAS_2008_5_5643",
+    "MCAS_2003_8_23",
+    "Mercury_7041493",
+    "Mercury_7128275",
+    "Mercury_SC_408414",
+    "MCAS_2005_8_28",
+    "Mercury_7200043",
+    "Mercury_7137935",
+    "Mercury_7218838",
+    "NYSEDREGENTS_2007_8_13",
+    "MCAS_1999_8_20",
+    "NCEOGA_2013_8_58",
+    "NYSEDREGENTS_2004_4_21",
+    "Mercury_7026390",
+    "Mercury_7138268",
+    "Mercury_7176173",
+    "MCAS_2015_5_13",
+    "Mercury_7214323",
+    "Mercury_7109270",
+    "Mercury_7219765",
+    "ACTAAP_2010_5_16",
+    "MDSA_2011_4_40",
+    "Mercury_7181615",
+    "MCAS_2008_8_5718",
+    "Mercury_7037625",
+    "Mercury_7263340",
+    "MDSA_2009_8_33",
+    "NYSEDREGENTS_2007_8_20",
+    "MEA_2016_8_4",
+    "Mercury_182035",
+    "MEA_2013_8_16",
+    "Mercury_7214900",
+    "Mercury_SC_407380",
+    "Mercury_SC_401138",
+    "TIMSS_1995_8_N6",
+    "TAKS_2009_8_40",
+    "Mercury_SC_408377",
+    "Mercury_7227868",
+    "Mercury_7152810",
+    "Mercury_7013178",
+    "Mercury_7085400",
+    "ACTAAP_2009_7_2",
+    "Mercury_SC_406050",
+    "Mercury_SC_401674",
+    "Mercury_7222705",
+    "Mercury_7177695",
+    "Mercury_7008313",
+    "TAKS_2009_5_9",
+    "Mercury_7180338",
+    "Mercury_188650",
+    "Mercury_7083353",
+    "Mercury_SC_415012",
+    "Mercury_175070",
+    "Mercury_SC_406712",
+    "ACTAAP_2009_5_11",
+    "Mercury_7056630"
+  ],
+  "question": [
+    "Which of the following materials would best slow the transfer of heat?",
+    "In which environment is white fur color an advantage for survival?",
+    "The mathematical model for calculating speed is shown below. Speed = distance/time. An airplane traveled 700 kilometers in two hours during a trip. What was the average speed of the plane during the trip?",
+    "The aloe plant can absorb a lot of water during a rain shower. The extra water is stored in its leaves. The ability to store water in its leaves is most likely an adaptation to which type of environment?",
+    "Near Earth's equator, water generally exists naturally in the liquid and gas states. In which other part of Earth is water usually found naturally in only two states?",
+    "Magnesium strips are long, thin strips that are gray and shiny. Which action will lead to a chemical change of magnesium strips?",
+    "A solution of lead (II) nitrate reacts with a solution of sodium iodide to produce a yellow solid of lead (II) iodide and aqueous sodium nitrate. Which of these illustrates the reaction?",
+    "The stages in the life cycle of an organism are shown below. birth -> growth -> development -> reproduction -> death In which life cycle stage will a new organism be made?",
+    "A city has an outbreak of a disease that affects an unusually large portion of its population at the same time. Which term best describes the outbreak?",
+    "Which technique will researchers studying the inheritance patterns of various disorders most likely use?",
+    "A student notices dogs have more fleas in the summer than in the winter. Based on these observations, which is the most logical question for the student to investigate?",
+    "Sulfur scrubbers are devices installed in coal-fired power plants. Sulfur scrubbers reduce the emission of sulfur dioxide. What environmental problem are sulfur scrubbers most likely trying to address?",
+    "The sound heard when a piano key is hit is caused by",
+    "Earth's core is primarily composed of which of the following materials?",
+    "A chemist observed bubbling and fizzing after adding an acid solution to a white powdery substance in a beaker. Which of the following can be inferred?",
+    "Which of the following can only be seen with a telescope?",
+    "When a light bulb is turned on, energy changes from one form to another. Which of the following best describes this change?",
+    "An area received six inches of snow during the winter. Before the snow can continue through the water cycle as ground water or runoff, it must first ___.",
+    "When light is bounced off a mirror, the light is",
+    "When a hammer strikes a nail, the nail",
+    "Which of the following forms of energy can travel by vibrating particles of air?",
+    "If the solar system were used as a model of an atom, what would the Sun most likely represent?",
+    "In New York State, the longest period of daylight occurs during which month?",
+    "Some butterflies live an average of two weeks. This period of time is called a life",
+    "Which invention has technology that helps people keep food fresh for a long period of time?",
+    "Which behavior can help animals establish a territory?",
+    "The continuous changes of a seed to an adult plant that produces seeds is known as a",
+    "Which pair together could cause a rainbow?",
+    "What type of chemical reaction occurs when the body breaks down fats and sugars that supply it with energy?",
+    "Increased nutrient levels in lakes can cause ecological changes that result in the death of many fish. At what point in the hydrological cycle are most nutrients deposited into lakes?",
+    "Which of these resources is renewable?",
+    "Vein deposits of gold and silver are often formed in areas that have experienced which geologic process?",
+    "The length of daylight changes as the seasons change during the year. What causes these changes in daylight?",
+    "In a mixture, a magnet is used to separate some particles from sand. The dark particles are most likely made of which element?",
+    "Over geologic time, global mean sea level has varied significantly. Which change is most likely responsible for an increase in global mean sea level?",
+    "In which object does chemical energy most likely transform into electrical energy?",
+    "Sterling silver is a combination of silver and copper. Which of the following is also a combination of two or more metals?",
+    "Which of the following statements best explains how the decomposition of plant and animal matter helps to form rich soils?",
+    "Which two objects produce their own light?",
+    "Which of the following is visible through a reflecting telescope?",
+    "Base your answers on the information below. One hot, summer day it rained very heavily. After the rain, a plastic pan on a picnic table had 2 cm of rainwater in it. Four hours later, all the rainwater in the pan was gone. Which process caused the rainwater in the pan to disappear as it sat outside in the hot air?",
+    "Sound will not travel in a",
+    "Which of the following is a cause of the ocean levels periodically rising and then falling?",
+    "Which statement best describes the energy transformations that occur when a candle burns?",
+    "In a closed system, what happens to the total energy of the system as energy conversions take place?",
+    "Which sentence describes a characteristic of offspring produced by sexual reproduction?",
+    "The primary function of insulin in our bodies is to",
+    "What causes nighttime and daytime on Earth?",
+    "Which observation of a plant supports the inference that photosynthesis can take place?",
+    "Before rock can become soil, it must undergo certain processes. One process in the formation of soil involves plants. How can plants chemically change rocks into soil?",
+    "Which resource is most likely found in large amounts in forest ecosystems?",
+    "Soil erosion can be best prevented by",
+    "Most sedimentary rock is made from sediments of other rock. Which of these processes would the sediments most likely go through to form sedimentary rock?",
+    "When using more than the recommended amounts of pesticide on farmland, yards, and gardens, what is most likely to occur?",
+    "Which of these will best separate a saltwater solution?",
+    "Which two body systems work together to transport oxygen to the cells?",
+    "How do most fish get the oxygen they need to survive?",
+    "All matter is made up of particles called",
+    "Which part of a strawberry plant absorbs most of the water needed by the plant?",
+    "When a volcano erupts, dust and ash are blown into the atmosphere. The eruption directly reduces the transfer of energy from",
+    "An ocean, a forest, and a grassy meadow are each examples of a complete ecosystem. Complete ecosystems contain only",
+    "What causes a person to have blue eyes?",
+    "The human body gets the energy it needs for growth and repair directly from",
+    "The average temperature of the surface of Earth has increased approximately 1°C in the past century. Which reason best explains this increase in temperature?",
+    "Alicia has lots of old bicycle parts. She wants to build something new with the parts. What is the first thing Alicia should do?",
+    "Gasoline for cars is produced from fossil fuels. Using gasoline can most likely lead to which environmental problem?",
+    "Which of these will best separate iron filings from sand?",
+    "Which term describes an organism's ability to maintain a stable internal environment?",
+    "Which property of proteins best allows them to perform an enormously diverse range of functions?",
+    "A research team wanted to produce a smaller variety of German shepherd dogs. They mated the smallest dogs from different litters for several generations. This is an example of which concept?",
+    "The primary reason that plants are important for an ecosystem is because they",
+    "A car runs out of fuel while traveling on a level road and eventually comes to a stop. Which of the following best explains why the car stops?",
+    "The atmosphere of Mars is almost entirely composed of a greenhouse gas. Compared with Earth, which factor accounts for the low, nighttime surface temperatures on Mars?",
+    "Oscar and Andre used a microscope to observe a sample of pond water and drew an example of each type of organism they saw. Then they compared their drawings. They discovered that their drawings of a euglena and a paramecium were alike, but their amoeba drawings had very different shapes. What are two things that Oscar's amoeba could have been doing that made his drawing look different from Andre's?",
+    "During photosynthesis, plants absorb light energy from the Sun and convert it into chemical energy in the form of glucose. Which compounds combine in the presence of sunlight to form glucose?",
+    "The oceans most influence global climate by",
+    "From smallest to largest, the levels of organization in living things are",
+    "The water in a pond gets colder one night. Which tool is best to observe its temperature change?",
+    "What is the composition of the nucleus of an atom?",
+    "Several dinosaur bones are discovered buried in volcanic ash. The type of dinosaur can best be identified by",
+    "Which tool should be used to compare the growth of an algal colony growing in a petri dish?",
+    "Estella spilled tomato sauce on her shirt. When she washed her shirt, she noticed that the detergent she used contained enzymes. Enzymes are added to detergents to break down proteins from food and other substances that may stain clothing. Which would most likely inhibit the ability of the enzymes to remove the stain on her shirt?",
+    "An important rule for students to know when heating a test tube is to",
+    "The magnitude of the gravitational force between two planets depends on the",
+    "Mr. Mendoza's class studied different body systems. What is an important function of the circulatory system?",
+    "Which of the following has the greatest effect on the ability of soil to hold water?",
+    "When an atom has a neutral charge, which particles within the atom have equal numbers?",
+    "The chemical formula for water is H_{2}O. What does the formula show about each element in the compound?",
+    "What is significant about the discovery of water on Mars?",
+    "Jonathan places a pot of water on a stove. As the water boils, how does the state of the water change?",
+    "Humans cannot survive without clean, fresh water. Reservoirs of liquid water vary, but all water spends time as a gas in the atmosphere. What is the source of most of the water in the atmosphere?",
+    "The Moon is visible to observers on Earth because of",
+    "Paula determines a property of a marble using a balance and a graduated cylinder. What property is Paula most likely determining by using both tools?",
+    "A new mutation that occurs in which type of cell can be passed on to offspring?",
+    "Hydrogen gas and oxygen gas combine to form water. Which would be a more concise way of expressing what happens in this chemical reaction?",
+    "All stars start forming in the same manner. Some follow the life cycle of the Sun, while others turn into neutron stars or black holes. Which property determines the fate of a star as it develops?",
+    "Maria collected the gas given off by a glowing piece of charcoal. The gas was then bubbled through a small amount of colorless limewater. Part of Maria's report stated, \"After the gas was put into the jar, the limewater gradually changed to a milky white color.\" This statement is",
+    "Which of these describes a property of all matter?",
+    "The temperature in a hot star is high enough to pull electrons away from atoms. What state of matter results from this process?",
+    "Which of the following animal features most helps the animal move around in its habitat?",
+    "Which of the following best describes the climate of an area?",
+    "Which model best illustrates the wave property that enables scientists to explore Earth's interior using seismic waves?",
+    "In eukaryotic organisms, interaction between which organelles is most important for cell shape, tensile strength, and communication between cells?",
+    "The populations of black rhinoceroses have been impacted by human interactions to the point of being endangered. Which interaction best explains why the black rhino is now endangered?",
+    "Freda always hangs her wet swimsuit outdoors after getting out of the swimming pool. Which of the following is least likely to affect the rate at which Freda's swimsuit dries?",
+    "If two objects are two meters apart, which of these changes will increase the gravitational force between the two objects?",
+    "Which environmental problem was directly caused by the invention of the automobile?",
+    "Which best explains the importance of nitrogen in the cycling of energy and matter?",
+    "A science class is taking a field trip to a forest to observe and study birds. Which tool would be most helpful for observing birds?",
+    "Which set contains kingdoms that contain only heterotrophs?",
+    "The energy required to lift an object is supplied by ATP derived from the breakdown of molecules of",
+    "A complete fossil has been found of a type of bird that cannot be identified. What can most likely be determined about the bird from the fossil?",
+    "A scientist crosses a red-flowered plant with a white-flowered plant, and all offspring have red flowers. What will most likely result if these red-flowered offspring are crossed with white-flowered plants?",
+    "A large tree was cut down with a saw. What is the best way to estimate the age of this tree?",
+    "On a field trip, a student holds a frog and reports that it has slippery skin. This is an example of",
+    "Students studying rocks notice that in a particular location there are many igneous rocks that are very similar. This observation best supports which statement?",
+    "The first step in the water cycle is evaporation. What gives water the energy to evaporate?",
+    "Which is an example of a chemical change?",
+    "DNA stores the genetic instructions transferred from one generation to the next. What is DNA?",
+    "High-altitude cirrus clouds are primarily formed from which substance?",
+    "Which of these is the BEST reason to study weather?",
+    "Which is true of scientific discoveries?",
+    "The systems of the human body work together. Which system works with the skeletal system by pulling on the bones to create movement?",
+    "Rocks can be classified many different ways, including as igneous, metamorphic, and sedimentary. This classification is based on the",
+    "Which of the following helps the leaves break down after they have fallen off the tree?",
+    "An artificial pacemaker is a device that regulates the beat of the heart by an electrical stimulus. Some early pacemakers were powered by batteries and were worn externally with wires passing through the skin to the surface of the heart. Modern pacemakers are now much smaller and are implanted surgically. Which most likely has increased the lifespan and effectiveness of artificial pacemakers?",
+    "Which object below is gaining stored energy?",
+    "Moving water was the most important factor in forming which of these?",
+    "Which habitat on Earth would probably 28 add the greatest amount of water to the water cycle through evaporation?",
+    "A manufacturer wants to produce a container for food storage that does not break easily and is airtight, inexpensive, and microwave-safe. Which of the following is the best material to use to make the container?",
+    "In the past, Native American Indians buried dead fish along with corn seeds. This technique was used because the decomposing dead fish would",
+    "What causes a free falling object to accelerate?",
+    "In 1609, Galileo Galilei used lenses to construct the first telescope. His telescope allowed him to observe many objects in space. His invention of the telescope and the data he gathered directly contributed to the understanding that",
+    "Which element is most likely to form an ion with a negative 2 charge?",
+    "Feathers, wings, and the hollow bones of birds are examples of",
+    "Where do many of the basic life functions take place in organisms?",
+    "Which conclusion can be made about earthworms because they do not have an internal skeleton?",
+    "Students are studying some leaves. They group the leaves by shape. Which science process are the students using when they put the leaves in different groups?",
+    "On a cold, cloudy day, the local weather forecaster predicts that a high-pressure system will be moving into the area in the next 24 hours. Which weather conditions will this system most likely bring to the area?",
+    "Which of these events have the most influence on regional climate?",
+    "Janet learns that Earth is tilted. Due to its tilt, some areas on the surface of Earth experience darkness for an entire day. Which plant process is affected most during this darkness?",
+    "Meteorologists categorize hurricanes based on the Saffir-Simpson scale. The scale measures the intensity and destructive potential of hurricanes. Which factor has the most significant effect on the strength of a hurricane?",
+    "A scientist developed a model that described the actions of DNA in the cell nuclei, which helped explain how traits were inherited. Which scientist helped develop this model?",
+    "A student needs to find the mass of an atom. The numbers of which atomic particles determines the mass of the atom?",
+    "Which set of equipment would be best to use when investigating what is found in a sample of pond water?",
+    "A shoe manufacturer randomly selects 10% of the production from each shift. Each of these shoes is checked to ensure that it is correctly made. What is this process called?",
+    "Oil, coal, and natural gas are fossil fuels formed under what conditions?",
+    "Which of these best indicates that sediments can be changed into rock?",
+    "As Earth revolves around the Sun, the number of daylight hours varies from place to place. In which location would the number of daylight hours remain constant?",
+    "Which of these can be described as a system of stars, gases, dust, and other matter that orbits a common center of gravity?",
+    "How does ice change the shape of rocks?",
+    "Which will most likely cause a decrease in predator populations?",
+    "Which sentence about the periodic table of elements is true?",
+    "A student put 200 milliliters (mL) of water into a pot, sets the pot on a burner, and heats the water to boil. When the pot is taken off the burner, it contains only 180 milliliters (mL) of water. What happened to the rest of the water?",
+    "A class is studying textures and collects several samples. Which of these items would the students most likely use magnification to study?",
+    "Monarch butterflies use milkweed plants during all of their life stages. Milkweed plants grow in open areas, such as grasslands and wetlands. They also often grow between row crops. Given this information, which of these biotechnologies would pose the greatest threat to monarch butterflies?",
+    "What is the source of the organic matter needed for most fertile soils?",
+    "A drain cleaner consists of sodium hydroxide and aluminum. When the drain cleaner is added to water, bubbles of hydrogen are produced, and the solution becomes very hot. Which of these best describes what happens to form the bubbles when the cleaner is added to water? F",
+    "Which part of a plant cell is responsible for controlling the activities of the other parts of the cell?",
+    "An Earth year is the length of time it takes for",
+    "When large areas of the rainforests are cleared and burned, climate can be affected. Which best explains how rainforest destruction can contribute to the greenhouse effect?",
+    "Katia was listening to music on the radio. In order for the sound to be produced, the electrical energy must be converted into which type of energy?",
+    "The process of digestion breaks down proteins into smaller molecules that are used to rebuild other proteins. During digestion, proteins undergo",
+    "Which sequence correctly shows the levels of increasing organization in the human body?",
+    "Jessica watches the Sun set in the evening sky. What causes the setting of the Sun?",
+    "Which of the following describes an object that must have a net negative charge?",
+    "A large rock breaks into small pieces within 10 years. Which process is most likely responsible for breaking the large rock into small pieces within 10 years?",
+    "If you wanted to be able to look at the stars, the planets, and the Moon more closely, what should you use?",
+    "Which best describes why winds at the beach change direction between day and night?",
+    "Selective breeding has resulted in plants that are resistant to pests and produce a higher yield of fruits and vegetables. Which of these is the most likely disadvantage that can result from this process?",
+    "Which type of rock is formed when hot lava cools?",
+    "Which of the following is the best example of a custom-made product?",
+    "All these statements concerning galaxies are accurate except",
+    "Nerve cells transmitting messages to the body best demonstrate which primary function?",
+    "Different systems of the human body perform different functions. Which system takes oxygen from the air to be moved by the circulatory system?",
+    "Which of the following is an example of heat transfer by conduction?",
+    "Over time, non-volcanic mountains can form due to the interaction of plate boundaries. Which interaction is most likely associated with the formation of non-volcanic mountains?",
+    "During protein synthesis, mRNA is translated into three-base sequences representing amino acids. What signals the ribosome to begin translating the mRNA into a new amino acid sequence?",
+    "Nevada is much drier than regions in California that are at the same latitude. Compared to these regions in California, which feature of Nevada contributes most to this dry climate?",
+    "Which statement describes a method of sexual reproduction that occurs in plants?",
+    "The ratio of an object's mass to its volume is its",
+    "A strawberry farmer finds that, after a hard freeze, some of his strawberries are still alive. Which best explains why these strawberries were able to survive?",
+    "A student has a ball of clay that sinks when placed in a pan of water. Which property should he change to make the clay float?",
+    "Some plant species are more tolerant of acidic soil than others. The tolerant species are favored in areas affected by which consequence of human activity?",
+    "A condition in bees called \"colony collapse disorder\" occurs when worker bees leave the hive to collect nectar and never return. How would a decline in the bee population most likely affect a farm ecosystem?",
+    "In May 2007, wildfires burned more than 350 square miles of habitat in Florida and Georgia. Intense fires like this one can temporarily remove nitrogen, phosphorus, and potassium in area soil. What most likely happens in the burned areas until organic decay replenishes the lost nutrients?",
+    "Which of the following is the main role of flowers found on most flowering plants?",
+    "Which type of rock is formed when limestone is subjected to heat and pressure?",
+    "Biologists have discovered that the beluga whales of Canada's St. Lawrence River have the highest rates of cancer among animals. What is most likely the reason for this high incidence of cancer in these whales?",
+    "Many types of organisms live in a meadow. With the introduction of a large, swift-moving predator into the meadow ecosystem, which group of organisms will MOST likely have an advantage of surviving and reproducing?",
+    "Jennifer has collected rocks while hiking. As she attempts to classify her rocks, which will she put in the pile of sedimentary rocks?",
+    "A student heated a pan of soup on a stove. While stirring the soup with a metal spoon, the student noticed the spoon became very warm. What is the most likely reason the spoon became warm?",
+    "In 1987, a supernova was detected in the Large Magellanic Cloud galaxy, which is approximately 169,000 light years from Earth. Which event produces a supernova?",
+    "A layer of solid brittle rock comprises the outer 100 kilometers of Earth. This layer, which contains both the crust and the upper mantle, is called the",
+    "In what section of Earth do earthquakes happen?",
+    "When a dog smells food and begins drooling, it is responding to an external stimulus. Which of these describes a response to an internal stimulus?",
+    "The surface of Earth is constantly changing. Which of these findings provides the best evidence that the crustal surface of Earth has changed over time?",
+    "Which order of succession of natural communities would most likely occur in New York State?",
+    "A scientist studies the remains of two extinct animals to learn more about how they lived. She determines that one animal was a carnivore and the other was an herbivore. Which of the following did the scientist most likely compare to make this conclusion?",
+    "A rock has most likely traveled a long distance from its place of origin if it is",
+    "What is a galaxy?",
+    "A student describes a substance as lacking a definite shape. The description also states that the particles of matter are close to each other but still able to flow past each other. Which type of substance is the student most likely describing?",
+    "What is the primary source of energy for organisms from a beach ecosystem?",
+    "Which adaptation allows a fish to get oxygen underwater?",
+    "Which is the most basic unit of living things?",
+    "Which of these resources will most likely be depleted first?",
+    "Otto pushed a toy car across a floor. The car traveled fast across the wood, but it slowed to a stop on the carpet. Which best explains what happened when the car reached the carpet?",
+    "What characteristic of viruses distinguishes them from cells?",
+    "Plumes of water vapor have been observed rising from the southern polar region of Enceladus, one of the moons of Saturn. A team of scientists proposed an explanation for the plumes and developed a model. They also published calculations based on their model. These calculations would most likely be used for which purpose in future research?",
+    "Which measurement tool is used to find the volume of a small piece of granite?",
+    "The abundance of a mineral at the surface of Earth most likely depends upon the",
+    "Sodium chloride, commonly called \"table salt,\" is made up of sodium and chlorine that have been combined chemically. Which term best describes sodium chloride?",
+    "Which effect do rapidly cooling temperatures have on the water cycle?",
+    "In 1971, the bones of an extinct flying dinosaur were discovered. This kind of discovery helps everyone learn more about",
+    "Certain fossils can be used to help determine the age of the rock layer in which the fossils are found. Which type of fossil is best to use when making this determination?",
+    "When studying planetary data, Jackie found some similarities and differences among the planets that make up the solar system. Which generalization is true about the orbits of the major planets in the solar system?",
+    "Which are two parts of the carbon cycle?",
+    "Which process will separate the sugar from a mixture of sugar and water?",
+    "The stages of evolution of a star are determined by the mass of the star at the beginning of its life cycle. Which stage of evolution is the oldest form of a massive star?",
+    "Which of the following processes is an important part of star formation?",
+    "The smallest unit of a plant that can perform all of the processes of life is the",
+    "Changes to Earth's surface can happen slowly or quickly. Which of these changes happens the most quickly?",
+    "The work of which scientist serves as the basis for many procedures used in agriculture, such as selective breeding of plants?",
+    "Which of these would best help a scientist discover a new planet?",
+    "If Lisa wants to experiment with bean plants, which of these is the best example of a hypothesis?",
+    "The best example of heat transfer by convection is when"
+  ],
+  "choices": [
+    {
+      "text": [
+        "aluminum",
+        "copper",
+        "glass",
+        "wood"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "desert",
+        "grassland",
+        "arctic tundra",
+        "temperate forest"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "5.8 kilometers per hour",
+        "350 kilometers per hour",
+        "1400 kilometers per hour",
+        "84,000 kilometers per hour"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "one near the ocean",
+        "one with dry conditions",
+        "one with a variety of organisms",
+        "one that receives a lot of sunlight"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "Indian Ocean",
+        "interior of Africa",
+        "South Pole",
+        "Tropic of Cancer"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "putting them in the freezer",
+        "burning them with a candle",
+        "cutting them into small pieces",
+        "mixing them with pieces of copper"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "Pb(NO_{3})_{2}(aq) + 2NaI(aq) -> PbI_{2}(s) + 2NaNO_{3}(aq)",
+        "L_{2}N(aq) + SI(aq) -> L_{2}I(s) + SN(aq)",
+        "Pb_{2}N(aq) + NaI(aq) -> Pb_{2}I(s) NaN(aq)",
+        "Fe(NO_{3})_{2}(aq) + 2NaI(aq) -> FeI_{2} + 2NaNO_{3}(aq)"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "growth",
+        "development",
+        "reproduction",
+        "death"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "pandemic",
+        "plague",
+        "epidemic",
+        "infection"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "cladogram",
+        "DNA fingerprinting",
+        "gel electrophoresis",
+        "chromosomal analysis"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "How does wind affect the amount of fleas on dogs?",
+        "How does diet affect the amount of fleas on dogs?",
+        "How does rain affect the amount of fleas on dogs?",
+        "How does temperature affect the amount of fleas on dogs?"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "ozone",
+        "erosion",
+        "acid rain",
+        "nutrient runoff"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "vibration.",
+        "refraction.",
+        "momentum.",
+        "acceleration."
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "basalt",
+        "iron",
+        "magma",
+        "quartz"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "The acid boiled when poured into the beaker.",
+        "The acid and powder formed a new product.",
+        "A physical reaction produced a gas mixture.",
+        "A reaction occurred that produced heat."
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "the moon-like phases of Venus",
+        "the phases of Earth's moon",
+        "a lunar eclipse",
+        "a solar eclipse"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "sound energy to light energy",
+        "nuclear energy to light energy",
+        "electrical energy to light energy",
+        "magnetic energy to light energy"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "condense",
+        "evaporate",
+        "freeze",
+        "melt"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "reflected.",
+        "refracted.",
+        "absorbed.",
+        "diffracted."
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "exerts balanced forces that helps it from moving.",
+        "exerts a force equal to the weight of the hammer.",
+        "exerts an unbalanced force that changes its velocity.",
+        "exerts an equal and opposite force back on the hammer."
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "electrical",
+        "light",
+        "magnetic",
+        "sound"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "an ion",
+        "a nucleus",
+        "a neutron",
+        "an electron"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "June",
+        "March",
+        "December",
+        "September"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "process",
+        "span",
+        "change",
+        "cycle"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "dishwasher",
+        "refrigerator",
+        "electric mixer",
+        "microwave oven"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "A caribou herd migrates seasonally.",
+        "A scent trail leads ants to a food source.",
+        "A wolf pack howls to warn other wolves to stay away.",
+        "A honeybee society divides the work between its members."
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "lunar cycle.",
+        "weekly cycle.",
+        "daily cycle.",
+        "life cycle."
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "Fog and clouds",
+        "Rain and snow",
+        "Clouds and ice",
+        "Sunshine and rain"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "endothermic",
+        "exothermic",
+        "electrical",
+        "physical"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "runoff",
+        "evaporation",
+        "precipitation",
+        "transpiration"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "natural gas",
+        "oil",
+        "coal",
+        "wind"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "igneous intrusion",
+        "transport by water",
+        "chemical weathering",
+        "compaction by pressure"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "Earth's tilt on its axis",
+        "the Sun's tilt on its axis",
+        "Earth spinning on its axis",
+        "the Sun spinning on its axis"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "sodium",
+        "iron",
+        "sulfur",
+        "copper"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "erosion of sediment from a mountain range",
+        "mass extinction of marine organisms",
+        "formation of an ocean trench",
+        "melting of polar ice caps"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "a candle",
+        "a mirror",
+        "a flashlight",
+        "a television"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "aluminum.",
+        "lead.",
+        "gold.",
+        "brass."
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "Decomposition adds silt to soil.",
+        "Decomposition adds water to soil.",
+        "Decomposition adds oxygen to soil.",
+        "Decomposition adds nutrients to soil."
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "candle and moon",
+        "moon and mirror",
+        "sun and candle",
+        "mirror and sun"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "planets around other stars",
+        "black holes in deep space",
+        "moons around Jupiter",
+        "surface of Saturn"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "condensation",
+        "evaporation",
+        "precipitation",
+        "erosion"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "solid",
+        "liquid",
+        "gas",
+        "vacuum"
+      ],
+      "label": [
+        "1",
+        "2",
+        "3",
+        "4"
+      ]
+    },
+    {
+      "text": [
+        "the slight tilt of the Moon",
+        "the force of gravity from the Moon",
+        "the convection within Earth's mantle",
+        "the revolution of Earth around the Sun"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "Heat energy from the wax is converted into chemical and light energy.",
+        "Heat energy from the air is converted into mechanical and light energy.",
+        "Chemical energy from the wax is converted into light and heat energy.",
+        "Chemical energy from the air is converted into mechanical and light energy."
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "It increases.",
+        "It decreases.",
+        "It remains constant.",
+        "It is transferred out of the system."
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "The offspring have half the amount of genetic material as the parents.",
+        "The offspring contain genetic material from both parents.",
+        "The female offspring contain only genes from the mother.",
+        "The male offspring contain only genes from the father."
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "store fuel for later use.",
+        "regulate the amount of glucose in the blood.",
+        "increase the efficiency of fuel consumption.",
+        "prevent digestive bacteria from consuming glucose."
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "the Sun rotating on its axis",
+        "Earth rotating on its axis",
+        "Earth revolving around the Sun",
+        "the Moon revolving around Earth"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "a strong, sweet smell",
+        "a dry, rough texture",
+        "a green color",
+        "a smooth stem"
+      ],
+      "label": [
+        "1",
+        "2",
+        "3",
+        "4"
+      ]
+    },
+    {
+      "text": [
+        "They weather rocks with acid.",
+        "They strip the rocks of minerals.",
+        "They break rocks into small pieces.",
+        "They increase the density of the rocks."
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "iron",
+        "wood",
+        "plastic",
+        "petroleum"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "removing grass from the steepest slope.",
+        "building terraces into the sides of a slope.",
+        "heavily watering the vegetation on the slope.",
+        "increasing the slope of the land by adding more soil."
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "compaction and cementation",
+        "folding and recrystallization",
+        "melting and solidifying",
+        "heating and pressure"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "Higher levels of pesticide may be less effective.",
+        "The pesticides may break down quickly.",
+        "Water supplies can be contaminated by pesticide runoff.",
+        "The pesticide will increase the plant production."
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "using a paper filtering system",
+        "using chromatography",
+        "allowing the salt to settle",
+        "allowing the water to evaporate"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "skeletal and respiratory",
+        "digestive and respiratory",
+        "respiratory and circulatory",
+        "respiratory and reproductive"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "They take in water and break it down into hydrogen and oxygen.",
+        "Using their gills, they take in oxygen that is dissolved in water.",
+        "They get their oxygen from the food they eat.",
+        "They come to the surface every few minutes to breathe air into their lungs."
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "cells",
+        "molecules",
+        "atoms",
+        "compounds"
+      ],
+      "label": [
+        "1",
+        "2",
+        "3",
+        "4"
+      ]
+    },
+    {
+      "text": [
+        "flowers",
+        "fruits",
+        "leaves",
+        "roots"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "the ground to bacteria.",
+        "the Sun to plants.",
+        "plants to animals.",
+        "animals to air."
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "animals.",
+        "rocks and water.",
+        "living and nonliving things.",
+        "populations of plants and animals."
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "eating foods high in protein at a young age",
+        "having a brother or sister with blue eyes",
+        "being overexposed to the Sun at a young age",
+        "receiving a gene for blue eyes from each parent"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "soil",
+        "food",
+        "sunlight",
+        "water"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "higher levels of oxygen in the atmosphere",
+        "lower levels of ozone in the atmosphere",
+        "higher levels of carbon dioxide in the atmosphere",
+        "lower levels of nitrogen in the atmosphere"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "plan the new item",
+        "construct the new item",
+        "try out the new item",
+        "evaluate the new item"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "soil erosion",
+        "water pollution",
+        "wildlife extinction",
+        "global warming"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "water",
+        "a magnifying glass",
+        "a magnet",
+        "rubbing alcohol"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "reproduction",
+        "extinction",
+        "locomotion",
+        "regulation"
+      ],
+      "label": [
+        "1",
+        "2",
+        "3",
+        "4"
+      ]
+    },
+    {
+      "text": [
+        "their large, chemical-energy reserve",
+        "their large, stored-electric potential",
+        "the complexity of their folded structure",
+        "the wide variety of elements they include"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "extinction",
+        "mutation",
+        "selective breeding",
+        "natural selection"
+      ],
+      "label": [
+        "1",
+        "2",
+        "3",
+        "4"
+      ]
+    },
+    {
+      "text": [
+        "provide energy for consumers.",
+        "depend on other organisms for shelter.",
+        "break down dead animal matter.",
+        "consume nutrients for energy."
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "Some of the energy of the car was lost to friction.",
+        "Some of the energy of the car was destroyed.",
+        "The amount of kinetic energy increased.",
+        "The amount of useful energy increased."
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "Mars is much farther from the Sun than Earth.",
+        "The atmosphere on Mars has an extremely low density.",
+        "The atmosphere on Mars lacks global circulation.",
+        "Mars has more glacial activity than Earth."
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "eating and moving",
+        "moving and digesting",
+        "digesting and excreting",
+        "excreting and eating"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "carbon dioxide (CO2) and hydrogen (H2)",
+        "oxygen (O2) and carbon dioxide (CO2)",
+        "carbon dioxide (CO2) and water (H2O)",
+        "oxygen (O2) and water (H2O)"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "releasing heat to the atmosphere.",
+        "cooling bordering land masses.",
+        "providing continuous onshore winds.",
+        "removing water vapor from the atmosphere."
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "tissues, cells, organs, organ systems.",
+        "tissues, cells, organ systems, organs.",
+        "cells, tissues, organs, organ systems.",
+        "cells, tissues, organ systems, organs."
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "balance",
+        "magnifying glass",
+        "ruler",
+        "thermometer"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "ions and electrons",
+        "electrons and protons",
+        "protons and neutrons",
+        "neutrons and electrons"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "knowing the location where the fossils were found.",
+        "establishing an inventory of bones collected.",
+        "comparing to characteristics of known dinosaurs.",
+        "knowing the absolute age of the fossils."
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "a scale",
+        "a ruler",
+        "a hand lens",
+        "a balance scale"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "the amount of dissolved minerals in the water",
+        "the type of fibers from which her shirt was made",
+        "the temperature of the water",
+        "the fragrances in the detergent"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "place a cork in the mouth of the test tube.",
+        "point the mouth of the test tube away from others.",
+        "hold the test tube loosely with the fingertips.",
+        "shake the test tube forcefully to keep contents mixed."
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "speed the planets rotate.",
+        "other nearby planets.",
+        "volume of the planets.",
+        "distance between the planets."
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "providing structural support to muscles",
+        "carrying oxygen to cells",
+        "getting energy from food",
+        "sending messages to the brain"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "the age of the soil particles",
+        "the size of the soil particles",
+        "the color of the soil particles",
+        "the luster of the soil particles"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "electrons and neutrons",
+        "protons and electrons",
+        "neutrons and protons",
+        "ions and neutrons"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "the number of valence electrons",
+        "the charge of the compound",
+        "the mass of protons in each atom",
+        "the number of atoms of each element"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "It proves there is life on Mars.",
+        "It provides evidence there may be life on Mars.",
+        "It proves there was an advanced civilization on Mars.",
+        "It provides evidence of an advanced civilization on Mars."
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "from gas to liquid",
+        "from liquid to gas",
+        "from liquid to solid",
+        "from solid to liquid"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "lakes",
+        "oceans",
+        "rivers",
+        "glaciers"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "reflected sunlight",
+        "absorbed light from Earth's atmosphere",
+        "gases in the Moon's interior",
+        "volcanic eruptions on the Moon's surface"
+      ],
+      "label": [
+        "1",
+        "2",
+        "3",
+        "4"
+      ]
+    },
+    {
+      "text": [
+        "density",
+        "length",
+        "mass",
+        "volume"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "blood cell",
+        "nerve cell",
+        "brain cell",
+        "egg cell"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "write a chemical formula",
+        "write a chemical equation",
+        "describe the rearrangement of the atoms",
+        "describe the procedure for creating this change"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "mass",
+        "location",
+        "luminosity",
+        "temperature"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "an observation",
+        "a conclusion",
+        "a generalization",
+        "an assumption of the investigation",
+        "a hypothesis"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D",
+        "E"
+      ]
+    },
+    {
+      "text": [
+        "All matter gives off light.",
+        "All matter is attracted by magnets.",
+        "All matter is made of atoms.",
+        "All matter dissolves in water."
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "gas",
+        "solid",
+        "liquid",
+        "plasma"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "A bird's sharp beak",
+        "A cow's tail",
+        "A sea turtle's flippers",
+        "A black bear's fur"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "the high temperature and wind speed for six months",
+        "the high temperature and wind speed each day for one year",
+        "the temperature and precipitation every hour for one day",
+        "the average temperature and total precipitation each month for ten years"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "shining a light on rock in a bowl",
+        "shining a light through a prism",
+        "shining a light through a periscope",
+        "shining a light on a sundial"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "cytoskeleton and cell membrane",
+        "cytoplasm and Golgi apparatus",
+        "nucleus and endoplasmic reticulum",
+        "ribosome and central vacuole"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "over hunting",
+        "water pollution",
+        "airborne diseases",
+        "increased deforestation"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "the heat of the Sun",
+        "the speed of the wind",
+        "the temperature of the water in the pool",
+        "the amount of water vapor in the air"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "decreasing the mass of one object",
+        "decreasing the mass of both objects",
+        "moving the objects to one meter apart",
+        "moving the objects to three meters apart"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "storage of nuclear waste",
+        "increase in air pollution",
+        "increased use of pesticides",
+        "flooding in the Midwest"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "Nitrogen increases protein production in plants.",
+        "Nitrogen decreases protein production in plants.",
+        "Nitrogen decreases the effectiveness of photosynthesis.",
+        "Nitrogen increases the effectiveness of photosynthesis."
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "beakers",
+        "binoculars",
+        "safety goggles",
+        "microscopes"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "Protists, Fungi",
+        "Bacteria, Animals",
+        "Plants, Fungi",
+        "Animals, Fungi"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "glutamate.",
+        "glycerol.",
+        "glycolysis.",
+        "glucose."
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "The bird lived for a very short time.",
+        "The bird lived in a dry environment.",
+        "The bird existed at one time but is now extinct.",
+        "The bird was not well preserved during the process of fossilization."
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "All of the offspring will have red flowers.",
+        "All of the offspring will have white flowers.",
+        "The offspring will have either red or white flowers.",
+        "The offspring will have neither red nor white flowers."
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "measure the height of the tree",
+        "measure the thickness of the bark",
+        "count the number of rings in the trunk",
+        "count the branches growing from the trunk"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "a measurement",
+        "a prediction",
+        "an explanation",
+        "an observation"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "A nearby volcano is tall.",
+        "A nearby volcano is inactive.",
+        "A nearby volcano is about to erupt.",
+        "A nearby volcano had once been active."
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "Sun",
+        "wind",
+        "clouds",
+        "waves"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "a rusting car fender",
+        "a spinning top",
+        "a spilled bucket of water",
+        "a melting popsicle"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "a molecule",
+        "a membrane",
+        "a cell nucleus",
+        "a spiral-shaped cell"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "carbon dioxide gas",
+        "solid ice crystals",
+        "nitrogen compounds",
+        "ozone molecules"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "To be prepared for storms",
+        "To learn how fossils are formed",
+        "To see changing phases of the Moon",
+        "To find ways for animals to live longer"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "All scientific discoveries are based solely on observation and never experimentation.",
+        "Sometimes scientific discoveries are made by accident, like the discovery of penicillin.",
+        "If a scientist cannot provide the exact time and place his or her discovery was made, it is dismissed.",
+        "All scientific discoveries are regulated by government agencies, like the Food and Drug Administration."
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "digestive",
+        "circulatory",
+        "muscular",
+        "nervous"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "origin of the rocks.",
+        "use of the rocks.",
+        "size of the rocks.",
+        "hardness of the rocks."
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "meat-eaters",
+        "rocks",
+        "decomposers",
+        "cold temperatures"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "the development of thinner wires",
+        "the invention of lithium batteries",
+        "mass production of pacemaker parts",
+        "reducing the cost of producing pacemakers"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "A rubber band that is being stretched",
+        "A battery in a flashlight that is on",
+        "A candle that is burning"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C"
+      ]
+    },
+    {
+      "text": [
+        "the Grand Canyon",
+        "San Andreas Fault",
+        "the Rocky Mountains",
+        "Mount St. Helens Volcano"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "cold lake",
+        "desert sand",
+        "warm ocean",
+        "mountain rock"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "glass",
+        "metal",
+        "paper",
+        "plastic"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "provide nutrients for the growing corn plant",
+        "eliminate the need for weeding around the corn plant",
+        "release oxygen for use by the corn plant",
+        "supply all the water needed by the corn plant"
+      ],
+      "label": [
+        "1",
+        "2",
+        "3",
+        "4"
+      ]
+    },
+    {
+      "text": [
+        "inertia",
+        "gravity",
+        "initial speed",
+        "initial direction"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "Earth is the center of the universe.",
+        "the planets revolve around the Sun.",
+        "all stars eventually explode.",
+        "the universe has many galaxies."
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "oxygen",
+        "nitrogen",
+        "beryllium",
+        "magnesium"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "adaptations for flight",
+        "responses to stimuli",
+        "unnecessary body parts",
+        "reproductive structures"
+      ],
+      "label": [
+        "1",
+        "2",
+        "3",
+        "4"
+      ]
+    },
+    {
+      "text": [
+        "brain",
+        "cells",
+        "heart",
+        "nerves"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "They are invertebrates.",
+        "They have radial symmetry.",
+        "They are made of one segment.",
+        "They have an open circulatory system."
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "classifying",
+        "predicting",
+        "measuring",
+        "experimenting"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "stormy",
+        "sunny",
+        "snowy",
+        "hot"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "frequent tornadoes",
+        "ocean trade winds",
+        "winter snowstorms",
+        "temperature inversions"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "root growth",
+        "reproduction",
+        "photosynthesis",
+        "water absorption"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "the initial speed of a hurricane",
+        "the direction that the hurricane rotates",
+        "the number of hurricanes that form in a year",
+        "the temperature of the water below the hurricane"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "Bohr",
+        "Hooke",
+        "Mendel",
+        "Watson"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "only its protons",
+        "only its electrons",
+        "both its protons and neutrons",
+        "both its neutrons and electrons"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "net, gloves, specimen bags",
+        "beaker, calculator, graph paper",
+        "microscope, eye dropper, slides",
+        "measuring tape, thermometer, clipboard"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "quality control",
+        "product distribution",
+        "production selection",
+        "research and development"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "low temperature and high pressure",
+        "high temperature and high pressure",
+        "low temperature and low pressure",
+        "high temperature and low pressure"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "layers of sandstone",
+        "igneous intrusions",
+        "lava beds",
+        "mountains with gneiss"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "North Pole",
+        "Prime Meridian",
+        "Equator",
+        "Antarctica"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "an asteroid",
+        "a galaxy",
+        "a nebula",
+        "a comet"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "It dissolves the rocks by pooling on surfaces.",
+        "It breaks the rocks by expanding in openings.",
+        "It smooths the rocks by colliding with them.",
+        "It moves the rocks by pressing on them."
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "an increase in prey populations",
+        "a decrease in prey populations",
+        "a decrease in decomposers",
+        "an increase in producers"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "All elements in period 2 are metals.",
+        "All elements in group 18 are metals.",
+        "Metals are found on the left side of the periodic table.",
+        "Metals are found on the right side of the periodic table."
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "It was used up.",
+        "It condensed.",
+        "It was absorbed by the heat.",
+        "It turned into water vapor."
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "hair",
+        "cheese",
+        "plastic spoon",
+        "aluminum foil"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "development of new antibiotics",
+        "development of new herbicides",
+        "development of disease-resistant crops",
+        "development of insect-resistant crops"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "moving water",
+        "eroded sand",
+        "decaying plants",
+        "weathered bedrock"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "chemical reaction",
+        "Condensation",
+        "A physical change",
+        "Evaporation"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "Vacuole",
+        "Nucleus",
+        "Cell wall",
+        "Chloroplast"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "Earth to rotate once on its axis",
+        "the Moon to revolve once around Earth",
+        "the Sun to revolve once around Earth",
+        "Earth to revolve once around the Sun"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "by threatening native plants and animals",
+        "by increasing the rate of soil erosion",
+        "by increasing the water levels in oceans",
+        "by releasing carbon into the atmosphere"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "thermal energy",
+        "magnetic energy",
+        "chemical energy",
+        "mechanical energy"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "cell division.",
+        "nuclear reactions.",
+        "natural selection.",
+        "chemical changes."
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "tissues -> cells -> organ systems -> organs",
+        "cells -> tissues -> organs -> organ systems",
+        "organs -> organ systems -> cells -> tissues",
+        "organ systems -> organs -> tissues -> cells"
+      ],
+      "label": [
+        "1",
+        "2",
+        "3",
+        "4"
+      ]
+    },
+    {
+      "text": [
+        "The distance between Earth and the Sun is increasing.",
+        "The tilt of Earth on its axis is constantly changing.",
+        "Earth is revolving around the Sun.",
+        "Earth is rotating on its axis."
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "It contains more molecules than atoms.",
+        "It contains more electrons than protons.",
+        "It is carrying an electric current.",
+        "It is made of metal."
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "steady winds blowing throughout the years",
+        "gentle rain falling during each spring and fall",
+        "lack of rain falling during a four-year drought",
+        "water repeatedly freezing and thawing in a crack"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "Telescope",
+        "Periscope",
+        "Microscope",
+        "Magnifying glass"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "because the temperatures over land and over water change",
+        "because warm air over land sinks and stays in place over land",
+        "because cool air rises and is replaced by warm air from the ocean",
+        "because cool air sinks and stays in place over land"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "decreased genetic diversity",
+        "habitat destruction",
+        "overpopulation",
+        "increased erosion"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "coal",
+        "igneous",
+        "limestone",
+        "metamorphic"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "graphing calculator",
+        "light bulb",
+        "needle nose pliers",
+        "artificial leg"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "They contain millions of stars.",
+        "Most can be seen without a telescope.",
+        "They are millions of light-years apart.",
+        "Space contains several billion galaxies."
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "the transfer of energy",
+        "the exchange of gases",
+        "the elimination of waste",
+        "the absorption of nutrients"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "the respiratory system",
+        "the digestive system",
+        "the nervous system",
+        "the skeletal system"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "a whole metal spoon getting hot when one end is in hot soup",
+        "the inside of a car in the sun getting very hot",
+        "a tar road getting hotter in the sun than a concrete sidewalk",
+        "a fireplace fire heating a room on a cold day"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "oceanic plates colliding with oceanic plates",
+        "oceanic plates separating from oceanic plates",
+        "continental plates colliding with continental plates",
+        "continental plates separating from continental plates"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "a codon",
+        "enzymes",
+        "a mutation",
+        "temperature"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "mountain ranges to the west",
+        "high mean elevation",
+        "frequent earthquakes",
+        "soil with a high sand content"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "Stem cuttings are placed in water and grow roots.",
+        "Seeds are produced from the flower of the plant.",
+        "Underground stems from a plant grow into new plants.",
+        "A leaf falls to the soil, develops roots, and grows."
+      ],
+      "label": [
+        "1",
+        "2",
+        "3",
+        "4"
+      ]
+    },
+    {
+      "text": [
+        "area.",
+        "perimeter.",
+        "density.",
+        "weight."
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "They have larger leaves to protect the fruit than the other strawberries.",
+        "They have different genetic variations that cause them to be more resistant to cold temperatures.",
+        "They are able to reproduce more quickly than the other strawberries.",
+        "The color of the strawberries is darker, and they maintain their temperature better than other strawberries."
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "color",
+        "texture",
+        "mass",
+        "shape"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "mixing of pollutants with rain",
+        "erosion of topsoil by clearcutting",
+        "runoff of fertilizer used in farming",
+        "thinning of the atmospheric ozone layer"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "There would be a decrease in soil thickness.",
+        "There would be a decline in fruit production.",
+        "There would be an increase in plant diseases.",
+        "There would be an increase in insect pest populations."
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "Consumers take on the ecological role of producers.",
+        "Only secondary consumers obtain the resources they need.",
+        "The carrying capacity of the soil for plant growth is reduced.",
+        "The remaining organisms in the area become more territorial."
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "to take in air",
+        "to produce seeds",
+        "to absorb nutrients",
+        "to protect the stem"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "sandstone",
+        "basalt",
+        "marble",
+        "granite"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "chemical and pollutant runoff into the ocean",
+        "average temperatures increased in the region",
+        "depletion of natural prey from the ecosystem",
+        "increased levels of carbon dioxide in the atmosphere"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "mice that have the thickest fur",
+        "foxes that have the largest ears",
+        "gophers that dig the deepest holes",
+        "rabbits that can run the fastest"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "Black-and-gray crystalline rocks",
+        "Shiny rocks with smooth textures",
+        "Rocks with visible pieces of shells in them",
+        "Rocks with small interlocking crystals in them"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "The stirring action heated the spoon.",
+        "Warm air in the room heated the spoon.",
+        "Heat from the soup was transferred to the spoon.",
+        "The student's hand transferred heat to the spoon."
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "the explosion of a massive star",
+        "the birth of a main-sequence star",
+        "the collapse of a medium-sized star",
+        "the collision of one star with another"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "core.",
+        "sediment.",
+        "lithosphere.",
+        "hemisphere."
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "crust",
+        "mantle",
+        "inner core",
+        "outer core"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "A cat sees a mouse and crouches.",
+        "A parrot hears a name and repeats it.",
+        "A person eats spoiled food and vomits.",
+        "A worm senses water and moves to the surface."
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "Some rock layers are very thick.",
+        "Some species have become extinct.",
+        "Marine fossils are found in mountain areas.",
+        "Igneous rock is found on all tectonic plates."
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "grasses -> trees -> bushes",
+        "trees -> bushes -> grasses",
+        "bushes -> grasses -> trees",
+        "grasses -> bushes -> trees"
+      ],
+      "label": [
+        "1",
+        "2",
+        "3",
+        "4"
+      ]
+    },
+    {
+      "text": [
+        "the number of bones in the animals",
+        "the size of the animals",
+        "the body covering of the animals",
+        "the skull of the animals"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "very small.",
+        "rounded and smooth.",
+        "partially faded.",
+        "rough and dense."
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "a moon that orbits a planet",
+        "a planet that orbits the Sun",
+        "a very large system of stars that is held together by gravity",
+        "a very large system of planets that is held together by the Sun"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "solid",
+        "liquid",
+        "mixture",
+        "compound"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "sand",
+        "oxygen",
+        "the Sun",
+        "the ocean"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "fins",
+        "lungs",
+        "gills",
+        "heart"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "Cells",
+        "Bones",
+        "Tissues",
+        "Organs"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "Wind",
+        "Solar energy",
+        "Fossil fuels",
+        "Water"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "Inertia decreased.",
+        "Gravity increased.",
+        "Friction increased.",
+        "Magnetism decreased."
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "They do not have hereditary material.",
+        "They are not separated from their environments.",
+        "They lack an independent metabolism.",
+        "Their traits do not evolve in response to selection pressures."
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "testing the hypothesis",
+        "evaluating similar events",
+        "mapping routes for exploration",
+        "checking the validity of observations"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "thermometer",
+        "metric ruler",
+        "graduated cylinder",
+        "triple beam balance"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "climate of a particular region.",
+        "types of elements available in the crust.",
+        "thicknesses of nearby rock layers.",
+        "exposure of the elements to the environment."
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "Acid",
+        "Atom",
+        "Element",
+        "Compound"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "Water droplets evaporate into vapor.",
+        "Water vapor condenses into droplets.",
+        "Condensation evaporates into precipitation.",
+        "Precipitation condenses into water droplets."
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "impact of humans on Earth.",
+        "effect of gravity on animals.",
+        "history of animal species on Earth.",
+        "likelihood that dinosaurs will reappear."
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "marine mammal fossil",
+        "swamp fern fossil",
+        "trace fossil",
+        "index fossil"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "Planetary orbits have the same plane.",
+        "Planetary orbits are mostly elliptical in shape.",
+        "Planets orbit at the same speed around the Sun.",
+        "Planets orbit in different directions around the Sun."
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "freezing and thawing",
+        "growth and reproduction",
+        "evaporation and precipitation",
+        "photosynthesis and respiration"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "Stirring the mixture",
+        "Evaporating the water",
+        "Adding more water",
+        "Adding more sugar"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "red giant",
+        "supernova",
+        "neutron star",
+        "white dwarf"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "nuclear fusion",
+        "nuclear fission",
+        "molecular fusion",
+        "molecular fission"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "leaf.",
+        "cell.",
+        "tissue.",
+        "root."
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "a mountain eroding to a hill",
+        "a river making a delta",
+        "a glacier making a canyon",
+        "a storm moving a sandbar"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "Darwin",
+        "Mendel",
+        "Einstein",
+        "Pasteur"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "making a model of outer space",
+        "asking questions to other scientists",
+        "collecting information about planets",
+        "looking at the night sky with a telescope"
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "Bean plants come in many types.",
+        "Fertilizer is good for bean plants.",
+        "All bean plants are related to each other.",
+        "Fertilizer will make bean plants grow taller."
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "text": [
+        "sunlight warms soil.",
+        "a ceiling fan blows air.",
+        "flames heat up a pan.",
+        "heat rises in a chimney."
+      ],
+      "label": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    }
+  ],
+  "answerKey": [
+    "D",
+    "C",
+    "B",
+    "B",
+    "C",
+    "B",
+    "A",
+    "C",
+    "C",
+    "D",
+    "D",
+    "C",
+    "A",
+    "B",
+    "B",
+    "A",
+    "C",
+    "D",
+    "A",
+    "D",
+    "D",
+    "B",
+    "A",
+    "B",
+    "B",
+    "C",
+    "D",
+    "D",
+    "B",
+    "A",
+    "D",
+    "A",
+    "A",
+    "B",
+    "D",
+    "C",
+    "D",
+    "D",
+    "C",
+    "C",
+    "B",
+    "4",
+    "B",
+    "C",
+    "C",
+    "B",
+    "B",
+    "B",
+    "3",
+    "A",
+    "B",
+    "B",
+    "A",
+    "C",
+    "D",
+    "C",
+    "B",
+    "3",
+    "D",
+    "B",
+    "C",
+    "D",
+    "B",
+    "C",
+    "A",
+    "D",
+    "C",
+    "4",
+    "C",
+    "3",
+    "A",
+    "A",
+    "B",
+    "A",
+    "C",
+    "A",
+    "C",
+    "D",
+    "C",
+    "C",
+    "C",
+    "C",
+    "B",
+    "D",
+    "B",
+    "B",
+    "B",
+    "D",
+    "B",
+    "B",
+    "B",
+    "1",
+    "A",
+    "D",
+    "B",
+    "A",
+    "A",
+    "C",
+    "D",
+    "C",
+    "D",
+    "B",
+    "A",
+    "A",
+    "C",
+    "C",
+    "B",
+    "A",
+    "B",
+    "D",
+    "D",
+    "C",
+    "C",
+    "C",
+    "D",
+    "D",
+    "A",
+    "A",
+    "A",
+    "B",
+    "A",
+    "B",
+    "C",
+    "A",
+    "C",
+    "B",
+    "A",
+    "A",
+    "C",
+    "D",
+    "1",
+    "B",
+    "B",
+    "A",
+    "1",
+    "B",
+    "A",
+    "A",
+    "B",
+    "B",
+    "C",
+    "D",
+    "D",
+    "C",
+    "C",
+    "A",
+    "B",
+    "A",
+    "C",
+    "B",
+    "B",
+    "B",
+    "C",
+    "D",
+    "A",
+    "B",
+    "C",
+    "A",
+    "B",
+    "D",
+    "D",
+    "D",
+    "D",
+    "2",
+    "D",
+    "B",
+    "D",
+    "A",
+    "A",
+    "A",
+    "B",
+    "D",
+    "B",
+    "A",
+    "A",
+    "A",
+    "C",
+    "A",
+    "A",
+    "2",
+    "C",
+    "B",
+    "D",
+    "A",
+    "B",
+    "C",
+    "B",
+    "C",
+    "A",
+    "D",
+    "C",
+    "C",
+    "A",
+    "C",
+    "A",
+    "C",
+    "C",
+    "4",
+    "D",
+    "B",
+    "C",
+    "B",
+    "C",
+    "C",
+    "A",
+    "C",
+    "C",
+    "C",
+    "B",
+    "C",
+    "B",
+    "D",
+    "B",
+    "C",
+    "D",
+    "B",
+    "D",
+    "B",
+    "C",
+    "A",
+    "B",
+    "D",
+    "B",
+    "D",
+    "D",
+    "D"
+  ],
+  "text": [
+    "Which of the following materials would best slow the transfer of heat?",
+    "In which environment is white fur color an advantage for survival?",
+    "The mathematical model for calculating speed is shown below. Speed = distance/time. An airplane traveled 700 kilometers in two hours during a trip. What was the average speed of the plane during the trip?",
+    "The aloe plant can absorb a lot of water during a rain shower. The extra water is stored in its leaves. The ability to store water in its leaves is most likely an adaptation to which type of environment?",
+    "Near Earth's equator, water generally exists naturally in the liquid and gas states. In which other part of Earth is water usually found naturally in only two states?",
+    "Magnesium strips are long, thin strips that are gray and shiny. Which action will lead to a chemical change of magnesium strips?",
+    "A solution of lead (II) nitrate reacts with a solution of sodium iodide to produce a yellow solid of lead (II) iodide and aqueous sodium nitrate. Which of these illustrates the reaction?",
+    "The stages in the life cycle of an organism are shown below. birth -> growth -> development -> reproduction -> death In which life cycle stage will a new organism be made?",
+    "A city has an outbreak of a disease that affects an unusually large portion of its population at the same time. Which term best describes the outbreak?",
+    "Which technique will researchers studying the inheritance patterns of various disorders most likely use?",
+    "A student notices dogs have more fleas in the summer than in the winter. Based on these observations, which is the most logical question for the student to investigate?",
+    "Sulfur scrubbers are devices installed in coal-fired power plants. Sulfur scrubbers reduce the emission of sulfur dioxide. What environmental problem are sulfur scrubbers most likely trying to address?",
+    "The sound heard when a piano key is hit is caused by",
+    "Earth's core is primarily composed of which of the following materials?",
+    "A chemist observed bubbling and fizzing after adding an acid solution to a white powdery substance in a beaker. Which of the following can be inferred?",
+    "Which of the following can only be seen with a telescope?",
+    "When a light bulb is turned on, energy changes from one form to another. Which of the following best describes this change?",
+    "An area received six inches of snow during the winter. Before the snow can continue through the water cycle as ground water or runoff, it must first ___.",
+    "When light is bounced off a mirror, the light is",
+    "When a hammer strikes a nail, the nail",
+    "Which of the following forms of energy can travel by vibrating particles of air?",
+    "If the solar system were used as a model of an atom, what would the Sun most likely represent?",
+    "In New York State, the longest period of daylight occurs during which month?",
+    "Some butterflies live an average of two weeks. This period of time is called a life",
+    "Which invention has technology that helps people keep food fresh for a long period of time?",
+    "Which behavior can help animals establish a territory?",
+    "The continuous changes of a seed to an adult plant that produces seeds is known as a",
+    "Which pair together could cause a rainbow?",
+    "What type of chemical reaction occurs when the body breaks down fats and sugars that supply it with energy?",
+    "Increased nutrient levels in lakes can cause ecological changes that result in the death of many fish. At what point in the hydrological cycle are most nutrients deposited into lakes?",
+    "Which of these resources is renewable?",
+    "Vein deposits of gold and silver are often formed in areas that have experienced which geologic process?",
+    "The length of daylight changes as the seasons change during the year. What causes these changes in daylight?",
+    "In a mixture, a magnet is used to separate some particles from sand. The dark particles are most likely made of which element?",
+    "Over geologic time, global mean sea level has varied significantly. Which change is most likely responsible for an increase in global mean sea level?",
+    "In which object does chemical energy most likely transform into electrical energy?",
+    "Sterling silver is a combination of silver and copper. Which of the following is also a combination of two or more metals?",
+    "Which of the following statements best explains how the decomposition of plant and animal matter helps to form rich soils?",
+    "Which two objects produce their own light?",
+    "Which of the following is visible through a reflecting telescope?",
+    "Base your answers on the information below. One hot, summer day it rained very heavily. After the rain, a plastic pan on a picnic table had 2 cm of rainwater in it. Four hours later, all the rainwater in the pan was gone. Which process caused the rainwater in the pan to disappear as it sat outside in the hot air?",
+    "Sound will not travel in a",
+    "Which of the following is a cause of the ocean levels periodically rising and then falling?",
+    "Which statement best describes the energy transformations that occur when a candle burns?",
+    "In a closed system, what happens to the total energy of the system as energy conversions take place?",
+    "Which sentence describes a characteristic of offspring produced by sexual reproduction?",
+    "The primary function of insulin in our bodies is to",
+    "What causes nighttime and daytime on Earth?",
+    "Which observation of a plant supports the inference that photosynthesis can take place?",
+    "Before rock can become soil, it must undergo certain processes. One process in the formation of soil involves plants. How can plants chemically change rocks into soil?",
+    "Which resource is most likely found in large amounts in forest ecosystems?",
+    "Soil erosion can be best prevented by",
+    "Most sedimentary rock is made from sediments of other rock. Which of these processes would the sediments most likely go through to form sedimentary rock?",
+    "When using more than the recommended amounts of pesticide on farmland, yards, and gardens, what is most likely to occur?",
+    "Which of these will best separate a saltwater solution?",
+    "Which two body systems work together to transport oxygen to the cells?",
+    "How do most fish get the oxygen they need to survive?",
+    "All matter is made up of particles called",
+    "Which part of a strawberry plant absorbs most of the water needed by the plant?",
+    "When a volcano erupts, dust and ash are blown into the atmosphere. The eruption directly reduces the transfer of energy from",
+    "An ocean, a forest, and a grassy meadow are each examples of a complete ecosystem. Complete ecosystems contain only",
+    "What causes a person to have blue eyes?",
+    "The human body gets the energy it needs for growth and repair directly from",
+    "The average temperature of the surface of Earth has increased approximately 1°C in the past century. Which reason best explains this increase in temperature?",
+    "Alicia has lots of old bicycle parts. She wants to build something new with the parts. What is the first thing Alicia should do?",
+    "Gasoline for cars is produced from fossil fuels. Using gasoline can most likely lead to which environmental problem?",
+    "Which of these will best separate iron filings from sand?",
+    "Which term describes an organism's ability to maintain a stable internal environment?",
+    "Which property of proteins best allows them to perform an enormously diverse range of functions?",
+    "A research team wanted to produce a smaller variety of German shepherd dogs. They mated the smallest dogs from different litters for several generations. This is an example of which concept?",
+    "The primary reason that plants are important for an ecosystem is because they",
+    "A car runs out of fuel while traveling on a level road and eventually comes to a stop. Which of the following best explains why the car stops?",
+    "The atmosphere of Mars is almost entirely composed of a greenhouse gas. Compared with Earth, which factor accounts for the low, nighttime surface temperatures on Mars?",
+    "Oscar and Andre used a microscope to observe a sample of pond water and drew an example of each type of organism they saw. Then they compared their drawings. They discovered that their drawings of a euglena and a paramecium were alike, but their amoeba drawings had very different shapes. What are two things that Oscar's amoeba could have been doing that made his drawing look different from Andre's?",
+    "During photosynthesis, plants absorb light energy from the Sun and convert it into chemical energy in the form of glucose. Which compounds combine in the presence of sunlight to form glucose?",
+    "The oceans most influence global climate by",
+    "From smallest to largest, the levels of organization in living things are",
+    "The water in a pond gets colder one night. Which tool is best to observe its temperature change?",
+    "What is the composition of the nucleus of an atom?",
+    "Several dinosaur bones are discovered buried in volcanic ash. The type of dinosaur can best be identified by",
+    "Which tool should be used to compare the growth of an algal colony growing in a petri dish?",
+    "Estella spilled tomato sauce on her shirt. When she washed her shirt, she noticed that the detergent she used contained enzymes. Enzymes are added to detergents to break down proteins from food and other substances that may stain clothing. Which would most likely inhibit the ability of the enzymes to remove the stain on her shirt?",
+    "An important rule for students to know when heating a test tube is to",
+    "The magnitude of the gravitational force between two planets depends on the",
+    "Mr. Mendoza's class studied different body systems. What is an important function of the circulatory system?",
+    "Which of the following has the greatest effect on the ability of soil to hold water?",
+    "When an atom has a neutral charge, which particles within the atom have equal numbers?",
+    "The chemical formula for water is H_{2}O. What does the formula show about each element in the compound?",
+    "What is significant about the discovery of water on Mars?",
+    "Jonathan places a pot of water on a stove. As the water boils, how does the state of the water change?",
+    "Humans cannot survive without clean, fresh water. Reservoirs of liquid water vary, but all water spends time as a gas in the atmosphere. What is the source of most of the water in the atmosphere?",
+    "The Moon is visible to observers on Earth because of",
+    "Paula determines a property of a marble using a balance and a graduated cylinder. What property is Paula most likely determining by using both tools?",
+    "A new mutation that occurs in which type of cell can be passed on to offspring?",
+    "Hydrogen gas and oxygen gas combine to form water. Which would be a more concise way of expressing what happens in this chemical reaction?",
+    "All stars start forming in the same manner. Some follow the life cycle of the Sun, while others turn into neutron stars or black holes. Which property determines the fate of a star as it develops?",
+    "Maria collected the gas given off by a glowing piece of charcoal. The gas was then bubbled through a small amount of colorless limewater. Part of Maria's report stated, \"After the gas was put into the jar, the limewater gradually changed to a milky white color.\" This statement is",
+    "Which of these describes a property of all matter?",
+    "The temperature in a hot star is high enough to pull electrons away from atoms. What state of matter results from this process?",
+    "Which of the following animal features most helps the animal move around in its habitat?",
+    "Which of the following best describes the climate of an area?",
+    "Which model best illustrates the wave property that enables scientists to explore Earth's interior using seismic waves?",
+    "In eukaryotic organisms, interaction between which organelles is most important for cell shape, tensile strength, and communication between cells?",
+    "The populations of black rhinoceroses have been impacted by human interactions to the point of being endangered. Which interaction best explains why the black rhino is now endangered?",
+    "Freda always hangs her wet swimsuit outdoors after getting out of the swimming pool. Which of the following is least likely to affect the rate at which Freda's swimsuit dries?",
+    "If two objects are two meters apart, which of these changes will increase the gravitational force between the two objects?",
+    "Which environmental problem was directly caused by the invention of the automobile?",
+    "Which best explains the importance of nitrogen in the cycling of energy and matter?",
+    "A science class is taking a field trip to a forest to observe and study birds. Which tool would be most helpful for observing birds?",
+    "Which set contains kingdoms that contain only heterotrophs?",
+    "The energy required to lift an object is supplied by ATP derived from the breakdown of molecules of",
+    "A complete fossil has been found of a type of bird that cannot be identified. What can most likely be determined about the bird from the fossil?",
+    "A scientist crosses a red-flowered plant with a white-flowered plant, and all offspring have red flowers. What will most likely result if these red-flowered offspring are crossed with white-flowered plants?",
+    "A large tree was cut down with a saw. What is the best way to estimate the age of this tree?",
+    "On a field trip, a student holds a frog and reports that it has slippery skin. This is an example of",
+    "Students studying rocks notice that in a particular location there are many igneous rocks that are very similar. This observation best supports which statement?",
+    "The first step in the water cycle is evaporation. What gives water the energy to evaporate?",
+    "Which is an example of a chemical change?",
+    "DNA stores the genetic instructions transferred from one generation to the next. What is DNA?",
+    "High-altitude cirrus clouds are primarily formed from which substance?",
+    "Which of these is the BEST reason to study weather?",
+    "Which is true of scientific discoveries?",
+    "The systems of the human body work together. Which system works with the skeletal system by pulling on the bones to create movement?",
+    "Rocks can be classified many different ways, including as igneous, metamorphic, and sedimentary. This classification is based on the",
+    "Which of the following helps the leaves break down after they have fallen off the tree?",
+    "An artificial pacemaker is a device that regulates the beat of the heart by an electrical stimulus. Some early pacemakers were powered by batteries and were worn externally with wires passing through the skin to the surface of the heart. Modern pacemakers are now much smaller and are implanted surgically. Which most likely has increased the lifespan and effectiveness of artificial pacemakers?",
+    "Which object below is gaining stored energy?",
+    "Moving water was the most important factor in forming which of these?",
+    "Which habitat on Earth would probably 28 add the greatest amount of water to the water cycle through evaporation?",
+    "A manufacturer wants to produce a container for food storage that does not break easily and is airtight, inexpensive, and microwave-safe. Which of the following is the best material to use to make the container?",
+    "In the past, Native American Indians buried dead fish along with corn seeds. This technique was used because the decomposing dead fish would",
+    "What causes a free falling object to accelerate?",
+    "In 1609, Galileo Galilei used lenses to construct the first telescope. His telescope allowed him to observe many objects in space. His invention of the telescope and the data he gathered directly contributed to the understanding that",
+    "Which element is most likely to form an ion with a negative 2 charge?",
+    "Feathers, wings, and the hollow bones of birds are examples of",
+    "Where do many of the basic life functions take place in organisms?",
+    "Which conclusion can be made about earthworms because they do not have an internal skeleton?",
+    "Students are studying some leaves. They group the leaves by shape. Which science process are the students using when they put the leaves in different groups?",
+    "On a cold, cloudy day, the local weather forecaster predicts that a high-pressure system will be moving into the area in the next 24 hours. Which weather conditions will this system most likely bring to the area?",
+    "Which of these events have the most influence on regional climate?",
+    "Janet learns that Earth is tilted. Due to its tilt, some areas on the surface of Earth experience darkness for an entire day. Which plant process is affected most during this darkness?",
+    "Meteorologists categorize hurricanes based on the Saffir-Simpson scale. The scale measures the intensity and destructive potential of hurricanes. Which factor has the most significant effect on the strength of a hurricane?",
+    "A scientist developed a model that described the actions of DNA in the cell nuclei, which helped explain how traits were inherited. Which scientist helped develop this model?",
+    "A student needs to find the mass of an atom. The numbers of which atomic particles determines the mass of the atom?",
+    "Which set of equipment would be best to use when investigating what is found in a sample of pond water?",
+    "A shoe manufacturer randomly selects 10% of the production from each shift. Each of these shoes is checked to ensure that it is correctly made. What is this process called?",
+    "Oil, coal, and natural gas are fossil fuels formed under what conditions?",
+    "Which of these best indicates that sediments can be changed into rock?",
+    "As Earth revolves around the Sun, the number of daylight hours varies from place to place. In which location would the number of daylight hours remain constant?",
+    "Which of these can be described as a system of stars, gases, dust, and other matter that orbits a common center of gravity?",
+    "How does ice change the shape of rocks?",
+    "Which will most likely cause a decrease in predator populations?",
+    "Which sentence about the periodic table of elements is true?",
+    "A student put 200 milliliters (mL) of water into a pot, sets the pot on a burner, and heats the water to boil. When the pot is taken off the burner, it contains only 180 milliliters (mL) of water. What happened to the rest of the water?",
+    "A class is studying textures and collects several samples. Which of these items would the students most likely use magnification to study?",
+    "Monarch butterflies use milkweed plants during all of their life stages. Milkweed plants grow in open areas, such as grasslands and wetlands. They also often grow between row crops. Given this information, which of these biotechnologies would pose the greatest threat to monarch butterflies?",
+    "What is the source of the organic matter needed for most fertile soils?",
+    "A drain cleaner consists of sodium hydroxide and aluminum. When the drain cleaner is added to water, bubbles of hydrogen are produced, and the solution becomes very hot. Which of these best describes what happens to form the bubbles when the cleaner is added to water? F",
+    "Which part of a plant cell is responsible for controlling the activities of the other parts of the cell?",
+    "An Earth year is the length of time it takes for",
+    "When large areas of the rainforests are cleared and burned, climate can be affected. Which best explains how rainforest destruction can contribute to the greenhouse effect?",
+    "Katia was listening to music on the radio. In order for the sound to be produced, the electrical energy must be converted into which type of energy?",
+    "The process of digestion breaks down proteins into smaller molecules that are used to rebuild other proteins. During digestion, proteins undergo",
+    "Which sequence correctly shows the levels of increasing organization in the human body?",
+    "Jessica watches the Sun set in the evening sky. What causes the setting of the Sun?",
+    "Which of the following describes an object that must have a net negative charge?",
+    "A large rock breaks into small pieces within 10 years. Which process is most likely responsible for breaking the large rock into small pieces within 10 years?",
+    "If you wanted to be able to look at the stars, the planets, and the Moon more closely, what should you use?",
+    "Which best describes why winds at the beach change direction between day and night?",
+    "Selective breeding has resulted in plants that are resistant to pests and produce a higher yield of fruits and vegetables. Which of these is the most likely disadvantage that can result from this process?",
+    "Which type of rock is formed when hot lava cools?",
+    "Which of the following is the best example of a custom-made product?",
+    "All these statements concerning galaxies are accurate except",
+    "Nerve cells transmitting messages to the body best demonstrate which primary function?",
+    "Different systems of the human body perform different functions. Which system takes oxygen from the air to be moved by the circulatory system?",
+    "Which of the following is an example of heat transfer by conduction?",
+    "Over time, non-volcanic mountains can form due to the interaction of plate boundaries. Which interaction is most likely associated with the formation of non-volcanic mountains?",
+    "During protein synthesis, mRNA is translated into three-base sequences representing amino acids. What signals the ribosome to begin translating the mRNA into a new amino acid sequence?",
+    "Nevada is much drier than regions in California that are at the same latitude. Compared to these regions in California, which feature of Nevada contributes most to this dry climate?",
+    "Which statement describes a method of sexual reproduction that occurs in plants?",
+    "The ratio of an object's mass to its volume is its",
+    "A strawberry farmer finds that, after a hard freeze, some of his strawberries are still alive. Which best explains why these strawberries were able to survive?",
+    "A student has a ball of clay that sinks when placed in a pan of water. Which property should he change to make the clay float?",
+    "Some plant species are more tolerant of acidic soil than others. The tolerant species are favored in areas affected by which consequence of human activity?",
+    "A condition in bees called \"colony collapse disorder\" occurs when worker bees leave the hive to collect nectar and never return. How would a decline in the bee population most likely affect a farm ecosystem?",
+    "In May 2007, wildfires burned more than 350 square miles of habitat in Florida and Georgia. Intense fires like this one can temporarily remove nitrogen, phosphorus, and potassium in area soil. What most likely happens in the burned areas until organic decay replenishes the lost nutrients?",
+    "Which of the following is the main role of flowers found on most flowering plants?",
+    "Which type of rock is formed when limestone is subjected to heat and pressure?",
+    "Biologists have discovered that the beluga whales of Canada's St. Lawrence River have the highest rates of cancer among animals. What is most likely the reason for this high incidence of cancer in these whales?",
+    "Many types of organisms live in a meadow. With the introduction of a large, swift-moving predator into the meadow ecosystem, which group of organisms will MOST likely have an advantage of surviving and reproducing?",
+    "Jennifer has collected rocks while hiking. As she attempts to classify her rocks, which will she put in the pile of sedimentary rocks?",
+    "A student heated a pan of soup on a stove. While stirring the soup with a metal spoon, the student noticed the spoon became very warm. What is the most likely reason the spoon became warm?",
+    "In 1987, a supernova was detected in the Large Magellanic Cloud galaxy, which is approximately 169,000 light years from Earth. Which event produces a supernova?",
+    "A layer of solid brittle rock comprises the outer 100 kilometers of Earth. This layer, which contains both the crust and the upper mantle, is called the",
+    "In what section of Earth do earthquakes happen?",
+    "When a dog smells food and begins drooling, it is responding to an external stimulus. Which of these describes a response to an internal stimulus?",
+    "The surface of Earth is constantly changing. Which of these findings provides the best evidence that the crustal surface of Earth has changed over time?",
+    "Which order of succession of natural communities would most likely occur in New York State?",
+    "A scientist studies the remains of two extinct animals to learn more about how they lived. She determines that one animal was a carnivore and the other was an herbivore. Which of the following did the scientist most likely compare to make this conclusion?",
+    "A rock has most likely traveled a long distance from its place of origin if it is",
+    "What is a galaxy?",
+    "A student describes a substance as lacking a definite shape. The description also states that the particles of matter are close to each other but still able to flow past each other. Which type of substance is the student most likely describing?",
+    "What is the primary source of energy for organisms from a beach ecosystem?",
+    "Which adaptation allows a fish to get oxygen underwater?",
+    "Which is the most basic unit of living things?",
+    "Which of these resources will most likely be depleted first?",
+    "Otto pushed a toy car across a floor. The car traveled fast across the wood, but it slowed to a stop on the carpet. Which best explains what happened when the car reached the carpet?",
+    "What characteristic of viruses distinguishes them from cells?",
+    "Plumes of water vapor have been observed rising from the southern polar region of Enceladus, one of the moons of Saturn. A team of scientists proposed an explanation for the plumes and developed a model. They also published calculations based on their model. These calculations would most likely be used for which purpose in future research?",
+    "Which measurement tool is used to find the volume of a small piece of granite?",
+    "The abundance of a mineral at the surface of Earth most likely depends upon the",
+    "Sodium chloride, commonly called \"table salt,\" is made up of sodium and chlorine that have been combined chemically. Which term best describes sodium chloride?",
+    "Which effect do rapidly cooling temperatures have on the water cycle?",
+    "In 1971, the bones of an extinct flying dinosaur were discovered. This kind of discovery helps everyone learn more about",
+    "Certain fossils can be used to help determine the age of the rock layer in which the fossils are found. Which type of fossil is best to use when making this determination?",
+    "When studying planetary data, Jackie found some similarities and differences among the planets that make up the solar system. Which generalization is true about the orbits of the major planets in the solar system?",
+    "Which are two parts of the carbon cycle?",
+    "Which process will separate the sugar from a mixture of sugar and water?",
+    "The stages of evolution of a star are determined by the mass of the star at the beginning of its life cycle. Which stage of evolution is the oldest form of a massive star?",
+    "Which of the following processes is an important part of star formation?",
+    "The smallest unit of a plant that can perform all of the processes of life is the",
+    "Changes to Earth's surface can happen slowly or quickly. Which of these changes happens the most quickly?",
+    "The work of which scientist serves as the basis for many procedures used in agriculture, such as selective breeding of plants?",
+    "Which of these would best help a scientist discover a new planet?",
+    "If Lisa wants to experiment with bean plants, which of these is the best example of a hypothesis?",
+    "The best example of heat transfer by convection is when"
+  ],
+  "label": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+  ],
+  "full_text": [
+    "Which of the following materials would best slow the transfer of heat?",
+    "In which environment is white fur color an advantage for survival?",
+    "The mathematical model for calculating speed is shown below. Speed = distance/time. An airplane traveled 700 kilometers in two hours during a trip. What was the average speed of the plane during the trip?",
+    "The aloe plant can absorb a lot of water during a rain shower. The extra water is stored in its leaves. The ability to store water in its leaves is most likely an adaptation to which type of environment?",
+    "Near Earth's equator, water generally exists naturally in the liquid and gas states. In which other part of Earth is water usually found naturally in only two states?",
+    "Magnesium strips are long, thin strips that are gray and shiny. Which action will lead to a chemical change of magnesium strips?",
+    "A solution of lead (II) nitrate reacts with a solution of sodium iodide to produce a yellow solid of lead (II) iodide and aqueous sodium nitrate. Which of these illustrates the reaction?",
+    "The stages in the life cycle of an organism are shown below. birth -> growth -> development -> reproduction -> death In which life cycle stage will a new organism be made?",
+    "A city has an outbreak of a disease that affects an unusually large portion of its population at the same time. Which term best describes the outbreak?",
+    "Which technique will researchers studying the inheritance patterns of various disorders most likely use?",
+    "A student notices dogs have more fleas in the summer than in the winter. Based on these observations, which is the most logical question for the student to investigate?",
+    "Sulfur scrubbers are devices installed in coal-fired power plants. Sulfur scrubbers reduce the emission of sulfur dioxide. What environmental problem are sulfur scrubbers most likely trying to address?",
+    "The sound heard when a piano key is hit is caused by",
+    "Earth's core is primarily composed of which of the following materials?",
+    "A chemist observed bubbling and fizzing after adding an acid solution to a white powdery substance in a beaker. Which of the following can be inferred?",
+    "Which of the following can only be seen with a telescope?",
+    "When a light bulb is turned on, energy changes from one form to another. Which of the following best describes this change?",
+    "An area received six inches of snow during the winter. Before the snow can continue through the water cycle as ground water or runoff, it must first ___.",
+    "When light is bounced off a mirror, the light is",
+    "When a hammer strikes a nail, the nail",
+    "Which of the following forms of energy can travel by vibrating particles of air?",
+    "If the solar system were used as a model of an atom, what would the Sun most likely represent?",
+    "In New York State, the longest period of daylight occurs during which month?",
+    "Some butterflies live an average of two weeks. This period of time is called a life",
+    "Which invention has technology that helps people keep food fresh for a long period of time?",
+    "Which behavior can help animals establish a territory?",
+    "The continuous changes of a seed to an adult plant that produces seeds is known as a",
+    "Which pair together could cause a rainbow?",
+    "What type of chemical reaction occurs when the body breaks down fats and sugars that supply it with energy?",
+    "Increased nutrient levels in lakes can cause ecological changes that result in the death of many fish. At what point in the hydrological cycle are most nutrients deposited into lakes?",
+    "Which of these resources is renewable?",
+    "Vein deposits of gold and silver are often formed in areas that have experienced which geologic process?",
+    "The length of daylight changes as the seasons change during the year. What causes these changes in daylight?",
+    "In a mixture, a magnet is used to separate some particles from sand. The dark particles are most likely made of which element?",
+    "Over geologic time, global mean sea level has varied significantly. Which change is most likely responsible for an increase in global mean sea level?",
+    "In which object does chemical energy most likely transform into electrical energy?",
+    "Sterling silver is a combination of silver and copper. Which of the following is also a combination of two or more metals?",
+    "Which of the following statements best explains how the decomposition of plant and animal matter helps to form rich soils?",
+    "Which two objects produce their own light?",
+    "Which of the following is visible through a reflecting telescope?",
+    "Base your answers on the information below. One hot, summer day it rained very heavily. After the rain, a plastic pan on a picnic table had 2 cm of rainwater in it. Four hours later, all the rainwater in the pan was gone. Which process caused the rainwater in the pan to disappear as it sat outside in the hot air?",
+    "Sound will not travel in a",
+    "Which of the following is a cause of the ocean levels periodically rising and then falling?",
+    "Which statement best describes the energy transformations that occur when a candle burns?",
+    "In a closed system, what happens to the total energy of the system as energy conversions take place?",
+    "Which sentence describes a characteristic of offspring produced by sexual reproduction?",
+    "The primary function of insulin in our bodies is to",
+    "What causes nighttime and daytime on Earth?",
+    "Which observation of a plant supports the inference that photosynthesis can take place?",
+    "Before rock can become soil, it must undergo certain processes. One process in the formation of soil involves plants. How can plants chemically change rocks into soil?",
+    "Which resource is most likely found in large amounts in forest ecosystems?",
+    "Soil erosion can be best prevented by",
+    "Most sedimentary rock is made from sediments of other rock. Which of these processes would the sediments most likely go through to form sedimentary rock?",
+    "When using more than the recommended amounts of pesticide on farmland, yards, and gardens, what is most likely to occur?",
+    "Which of these will best separate a saltwater solution?",
+    "Which two body systems work together to transport oxygen to the cells?",
+    "How do most fish get the oxygen they need to survive?",
+    "All matter is made up of particles called",
+    "Which part of a strawberry plant absorbs most of the water needed by the plant?",
+    "When a volcano erupts, dust and ash are blown into the atmosphere. The eruption directly reduces the transfer of energy from",
+    "An ocean, a forest, and a grassy meadow are each examples of a complete ecosystem. Complete ecosystems contain only",
+    "What causes a person to have blue eyes?",
+    "The human body gets the energy it needs for growth and repair directly from",
+    "The average temperature of the surface of Earth has increased approximately 1°C in the past century. Which reason best explains this increase in temperature?",
+    "Alicia has lots of old bicycle parts. She wants to build something new with the parts. What is the first thing Alicia should do?",
+    "Gasoline for cars is produced from fossil fuels. Using gasoline can most likely lead to which environmental problem?",
+    "Which of these will best separate iron filings from sand?",
+    "Which term describes an organism's ability to maintain a stable internal environment?",
+    "Which property of proteins best allows them to perform an enormously diverse range of functions?",
+    "A research team wanted to produce a smaller variety of German shepherd dogs. They mated the smallest dogs from different litters for several generations. This is an example of which concept?",
+    "The primary reason that plants are important for an ecosystem is because they",
+    "A car runs out of fuel while traveling on a level road and eventually comes to a stop. Which of the following best explains why the car stops?",
+    "The atmosphere of Mars is almost entirely composed of a greenhouse gas. Compared with Earth, which factor accounts for the low, nighttime surface temperatures on Mars?",
+    "Oscar and Andre used a microscope to observe a sample of pond water and drew an example of each type of organism they saw. Then they compared their drawings. They discovered that their drawings of a euglena and a paramecium were alike, but their amoeba drawings had very different shapes. What are two things that Oscar's amoeba could have been doing that made his drawing look different from Andre's?",
+    "During photosynthesis, plants absorb light energy from the Sun and convert it into chemical energy in the form of glucose. Which compounds combine in the presence of sunlight to form glucose?",
+    "The oceans most influence global climate by",
+    "From smallest to largest, the levels of organization in living things are",
+    "The water in a pond gets colder one night. Which tool is best to observe its temperature change?",
+    "What is the composition of the nucleus of an atom?",
+    "Several dinosaur bones are discovered buried in volcanic ash. The type of dinosaur can best be identified by",
+    "Which tool should be used to compare the growth of an algal colony growing in a petri dish?",
+    "Estella spilled tomato sauce on her shirt. When she washed her shirt, she noticed that the detergent she used contained enzymes. Enzymes are added to detergents to break down proteins from food and other substances that may stain clothing. Which would most likely inhibit the ability of the enzymes to remove the stain on her shirt?",
+    "An important rule for students to know when heating a test tube is to",
+    "The magnitude of the gravitational force between two planets depends on the",
+    "Mr. Mendoza's class studied different body systems. What is an important function of the circulatory system?",
+    "Which of the following has the greatest effect on the ability of soil to hold water?",
+    "When an atom has a neutral charge, which particles within the atom have equal numbers?",
+    "The chemical formula for water is H_{2}O. What does the formula show about each element in the compound?",
+    "What is significant about the discovery of water on Mars?",
+    "Jonathan places a pot of water on a stove. As the water boils, how does the state of the water change?",
+    "Humans cannot survive without clean, fresh water. Reservoirs of liquid water vary, but all water spends time as a gas in the atmosphere. What is the source of most of the water in the atmosphere?",
+    "The Moon is visible to observers on Earth because of",
+    "Paula determines a property of a marble using a balance and a graduated cylinder. What property is Paula most likely determining by using both tools?",
+    "A new mutation that occurs in which type of cell can be passed on to offspring?",
+    "Hydrogen gas and oxygen gas combine to form water. Which would be a more concise way of expressing what happens in this chemical reaction?",
+    "All stars start forming in the same manner. Some follow the life cycle of the Sun, while others turn into neutron stars or black holes. Which property determines the fate of a star as it develops?",
+    "Maria collected the gas given off by a glowing piece of charcoal. The gas was then bubbled through a small amount of colorless limewater. Part of Maria's report stated, \"After the gas was put into the jar, the limewater gradually changed to a milky white color.\" This statement is",
+    "Which of these describes a property of all matter?",
+    "The temperature in a hot star is high enough to pull electrons away from atoms. What state of matter results from this process?",
+    "Which of the following animal features most helps the animal move around in its habitat?",
+    "Which of the following best describes the climate of an area?",
+    "Which model best illustrates the wave property that enables scientists to explore Earth's interior using seismic waves?",
+    "In eukaryotic organisms, interaction between which organelles is most important for cell shape, tensile strength, and communication between cells?",
+    "The populations of black rhinoceroses have been impacted by human interactions to the point of being endangered. Which interaction best explains why the black rhino is now endangered?",
+    "Freda always hangs her wet swimsuit outdoors after getting out of the swimming pool. Which of the following is least likely to affect the rate at which Freda's swimsuit dries?",
+    "If two objects are two meters apart, which of these changes will increase the gravitational force between the two objects?",
+    "Which environmental problem was directly caused by the invention of the automobile?",
+    "Which best explains the importance of nitrogen in the cycling of energy and matter?",
+    "A science class is taking a field trip to a forest to observe and study birds. Which tool would be most helpful for observing birds?",
+    "Which set contains kingdoms that contain only heterotrophs?",
+    "The energy required to lift an object is supplied by ATP derived from the breakdown of molecules of",
+    "A complete fossil has been found of a type of bird that cannot be identified. What can most likely be determined about the bird from the fossil?",
+    "A scientist crosses a red-flowered plant with a white-flowered plant, and all offspring have red flowers. What will most likely result if these red-flowered offspring are crossed with white-flowered plants?",
+    "A large tree was cut down with a saw. What is the best way to estimate the age of this tree?",
+    "On a field trip, a student holds a frog and reports that it has slippery skin. This is an example of",
+    "Students studying rocks notice that in a particular location there are many igneous rocks that are very similar. This observation best supports which statement?",
+    "The first step in the water cycle is evaporation. What gives water the energy to evaporate?",
+    "Which is an example of a chemical change?",
+    "DNA stores the genetic instructions transferred from one generation to the next. What is DNA?",
+    "High-altitude cirrus clouds are primarily formed from which substance?",
+    "Which of these is the BEST reason to study weather?",
+    "Which is true of scientific discoveries?",
+    "The systems of the human body work together. Which system works with the skeletal system by pulling on the bones to create movement?",
+    "Rocks can be classified many different ways, including as igneous, metamorphic, and sedimentary. This classification is based on the",
+    "Which of the following helps the leaves break down after they have fallen off the tree?",
+    "An artificial pacemaker is a device that regulates the beat of the heart by an electrical stimulus. Some early pacemakers were powered by batteries and were worn externally with wires passing through the skin to the surface of the heart. Modern pacemakers are now much smaller and are implanted surgically. Which most likely has increased the lifespan and effectiveness of artificial pacemakers?",
+    "Which object below is gaining stored energy?",
+    "Moving water was the most important factor in forming which of these?",
+    "Which habitat on Earth would probably 28 add the greatest amount of water to the water cycle through evaporation?",
+    "A manufacturer wants to produce a container for food storage that does not break easily and is airtight, inexpensive, and microwave-safe. Which of the following is the best material to use to make the container?",
+    "In the past, Native American Indians buried dead fish along with corn seeds. This technique was used because the decomposing dead fish would",
+    "What causes a free falling object to accelerate?",
+    "In 1609, Galileo Galilei used lenses to construct the first telescope. His telescope allowed him to observe many objects in space. His invention of the telescope and the data he gathered directly contributed to the understanding that",
+    "Which element is most likely to form an ion with a negative 2 charge?",
+    "Feathers, wings, and the hollow bones of birds are examples of",
+    "Where do many of the basic life functions take place in organisms?",
+    "Which conclusion can be made about earthworms because they do not have an internal skeleton?",
+    "Students are studying some leaves. They group the leaves by shape. Which science process are the students using when they put the leaves in different groups?",
+    "On a cold, cloudy day, the local weather forecaster predicts that a high-pressure system will be moving into the area in the next 24 hours. Which weather conditions will this system most likely bring to the area?",
+    "Which of these events have the most influence on regional climate?",
+    "Janet learns that Earth is tilted. Due to its tilt, some areas on the surface of Earth experience darkness for an entire day. Which plant process is affected most during this darkness?",
+    "Meteorologists categorize hurricanes based on the Saffir-Simpson scale. The scale measures the intensity and destructive potential of hurricanes. Which factor has the most significant effect on the strength of a hurricane?",
+    "A scientist developed a model that described the actions of DNA in the cell nuclei, which helped explain how traits were inherited. Which scientist helped develop this model?",
+    "A student needs to find the mass of an atom. The numbers of which atomic particles determines the mass of the atom?",
+    "Which set of equipment would be best to use when investigating what is found in a sample of pond water?",
+    "A shoe manufacturer randomly selects 10% of the production from each shift. Each of these shoes is checked to ensure that it is correctly made. What is this process called?",
+    "Oil, coal, and natural gas are fossil fuels formed under what conditions?",
+    "Which of these best indicates that sediments can be changed into rock?",
+    "As Earth revolves around the Sun, the number of daylight hours varies from place to place. In which location would the number of daylight hours remain constant?",
+    "Which of these can be described as a system of stars, gases, dust, and other matter that orbits a common center of gravity?",
+    "How does ice change the shape of rocks?",
+    "Which will most likely cause a decrease in predator populations?",
+    "Which sentence about the periodic table of elements is true?",
+    "A student put 200 milliliters (mL) of water into a pot, sets the pot on a burner, and heats the water to boil. When the pot is taken off the burner, it contains only 180 milliliters (mL) of water. What happened to the rest of the water?",
+    "A class is studying textures and collects several samples. Which of these items would the students most likely use magnification to study?",
+    "Monarch butterflies use milkweed plants during all of their life stages. Milkweed plants grow in open areas, such as grasslands and wetlands. They also often grow between row crops. Given this information, which of these biotechnologies would pose the greatest threat to monarch butterflies?",
+    "What is the source of the organic matter needed for most fertile soils?",
+    "A drain cleaner consists of sodium hydroxide and aluminum. When the drain cleaner is added to water, bubbles of hydrogen are produced, and the solution becomes very hot. Which of these best describes what happens to form the bubbles when the cleaner is added to water? F",
+    "Which part of a plant cell is responsible for controlling the activities of the other parts of the cell?",
+    "An Earth year is the length of time it takes for",
+    "When large areas of the rainforests are cleared and burned, climate can be affected. Which best explains how rainforest destruction can contribute to the greenhouse effect?",
+    "Katia was listening to music on the radio. In order for the sound to be produced, the electrical energy must be converted into which type of energy?",
+    "The process of digestion breaks down proteins into smaller molecules that are used to rebuild other proteins. During digestion, proteins undergo",
+    "Which sequence correctly shows the levels of increasing organization in the human body?",
+    "Jessica watches the Sun set in the evening sky. What causes the setting of the Sun?",
+    "Which of the following describes an object that must have a net negative charge?",
+    "A large rock breaks into small pieces within 10 years. Which process is most likely responsible for breaking the large rock into small pieces within 10 years?",
+    "If you wanted to be able to look at the stars, the planets, and the Moon more closely, what should you use?",
+    "Which best describes why winds at the beach change direction between day and night?",
+    "Selective breeding has resulted in plants that are resistant to pests and produce a higher yield of fruits and vegetables. Which of these is the most likely disadvantage that can result from this process?",
+    "Which type of rock is formed when hot lava cools?",
+    "Which of the following is the best example of a custom-made product?",
+    "All these statements concerning galaxies are accurate except",
+    "Nerve cells transmitting messages to the body best demonstrate which primary function?",
+    "Different systems of the human body perform different functions. Which system takes oxygen from the air to be moved by the circulatory system?",
+    "Which of the following is an example of heat transfer by conduction?",
+    "Over time, non-volcanic mountains can form due to the interaction of plate boundaries. Which interaction is most likely associated with the formation of non-volcanic mountains?",
+    "During protein synthesis, mRNA is translated into three-base sequences representing amino acids. What signals the ribosome to begin translating the mRNA into a new amino acid sequence?",
+    "Nevada is much drier than regions in California that are at the same latitude. Compared to these regions in California, which feature of Nevada contributes most to this dry climate?",
+    "Which statement describes a method of sexual reproduction that occurs in plants?",
+    "The ratio of an object's mass to its volume is its",
+    "A strawberry farmer finds that, after a hard freeze, some of his strawberries are still alive. Which best explains why these strawberries were able to survive?",
+    "A student has a ball of clay that sinks when placed in a pan of water. Which property should he change to make the clay float?",
+    "Some plant species are more tolerant of acidic soil than others. The tolerant species are favored in areas affected by which consequence of human activity?",
+    "A condition in bees called \"colony collapse disorder\" occurs when worker bees leave the hive to collect nectar and never return. How would a decline in the bee population most likely affect a farm ecosystem?",
+    "In May 2007, wildfires burned more than 350 square miles of habitat in Florida and Georgia. Intense fires like this one can temporarily remove nitrogen, phosphorus, and potassium in area soil. What most likely happens in the burned areas until organic decay replenishes the lost nutrients?",
+    "Which of the following is the main role of flowers found on most flowering plants?",
+    "Which type of rock is formed when limestone is subjected to heat and pressure?",
+    "Biologists have discovered that the beluga whales of Canada's St. Lawrence River have the highest rates of cancer among animals. What is most likely the reason for this high incidence of cancer in these whales?",
+    "Many types of organisms live in a meadow. With the introduction of a large, swift-moving predator into the meadow ecosystem, which group of organisms will MOST likely have an advantage of surviving and reproducing?",
+    "Jennifer has collected rocks while hiking. As she attempts to classify her rocks, which will she put in the pile of sedimentary rocks?",
+    "A student heated a pan of soup on a stove. While stirring the soup with a metal spoon, the student noticed the spoon became very warm. What is the most likely reason the spoon became warm?",
+    "In 1987, a supernova was detected in the Large Magellanic Cloud galaxy, which is approximately 169,000 light years from Earth. Which event produces a supernova?",
+    "A layer of solid brittle rock comprises the outer 100 kilometers of Earth. This layer, which contains both the crust and the upper mantle, is called the",
+    "In what section of Earth do earthquakes happen?",
+    "When a dog smells food and begins drooling, it is responding to an external stimulus. Which of these describes a response to an internal stimulus?",
+    "The surface of Earth is constantly changing. Which of these findings provides the best evidence that the crustal surface of Earth has changed over time?",
+    "Which order of succession of natural communities would most likely occur in New York State?",
+    "A scientist studies the remains of two extinct animals to learn more about how they lived. She determines that one animal was a carnivore and the other was an herbivore. Which of the following did the scientist most likely compare to make this conclusion?",
+    "A rock has most likely traveled a long distance from its place of origin if it is",
+    "What is a galaxy?",
+    "A student describes a substance as lacking a definite shape. The description also states that the particles of matter are close to each other but still able to flow past each other. Which type of substance is the student most likely describing?",
+    "What is the primary source of energy for organisms from a beach ecosystem?",
+    "Which adaptation allows a fish to get oxygen underwater?",
+    "Which is the most basic unit of living things?",
+    "Which of these resources will most likely be depleted first?",
+    "Otto pushed a toy car across a floor. The car traveled fast across the wood, but it slowed to a stop on the carpet. Which best explains what happened when the car reached the carpet?",
+    "What characteristic of viruses distinguishes them from cells?",
+    "Plumes of water vapor have been observed rising from the southern polar region of Enceladus, one of the moons of Saturn. A team of scientists proposed an explanation for the plumes and developed a model. They also published calculations based on their model. These calculations would most likely be used for which purpose in future research?",
+    "Which measurement tool is used to find the volume of a small piece of granite?",
+    "The abundance of a mineral at the surface of Earth most likely depends upon the",
+    "Sodium chloride, commonly called \"table salt,\" is made up of sodium and chlorine that have been combined chemically. Which term best describes sodium chloride?",
+    "Which effect do rapidly cooling temperatures have on the water cycle?",
+    "In 1971, the bones of an extinct flying dinosaur were discovered. This kind of discovery helps everyone learn more about",
+    "Certain fossils can be used to help determine the age of the rock layer in which the fossils are found. Which type of fossil is best to use when making this determination?",
+    "When studying planetary data, Jackie found some similarities and differences among the planets that make up the solar system. Which generalization is true about the orbits of the major planets in the solar system?",
+    "Which are two parts of the carbon cycle?",
+    "Which process will separate the sugar from a mixture of sugar and water?",
+    "The stages of evolution of a star are determined by the mass of the star at the beginning of its life cycle. Which stage of evolution is the oldest form of a massive star?",
+    "Which of the following processes is an important part of star formation?",
+    "The smallest unit of a plant that can perform all of the processes of life is the",
+    "Changes to Earth's surface can happen slowly or quickly. Which of these changes happens the most quickly?",
+    "The work of which scientist serves as the basis for many procedures used in agriculture, such as selective breeding of plants?",
+    "Which of these would best help a scientist discover a new planet?",
+    "If Lisa wants to experiment with bean plants, which of these is the best example of a hypothesis?",
+    "The best example of heat transfer by convection is when"
+  ],
+  "prompt_text": [
+    "Which of the following materials would best slow the transfer of heat?",
+    "In which environment is white fur color an advantage for survival?",
+    "The mathematical model for calculating speed is shown below. Speed = distance/time. An airplane traveled 700 kilometers in two hours during a trip. What was the average speed of the plane during the trip?",
+    "The aloe plant can absorb a lot of water during a rain shower. The extra water is stored in its leaves. The ability to store water in its leaves is most likely an adaptation to which type of environment?",
+    "Near Earth's equator, water generally exists naturally in the liquid and gas states. In which other part of Earth is water usually found naturally in only two states?",
+    "Magnesium strips are long, thin strips that are gray and shiny. Which action will lead to a chemical change of magnesium strips?",
+    "A solution of lead (II) nitrate reacts with a solution of sodium iodide to produce a yellow solid of lead (II) iodide and aqueous sodium nitrate. Which of these illustrates the reaction?",
+    "The stages in the life cycle of an organism are shown below. birth -> growth -> development -> reproduction -> death In which life cycle stage will a new organism be made?",
+    "A city has an outbreak of a disease that affects an unusually large portion of its population at the same time. Which term best describes the outbreak?",
+    "Which technique will researchers studying the inheritance patterns of various disorders most likely use?",
+    "A student notices dogs have more fleas in the summer than in the winter. Based on these observations, which is the most logical question for the student to investigate?",
+    "Sulfur scrubbers are devices installed in coal-fired power plants. Sulfur scrubbers reduce the emission of sulfur dioxide. What environmental problem are sulfur scrubbers most likely trying to address?",
+    "The sound heard when a piano key is hit is caused by",
+    "Earth's core is primarily composed of which of the following materials?",
+    "A chemist observed bubbling and fizzing after adding an acid solution to a white powdery substance in a beaker. Which of the following can be inferred?",
+    "Which of the following can only be seen with a telescope?",
+    "When a light bulb is turned on, energy changes from one form to another. Which of the following best describes this change?",
+    "An area received six inches of snow during the winter. Before the snow can continue through the water cycle as ground water or runoff, it must first ___.",
+    "When light is bounced off a mirror, the light is",
+    "When a hammer strikes a nail, the nail",
+    "Which of the following forms of energy can travel by vibrating particles of air?",
+    "If the solar system were used as a model of an atom, what would the Sun most likely represent?",
+    "In New York State, the longest period of daylight occurs during which month?",
+    "Some butterflies live an average of two weeks. This period of time is called a life",
+    "Which invention has technology that helps people keep food fresh for a long period of time?",
+    "Which behavior can help animals establish a territory?",
+    "The continuous changes of a seed to an adult plant that produces seeds is known as a",
+    "Which pair together could cause a rainbow?",
+    "What type of chemical reaction occurs when the body breaks down fats and sugars that supply it with energy?",
+    "Increased nutrient levels in lakes can cause ecological changes that result in the death of many fish. At what point in the hydrological cycle are most nutrients deposited into lakes?",
+    "Which of these resources is renewable?",
+    "Vein deposits of gold and silver are often formed in areas that have experienced which geologic process?",
+    "The length of daylight changes as the seasons change during the year. What causes these changes in daylight?",
+    "In a mixture, a magnet is used to separate some particles from sand. The dark particles are most likely made of which element?",
+    "Over geologic time, global mean sea level has varied significantly. Which change is most likely responsible for an increase in global mean sea level?",
+    "In which object does chemical energy most likely transform into electrical energy?",
+    "Sterling silver is a combination of silver and copper. Which of the following is also a combination of two or more metals?",
+    "Which of the following statements best explains how the decomposition of plant and animal matter helps to form rich soils?",
+    "Which two objects produce their own light?",
+    "Which of the following is visible through a reflecting telescope?",
+    "Base your answers on the information below. One hot, summer day it rained very heavily. After the rain, a plastic pan on a picnic table had 2 cm of rainwater in it. Four hours later, all the rainwater in the pan was gone. Which process caused the rainwater in the pan to disappear as it sat outside in the hot air?",
+    "Sound will not travel in a",
+    "Which of the following is a cause of the ocean levels periodically rising and then falling?",
+    "Which statement best describes the energy transformations that occur when a candle burns?",
+    "In a closed system, what happens to the total energy of the system as energy conversions take place?",
+    "Which sentence describes a characteristic of offspring produced by sexual reproduction?",
+    "The primary function of insulin in our bodies is to",
+    "What causes nighttime and daytime on Earth?",
+    "Which observation of a plant supports the inference that photosynthesis can take place?",
+    "Before rock can become soil, it must undergo certain processes. One process in the formation of soil involves plants. How can plants chemically change rocks into soil?",
+    "Which resource is most likely found in large amounts in forest ecosystems?",
+    "Soil erosion can be best prevented by",
+    "Most sedimentary rock is made from sediments of other rock. Which of these processes would the sediments most likely go through to form sedimentary rock?",
+    "When using more than the recommended amounts of pesticide on farmland, yards, and gardens, what is most likely to occur?",
+    "Which of these will best separate a saltwater solution?",
+    "Which two body systems work together to transport oxygen to the cells?",
+    "How do most fish get the oxygen they need to survive?",
+    "All matter is made up of particles called",
+    "Which part of a strawberry plant absorbs most of the water needed by the plant?",
+    "When a volcano erupts, dust and ash are blown into the atmosphere. The eruption directly reduces the transfer of energy from",
+    "An ocean, a forest, and a grassy meadow are each examples of a complete ecosystem. Complete ecosystems contain only",
+    "What causes a person to have blue eyes?",
+    "The human body gets the energy it needs for growth and repair directly from",
+    "The average temperature of the surface of Earth has increased approximately 1°C in the past century. Which reason best explains this increase in temperature?",
+    "Alicia has lots of old bicycle parts. She wants to build something new with the parts. What is the first thing Alicia should do?",
+    "Gasoline for cars is produced from fossil fuels. Using gasoline can most likely lead to which environmental problem?",
+    "Which of these will best separate iron filings from sand?",
+    "Which term describes an organism's ability to maintain a stable internal environment?",
+    "Which property of proteins best allows them to perform an enormously diverse range of functions?",
+    "A research team wanted to produce a smaller variety of German shepherd dogs. They mated the smallest dogs from different litters for several generations. This is an example of which concept?",
+    "The primary reason that plants are important for an ecosystem is because they",
+    "A car runs out of fuel while traveling on a level road and eventually comes to a stop. Which of the following best explains why the car stops?",
+    "The atmosphere of Mars is almost entirely composed of a greenhouse gas. Compared with Earth, which factor accounts for the low, nighttime surface temperatures on Mars?",
+    "Oscar and Andre used a microscope to observe a sample of pond water and drew an example of each type of organism they saw. Then they compared their drawings. They discovered that their drawings of a euglena and a paramecium were alike, but their amoeba drawings had very different shapes. What are two things that Oscar's amoeba could have been doing that made his drawing look different from Andre's?",
+    "During photosynthesis, plants absorb light energy from the Sun and convert it into chemical energy in the form of glucose. Which compounds combine in the presence of sunlight to form glucose?",
+    "The oceans most influence global climate by",
+    "From smallest to largest, the levels of organization in living things are",
+    "The water in a pond gets colder one night. Which tool is best to observe its temperature change?",
+    "What is the composition of the nucleus of an atom?",
+    "Several dinosaur bones are discovered buried in volcanic ash. The type of dinosaur can best be identified by",
+    "Which tool should be used to compare the growth of an algal colony growing in a petri dish?",
+    "Estella spilled tomato sauce on her shirt. When she washed her shirt, she noticed that the detergent she used contained enzymes. Enzymes are added to detergents to break down proteins from food and other substances that may stain clothing. Which would most likely inhibit the ability of the enzymes to remove the stain on her shirt?",
+    "An important rule for students to know when heating a test tube is to",
+    "The magnitude of the gravitational force between two planets depends on the",
+    "Mr. Mendoza's class studied different body systems. What is an important function of the circulatory system?",
+    "Which of the following has the greatest effect on the ability of soil to hold water?",
+    "When an atom has a neutral charge, which particles within the atom have equal numbers?",
+    "The chemical formula for water is H_{2}O. What does the formula show about each element in the compound?",
+    "What is significant about the discovery of water on Mars?",
+    "Jonathan places a pot of water on a stove. As the water boils, how does the state of the water change?",
+    "Humans cannot survive without clean, fresh water. Reservoirs of liquid water vary, but all water spends time as a gas in the atmosphere. What is the source of most of the water in the atmosphere?",
+    "The Moon is visible to observers on Earth because of",
+    "Paula determines a property of a marble using a balance and a graduated cylinder. What property is Paula most likely determining by using both tools?",
+    "A new mutation that occurs in which type of cell can be passed on to offspring?",
+    "Hydrogen gas and oxygen gas combine to form water. Which would be a more concise way of expressing what happens in this chemical reaction?",
+    "All stars start forming in the same manner. Some follow the life cycle of the Sun, while others turn into neutron stars or black holes. Which property determines the fate of a star as it develops?",
+    "Maria collected the gas given off by a glowing piece of charcoal. The gas was then bubbled through a small amount of colorless limewater. Part of Maria's report stated, \"After the gas was put into the jar, the limewater gradually changed to a milky white color.\" This statement is",
+    "Which of these describes a property of all matter?",
+    "The temperature in a hot star is high enough to pull electrons away from atoms. What state of matter results from this process?",
+    "Which of the following animal features most helps the animal move around in its habitat?",
+    "Which of the following best describes the climate of an area?",
+    "Which model best illustrates the wave property that enables scientists to explore Earth's interior using seismic waves?",
+    "In eukaryotic organisms, interaction between which organelles is most important for cell shape, tensile strength, and communication between cells?",
+    "The populations of black rhinoceroses have been impacted by human interactions to the point of being endangered. Which interaction best explains why the black rhino is now endangered?",
+    "Freda always hangs her wet swimsuit outdoors after getting out of the swimming pool. Which of the following is least likely to affect the rate at which Freda's swimsuit dries?",
+    "If two objects are two meters apart, which of these changes will increase the gravitational force between the two objects?",
+    "Which environmental problem was directly caused by the invention of the automobile?",
+    "Which best explains the importance of nitrogen in the cycling of energy and matter?",
+    "A science class is taking a field trip to a forest to observe and study birds. Which tool would be most helpful for observing birds?",
+    "Which set contains kingdoms that contain only heterotrophs?",
+    "The energy required to lift an object is supplied by ATP derived from the breakdown of molecules of",
+    "A complete fossil has been found of a type of bird that cannot be identified. What can most likely be determined about the bird from the fossil?",
+    "A scientist crosses a red-flowered plant with a white-flowered plant, and all offspring have red flowers. What will most likely result if these red-flowered offspring are crossed with white-flowered plants?",
+    "A large tree was cut down with a saw. What is the best way to estimate the age of this tree?",
+    "On a field trip, a student holds a frog and reports that it has slippery skin. This is an example of",
+    "Students studying rocks notice that in a particular location there are many igneous rocks that are very similar. This observation best supports which statement?",
+    "The first step in the water cycle is evaporation. What gives water the energy to evaporate?",
+    "Which is an example of a chemical change?",
+    "DNA stores the genetic instructions transferred from one generation to the next. What is DNA?",
+    "High-altitude cirrus clouds are primarily formed from which substance?",
+    "Which of these is the BEST reason to study weather?",
+    "Which is true of scientific discoveries?",
+    "The systems of the human body work together. Which system works with the skeletal system by pulling on the bones to create movement?",
+    "Rocks can be classified many different ways, including as igneous, metamorphic, and sedimentary. This classification is based on the",
+    "Which of the following helps the leaves break down after they have fallen off the tree?",
+    "An artificial pacemaker is a device that regulates the beat of the heart by an electrical stimulus. Some early pacemakers were powered by batteries and were worn externally with wires passing through the skin to the surface of the heart. Modern pacemakers are now much smaller and are implanted surgically. Which most likely has increased the lifespan and effectiveness of artificial pacemakers?",
+    "Which object below is gaining stored energy?",
+    "Moving water was the most important factor in forming which of these?",
+    "Which habitat on Earth would probably 28 add the greatest amount of water to the water cycle through evaporation?",
+    "A manufacturer wants to produce a container for food storage that does not break easily and is airtight, inexpensive, and microwave-safe. Which of the following is the best material to use to make the container?",
+    "In the past, Native American Indians buried dead fish along with corn seeds. This technique was used because the decomposing dead fish would",
+    "What causes a free falling object to accelerate?",
+    "In 1609, Galileo Galilei used lenses to construct the first telescope. His telescope allowed him to observe many objects in space. His invention of the telescope and the data he gathered directly contributed to the understanding that",
+    "Which element is most likely to form an ion with a negative 2 charge?",
+    "Feathers, wings, and the hollow bones of birds are examples of",
+    "Where do many of the basic life functions take place in organisms?",
+    "Which conclusion can be made about earthworms because they do not have an internal skeleton?",
+    "Students are studying some leaves. They group the leaves by shape. Which science process are the students using when they put the leaves in different groups?",
+    "On a cold, cloudy day, the local weather forecaster predicts that a high-pressure system will be moving into the area in the next 24 hours. Which weather conditions will this system most likely bring to the area?",
+    "Which of these events have the most influence on regional climate?",
+    "Janet learns that Earth is tilted. Due to its tilt, some areas on the surface of Earth experience darkness for an entire day. Which plant process is affected most during this darkness?",
+    "Meteorologists categorize hurricanes based on the Saffir-Simpson scale. The scale measures the intensity and destructive potential of hurricanes. Which factor has the most significant effect on the strength of a hurricane?",
+    "A scientist developed a model that described the actions of DNA in the cell nuclei, which helped explain how traits were inherited. Which scientist helped develop this model?",
+    "A student needs to find the mass of an atom. The numbers of which atomic particles determines the mass of the atom?",
+    "Which set of equipment would be best to use when investigating what is found in a sample of pond water?",
+    "A shoe manufacturer randomly selects 10% of the production from each shift. Each of these shoes is checked to ensure that it is correctly made. What is this process called?",
+    "Oil, coal, and natural gas are fossil fuels formed under what conditions?",
+    "Which of these best indicates that sediments can be changed into rock?",
+    "As Earth revolves around the Sun, the number of daylight hours varies from place to place. In which location would the number of daylight hours remain constant?",
+    "Which of these can be described as a system of stars, gases, dust, and other matter that orbits a common center of gravity?",
+    "How does ice change the shape of rocks?",
+    "Which will most likely cause a decrease in predator populations?",
+    "Which sentence about the periodic table of elements is true?",
+    "A student put 200 milliliters (mL) of water into a pot, sets the pot on a burner, and heats the water to boil. When the pot is taken off the burner, it contains only 180 milliliters (mL) of water. What happened to the rest of the water?",
+    "A class is studying textures and collects several samples. Which of these items would the students most likely use magnification to study?",
+    "Monarch butterflies use milkweed plants during all of their life stages. Milkweed plants grow in open areas, such as grasslands and wetlands. They also often grow between row crops. Given this information, which of these biotechnologies would pose the greatest threat to monarch butterflies?",
+    "What is the source of the organic matter needed for most fertile soils?",
+    "A drain cleaner consists of sodium hydroxide and aluminum. When the drain cleaner is added to water, bubbles of hydrogen are produced, and the solution becomes very hot. Which of these best describes what happens to form the bubbles when the cleaner is added to water? F",
+    "Which part of a plant cell is responsible for controlling the activities of the other parts of the cell?",
+    "An Earth year is the length of time it takes for",
+    "When large areas of the rainforests are cleared and burned, climate can be affected. Which best explains how rainforest destruction can contribute to the greenhouse effect?",
+    "Katia was listening to music on the radio. In order for the sound to be produced, the electrical energy must be converted into which type of energy?",
+    "The process of digestion breaks down proteins into smaller molecules that are used to rebuild other proteins. During digestion, proteins undergo",
+    "Which sequence correctly shows the levels of increasing organization in the human body?",
+    "Jessica watches the Sun set in the evening sky. What causes the setting of the Sun?",
+    "Which of the following describes an object that must have a net negative charge?",
+    "A large rock breaks into small pieces within 10 years. Which process is most likely responsible for breaking the large rock into small pieces within 10 years?",
+    "If you wanted to be able to look at the stars, the planets, and the Moon more closely, what should you use?",
+    "Which best describes why winds at the beach change direction between day and night?",
+    "Selective breeding has resulted in plants that are resistant to pests and produce a higher yield of fruits and vegetables. Which of these is the most likely disadvantage that can result from this process?",
+    "Which type of rock is formed when hot lava cools?",
+    "Which of the following is the best example of a custom-made product?",
+    "All these statements concerning galaxies are accurate except",
+    "Nerve cells transmitting messages to the body best demonstrate which primary function?",
+    "Different systems of the human body perform different functions. Which system takes oxygen from the air to be moved by the circulatory system?",
+    "Which of the following is an example of heat transfer by conduction?",
+    "Over time, non-volcanic mountains can form due to the interaction of plate boundaries. Which interaction is most likely associated with the formation of non-volcanic mountains?",
+    "During protein synthesis, mRNA is translated into three-base sequences representing amino acids. What signals the ribosome to begin translating the mRNA into a new amino acid sequence?",
+    "Nevada is much drier than regions in California that are at the same latitude. Compared to these regions in California, which feature of Nevada contributes most to this dry climate?",
+    "Which statement describes a method of sexual reproduction that occurs in plants?",
+    "The ratio of an object's mass to its volume is its",
+    "A strawberry farmer finds that, after a hard freeze, some of his strawberries are still alive. Which best explains why these strawberries were able to survive?",
+    "A student has a ball of clay that sinks when placed in a pan of water. Which property should he change to make the clay float?",
+    "Some plant species are more tolerant of acidic soil than others. The tolerant species are favored in areas affected by which consequence of human activity?",
+    "A condition in bees called \"colony collapse disorder\" occurs when worker bees leave the hive to collect nectar and never return. How would a decline in the bee population most likely affect a farm ecosystem?",
+    "In May 2007, wildfires burned more than 350 square miles of habitat in Florida and Georgia. Intense fires like this one can temporarily remove nitrogen, phosphorus, and potassium in area soil. What most likely happens in the burned areas until organic decay replenishes the lost nutrients?",
+    "Which of the following is the main role of flowers found on most flowering plants?",
+    "Which type of rock is formed when limestone is subjected to heat and pressure?",
+    "Biologists have discovered that the beluga whales of Canada's St. Lawrence River have the highest rates of cancer among animals. What is most likely the reason for this high incidence of cancer in these whales?",
+    "Many types of organisms live in a meadow. With the introduction of a large, swift-moving predator into the meadow ecosystem, which group of organisms will MOST likely have an advantage of surviving and reproducing?",
+    "Jennifer has collected rocks while hiking. As she attempts to classify her rocks, which will she put in the pile of sedimentary rocks?",
+    "A student heated a pan of soup on a stove. While stirring the soup with a metal spoon, the student noticed the spoon became very warm. What is the most likely reason the spoon became warm?",
+    "In 1987, a supernova was detected in the Large Magellanic Cloud galaxy, which is approximately 169,000 light years from Earth. Which event produces a supernova?",
+    "A layer of solid brittle rock comprises the outer 100 kilometers of Earth. This layer, which contains both the crust and the upper mantle, is called the",
+    "In what section of Earth do earthquakes happen?",
+    "When a dog smells food and begins drooling, it is responding to an external stimulus. Which of these describes a response to an internal stimulus?",
+    "The surface of Earth is constantly changing. Which of these findings provides the best evidence that the crustal surface of Earth has changed over time?",
+    "Which order of succession of natural communities would most likely occur in New York State?",
+    "A scientist studies the remains of two extinct animals to learn more about how they lived. She determines that one animal was a carnivore and the other was an herbivore. Which of the following did the scientist most likely compare to make this conclusion?",
+    "A rock has most likely traveled a long distance from its place of origin if it is",
+    "What is a galaxy?",
+    "A student describes a substance as lacking a definite shape. The description also states that the particles of matter are close to each other but still able to flow past each other. Which type of substance is the student most likely describing?",
+    "What is the primary source of energy for organisms from a beach ecosystem?",
+    "Which adaptation allows a fish to get oxygen underwater?",
+    "Which is the most basic unit of living things?",
+    "Which of these resources will most likely be depleted first?",
+    "Otto pushed a toy car across a floor. The car traveled fast across the wood, but it slowed to a stop on the carpet. Which best explains what happened when the car reached the carpet?",
+    "What characteristic of viruses distinguishes them from cells?",
+    "Plumes of water vapor have been observed rising from the southern polar region of Enceladus, one of the moons of Saturn. A team of scientists proposed an explanation for the plumes and developed a model. They also published calculations based on their model. These calculations would most likely be used for which purpose in future research?",
+    "Which measurement tool is used to find the volume of a small piece of granite?",
+    "The abundance of a mineral at the surface of Earth most likely depends upon the",
+    "Sodium chloride, commonly called \"table salt,\" is made up of sodium and chlorine that have been combined chemically. Which term best describes sodium chloride?",
+    "Which effect do rapidly cooling temperatures have on the water cycle?",
+    "In 1971, the bones of an extinct flying dinosaur were discovered. This kind of discovery helps everyone learn more about",
+    "Certain fossils can be used to help determine the age of the rock layer in which the fossils are found. Which type of fossil is best to use when making this determination?",
+    "When studying planetary data, Jackie found some similarities and differences among the planets that make up the solar system. Which generalization is true about the orbits of the major planets in the solar system?",
+    "Which are two parts of the carbon cycle?",
+    "Which process will separate the sugar from a mixture of sugar and water?",
+    "The stages of evolution of a star are determined by the mass of the star at the beginning of its life cycle. Which stage of evolution is the oldest form of a massive star?",
+    "Which of the following processes is an important part of star formation?",
+    "The smallest unit of a plant that can perform all of the processes of life is the",
+    "Changes to Earth's surface can happen slowly or quickly. Which of these changes happens the most quickly?",
+    "The work of which scientist serves as the basis for many procedures used in agriculture, such as selective breeding of plants?",
+    "Which of these would best help a scientist discover a new planet?",
+    "If Lisa wants to experiment with bean plants, which of these is the best example of a hypothesis?",
+    "The best example of heat transfer by convection is when"
+  ]
+}

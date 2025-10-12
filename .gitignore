@@ -34,3 +34,11 @@ logs/
 *.txt
 docs/
 *.md
+
+#Backup files
+*.backup
+
+# Ignore dataset cache directory
+dataloader/dataset_test_cache/
+dataloader/unit_tests/
+dataloader/sample/

@@ -693,55 +693,53 @@ class LatentPlotCallback(TrainerCallback):
 
 
 class HeldoutResampleCallback(TrainerCallback):
-    """Callback to resample validation data for ARD vs evaluation split each epoch."""
+    """Callback to resample ARD samples from training data each epoch for dynamic prior estimation."""
     
     def __init__(self, train_ds, val_ds, ard_prior_samples, batch_size, tokenizer=None, data_collator=None):
         super().__init__()
-        self.train_ds = train_ds  # Keep for compatibility, but won't be modified
-        self.val_ds = val_ds      # This is what we'll resample from
+        self.train_ds = train_ds  # FULL training data - used for ARD sampling
+        self.val_ds = val_ds      # FIXED validation data - never changes
         self.ard_prior_samples = ard_prior_samples
         self.batch_size = batch_size
         self.tokenizer = tokenizer
         self.data_collator = data_collator  # For creating fresh ARD DataLoaders
         
-        # Validate that we have enough validation data
-        if self.val_ds is not None and len(self.val_ds) < self.ard_prior_samples:
-            print(f"[HeldoutResampleCallback] WARNING: Validation dataset has only {len(self.val_ds)} samples, "
-                  f"but {self.ard_prior_samples} requested for ARD. Will use all validation data for ARD.")
-            self.ard_prior_samples = len(self.val_ds)
+        # Validate that we have enough training data for ARD sampling
+        if self.train_ds is not None and len(self.train_ds) < self.ard_prior_samples:
+            print(f"[HeldoutResampleCallback] WARNING: Training dataset has only {len(self.train_ds)} samples, "
+                  f"but {self.ard_prior_samples} requested for ARD. Will use all training data for ARD.")
+            self.ard_prior_samples = len(self.train_ds)
     
-    def _resample_validation_split(self):
-        """Resample validation data split: ARD samples vs evaluation samples."""
-        if self.val_ds is None or len(self.val_ds) == 0:
-            return None, None
+    def _resample_ard_samples(self):
+        """Dynamically resample ARD samples from training data each epoch."""
+        if self.train_ds is None or len(self.train_ds) == 0:
+            print("[HeldoutResampleCallback] No training data available for ARD sampling")
+            return None
         
-        total_val = len(self.val_ds)
+        total_train = len(self.train_ds)
         
-        # Ensure we don't exceed validation dataset size
-        ard_samples = min(self.ard_prior_samples, total_val)
+        # Ensure we don't exceed training dataset size
+        ard_samples = min(self.ard_prior_samples, total_train)
         
-        # Randomly shuffle validation indices
-        perm = np.random.permutation(total_val)
+        # Randomly shuffle training indices for dynamic sampling
+        perm = np.random.permutation(total_train)
         
-        # Split: first portion for ARD, remaining for evaluation
+        # Sample ARD indices from training data
         # Convert numpy indices to Python integers to avoid type errors
         ard_indices = [int(idx) for idx in perm[:ard_samples]]
-        eval_indices = [int(idx) for idx in perm[ard_samples:]]
         
-        # Create subset datasets
-        if hasattr(self.val_ds, 'select'):
+        # Create ARD dataset from training data
+        if hasattr(self.train_ds, 'select'):
             # HuggingFace dataset
-            ard_dataset = self.val_ds.select(ard_indices)
-            eval_dataset = self.val_ds.select(eval_indices)
+            ard_dataset = self.train_ds.select(ard_indices)
         else:
             # PyTorch dataset
-            ard_dataset = Subset(self.val_ds, ard_indices)
-            eval_dataset = Subset(self.val_ds, eval_indices)
+            ard_dataset = Subset(self.train_ds, ard_indices)
 
-        return ard_dataset, eval_dataset
+        return ard_dataset
     
     def on_epoch_begin(self, args, state, control, **kwargs):
-        """Resample validation split at the beginning of each epoch."""
+        """Resample ARD samples from training data at the beginning of each epoch."""
         model = kwargs["model"]
         trainer = getattr(model, 'trainer', None)
         
@@ -749,20 +747,19 @@ class HeldoutResampleCallback(TrainerCallback):
             print("[HeldoutResampleCallback] No trainer reference found")
             return
         
-        if self.val_ds is None:
-            print("[HeldoutResampleCallback] No validation dataset available for resampling")
+        if self.train_ds is None:
+            print("[HeldoutResampleCallback] No training dataset available for ARD resampling")
             return
         
         try:
-            # Resample validation data split
-            ard_dataset, eval_dataset = self._resample_validation_split()
+            # Dynamically resample ARD samples from training data
+            ard_dataset = self._resample_ard_samples()
             
             if ard_dataset is not None:
-                # Update trainer's evaluation dataset (for model evaluation)
-                if eval_dataset is not None:
-                    trainer.eval_dataset = eval_dataset
+                # ✅ KEEP VALIDATION FIXED - Do NOT modify trainer.eval_dataset
+                # The validation dataset (self.val_ds) remains unchanged throughout training
                 
-                # OPTION 1: Update trainer's ARD DataLoader with fresh data each epoch
+                # Update trainer's ARD DataLoader with fresh samples from training data
                 if self.data_collator is not None:
                     trainer.ard_heldout_loader = DataLoader(
                         ard_dataset,
@@ -770,97 +767,69 @@ class HeldoutResampleCallback(TrainerCallback):
                         collate_fn=self.data_collator,
                         shuffle=False
                     )
-                    print(f"[HeldoutResampleCallback] ✅ Updated ARD DataLoader with fresh {len(ard_dataset)} samples")
+                    print(f"[HeldoutResampleCallback] ✅ Updated ARD DataLoader with {len(ard_dataset)} fresh samples from training data")
                 else:
                     print(f"[HeldoutResampleCallback] ⚠️ No data_collator provided - ARD DataLoader not updated")
                 
                 print(f"[HeldoutResampleCallback] Epoch {int(state.epoch)} → "
-                      f"ARD: {len(ard_dataset)} samples, "
-                      f"Eval: {len(eval_dataset) if eval_dataset else 0} samples "
-                      f"(from {len(self.val_ds)} total validation samples)")
+                      f"ARD: {len(ard_dataset)} samples (from {len(self.train_ds)} training samples), "
+                      f"Fixed Eval: {len(self.val_ds) if self.val_ds else 0} samples (unchanged)")
             
         except Exception as e:
-            print(f"[HeldoutResampleCallback] Failed to resample validation data: {e}")
+            print(f"[HeldoutResampleCallback] Failed to resample ARD data from training: {e}")
 
 
-def split_validation_dataset(val_dataset, ard_prior_samples, seed, train_dataset=None, train_split_ratio=0.1, min_val_samples=2000, max_ard_ratio=0.8):
+def prepare_validation_dataset(val_dataset, train_dataset=None, train_split_ratio=0.1, min_val_samples=2000, seed=42):
     """
-    Split validation dataset into two parts:
-    1. ARD prior estimation (first part) - specified number of samples
-    2. Uncertainty evaluation (second part) - remaining validation data
+    Prepare validation dataset for new 3-way data architecture.
     
-    If val_dataset is None, creates a validation split from train_dataset.
+    In the NEW architecture:
+    - ARD samples come from training data (handled by HeldoutResampleCallback)
+    - Validation data stays FIXED for evaluation only
+    - No validation splitting needed for ARD
     
     Args:
-        val_dataset: Original validation dataset (can be None)
-        ard_prior_samples: Absolute number of samples to use for ARD prior estimation (default: 100)
-        seed: Random seed for reproducible splits
+        val_dataset: Original validation dataset from new data loading (can be None)
         train_dataset: Training dataset (used if val_dataset is None)
         train_split_ratio: Fraction of training data to use for validation when val_dataset is None (min 10%)
+        min_val_samples: Minimum validation samples needed
+        seed: Random seed for reproducible splits
     
     Returns:
-        ard_dataset: Dataset for ARD prior estimation (exact number of samples requested)
-        uncertainty_dataset: Dataset for uncertainty evaluation (remaining validation data)
+        validation_dataset: Fixed validation dataset for evaluation (no ARD splitting)
     """
-    # If no validation dataset, create one from training data
-    if val_dataset is None or len(val_dataset) == 0:
-        if train_dataset is None or len(train_dataset) == 0:
-            print("[WARNING] No validation or training dataset available")
-            return None, None
-        
-        # Ensure validation split is at least 10% of training data
-        min_split_ratio = max(0.1, train_split_ratio)
-        
-        print(f"[INFO] No validation dataset found. Creating validation split from training data ({min_split_ratio:.1%})")
-        
-        # Create validation split from training data
-        total_train = len(train_dataset)
-        # Calculate validation size: at least 10% of training data and at least min_val_samples (for ARD + eval)
-        min_val_size = max(int(total_train * min_split_ratio), min_val_samples)
-        val_size = min(min_val_size, total_train // 2)  # Don't use more than half of training data
-        
-        np.random.seed(seed)
-        val_indices = np.random.choice(total_train, val_size, replace=False)
-        # Convert numpy indices to Python integers to avoid type errors
-        val_indices = [int(idx) for idx in val_indices]
-        val_dataset = Subset(train_dataset, val_indices)
-        
-        print(f"[INFO] Created validation split with {len(val_dataset)} samples from training data ({len(val_dataset)/total_train:.1%} of training data)")
+    # If validation dataset provided, use it as-is (NEW architecture provides fixed validation)
+    if val_dataset is not None and len(val_dataset) > 0:
+        print(f"[INFO] Using provided validation dataset: {len(val_dataset)} samples (fixed for evaluation)")
+        return val_dataset
     
-    total_size = len(val_dataset)
-    if total_size == 0:
-        return None, None
+    # If no validation dataset, create one from training data (fallback case)
+    if train_dataset is None or len(train_dataset) == 0:
+        print("[WARNING] No validation or training dataset available")
+        return None
     
-    # Use the requested number of samples, but don't exceed max_ard_ratio of validation data
-    max_ard_samples = int(total_size * max_ard_ratio)
+    # Ensure validation split is at least 10% of training data
+    min_split_ratio = max(0.1, train_split_ratio)
     
-    if total_size < ard_prior_samples:
-        print(f"[WARNING] Validation dataset has only {total_size} samples, less than requested {ard_prior_samples} for ARD")
-        ard_size = total_size
-        uncertainty_size = 0
-    else:
-        # Use exactly the requested number of samples, but respect max ratio constraint
-        ard_size = min(ard_prior_samples, max_ard_samples)
-        uncertainty_size = total_size - ard_size
+    print(f"[INFO] No validation dataset found. Creating validation split from training data ({min_split_ratio:.1%})")
     
-    # Create indices for splitting
+    # Create validation split from training data
+    total_train = len(train_dataset)
+    # Calculate validation size: at least 10% of training data and at least min_val_samples
+    min_val_size = max(int(total_train * min_split_ratio), min_val_samples)
+    val_size = min(min_val_size, total_train // 2)  # Don't use more than half of training data
+    
     np.random.seed(seed)
-    indices = np.random.permutation(total_size)
-    
+    val_indices = np.random.choice(total_train, val_size, replace=False)
     # Convert numpy indices to Python integers to avoid type errors
-    ard_indices = [int(idx) for idx in indices[:ard_size]]
-    uncertainty_indices = [int(idx) for idx in indices[ard_size:ard_size + uncertainty_size]] if uncertainty_size > 0 else []
+    val_indices = [int(idx) for idx in val_indices]
+    validation_dataset = Subset(train_dataset, val_indices)
     
-    # Create subset datasets
-    ard_dataset = Subset(val_dataset, ard_indices)
-    uncertainty_dataset = Subset(val_dataset, uncertainty_indices) if len(uncertainty_indices) > 0 else None
+    print(f"[INFO] Created validation split with {len(validation_dataset)} samples from training data")
+    print(f"      → {len(validation_dataset)/total_train:.1%} of training data reserved for validation")
+    print(f"      → Validation data will remain FIXED (no ARD splitting)")
     
-    print(f"[INFO] Split validation dataset:")
-    print(f"   Total validation samples: {total_size}")
-    print(f"   ARD prior estimation: {len(ard_dataset)} samples ({len(ard_dataset)/total_size:.1%})")
-    print(f"   Uncertainty evaluation: {len(uncertainty_dataset)} samples ({len(uncertainty_dataset)/total_size:.1%})")
-    
-    return ard_dataset, uncertainty_dataset
+    return validation_dataset
 
 
 @torch.no_grad()
@@ -1113,23 +1082,29 @@ def create_ard_callbacks(device, output_dir, train_ds=None, val_ds=None,
                         ard_prior_samples=1000, batch_size=4, tokenizer=None, data_collator=None,
                         enable_plotting=True, enable_resampling=True,
                         plot_start_epoch=2, plot_interval=2, plot_batch_size=16):
-    """Create standard ARD training callbacks.
+    """Create standard ARD training callbacks for NEW 3-way data architecture.
+    
+    NEW DATA ARCHITECTURE:
+    - train_ds: FULL training dataset used for both SGD and dynamic ARD sampling
+    - val_ds: FIXED validation dataset used only for evaluation (never changes)
+    - ARD samples: Dynamically sampled from train_ds each epoch by HeldoutResampleCallback
     
     Args:
         device: Device for computation
         output_dir: Output directory for plots and logs
-        train_ds: Training dataset (for resampling)
-        val_ds: Validation dataset
-        ard_prior_samples: Number of samples for ARD prior estimation
+        train_ds: Full training dataset (for ARD dynamic sampling via HeldoutResampleCallback)
+        val_ds: Fixed validation dataset (for evaluation only - never modified)
+        ard_prior_samples: Number of samples for ARD prior estimation (sampled from train_ds)
         batch_size: Batch size for data loaders
         tokenizer: Tokenizer for data collation
+        data_collator: Data collator for dynamic ARD DataLoader creation
         enable_plotting: Whether to enable latent plotting
-        enable_resampling: Whether to enable held-out resampling
+        enable_resampling: Whether to enable held-out resampling from training data
         plot_start_epoch: Epoch to start plotting
         plot_interval: Interval between plots
     
     Returns:
-        List of callback instances
+        List of callback instances configured for new data architecture
     """
     callbacks = []
     
@@ -1155,32 +1130,39 @@ def create_ard_callbacks(device, output_dir, train_ds=None, val_ds=None,
     # Add resampling callback if enabled and datasets available
     if enable_resampling and train_ds is not None:
         callbacks.append(HeldoutResampleCallback(
-            train_ds=train_ds,
-            val_ds=val_ds,
+            train_ds=train_ds,        # ✅ Full training data for ARD sampling
+            val_ds=val_ds,            # ✅ Fixed validation data (never changes)
             ard_prior_samples=ard_prior_samples,
             batch_size=batch_size,
             tokenizer=tokenizer,
-            data_collator=data_collator  # Pass data_collator for dynamic ARD DataLoader creation
+            data_collator=data_collator  # For dynamic ARD DataLoader creation
         ))
+        
+        print(f"[INFO] HeldoutResampleCallback configured:")
+        print(f"   • Will sample {ard_prior_samples} ARD samples from {len(train_ds)} training samples each epoch")
+        print(f"   • Validation data remains fixed: {len(val_ds) if val_ds else 0} samples")
     
     return callbacks
 
 
 def build_clm_trainer(model, tokenizer, train_dataset, eval_dataset, cfg, output_dir, 
                      ard_prior_samples, enable_callbacks, tb_log_dir):
-    """Build enhanced CLM trainer with uncertainty evaluation, ARD callbacks, and prior estimation.    
+    """Build enhanced CLM trainer with uncertainty evaluation, ARD callbacks, and prior estimation.
+    
+    NEW DATA ARCHITECTURE:
+    - train_dataset: Full training data (used for both SGD and ARD dynamic sampling)
+    - eval_dataset: Fixed validation data from new 3-tuple loading (evaluation only)
+    - ARD samples: Dynamically created from train_dataset by HeldoutResampleCallback each epoch
     """
     
-    # Split validation dataset for ARD and uncertainty evaluation
-    # Pass train_dataset so we can create validation split if needed
-    ard_dataset, uncertainty_dataset = split_validation_dataset(
+    # NEW: Prepare validation dataset (no ARD splitting needed)
+    # eval_dataset should be the fixed validation data from new 3-tuple loading
+    validation_dataset = prepare_validation_dataset(
         eval_dataset, 
-        ard_prior_samples=ard_prior_samples,
-        seed=cfg["random_seed"],
         train_dataset=train_dataset,
         train_split_ratio=cfg["validation_split_ratio"],
         min_val_samples=cfg["min_validation_samples"],
-        max_ard_ratio=cfg["max_ard_ratio"]
+        seed=cfg["random_seed"]
     )
     
     # Use TensorBoard log directory from get_output_dirs() - required parameter
@@ -1226,15 +1208,14 @@ def build_clm_trainer(model, tokenizer, train_dataset, eval_dataset, cfg, output
         pad_to_multiple_of=cfg.get("pad_to_multiple_of")  # Optimize for A100 tensor cores
     )
 
-    # Create ard_heldout_loader for ARD prior estimation
-    ard_heldout_loader = None
-    if ard_dataset is not None:
-        ard_heldout_loader = DataLoader(
-            ard_dataset,
-            batch_size=cfg["batch_size"],
-            collate_fn=data_collator,
-            shuffle=False
-        )
+    # NEW: ARD DataLoader will be created dynamically by HeldoutResampleCallback
+    # No static ARD DataLoader from validation splits
+    ard_heldout_loader = None  # Will be updated by HeldoutResampleCallback with training data
+    
+    print(f"[INFO] NEW Data Architecture:")
+    print(f"   • Training dataset: {len(train_dataset)} samples (for SGD + dynamic ARD sampling)")
+    print(f"   • Validation dataset: {len(validation_dataset) if validation_dataset else 0} samples (fixed for evaluation)")
+    print(f"   • ARD samples: {ard_prior_samples} (will be dynamically sampled from training data each epoch)")
 
     # DEBUG: Analyze dataset filtering issues if enabled
     if cfg.get("debug_dataset_filtering", False):
@@ -1261,13 +1242,13 @@ def build_clm_trainer(model, tokenizer, train_dataset, eval_dataset, cfg, output
             )
             
         # Debug validation dataset
-        if eval_dataset is not None:
+        if validation_dataset is not None:
             print("\n📊 VALIDATION DATASET ANALYSIS:")
             debug_dataset_filtering(
-                eval_dataset, 
+                validation_dataset, 
                 tokenizer, 
                 max_len=cfg["max_len"],
-                sample_size=min(250, len(eval_dataset))
+                sample_size=min(250, len(validation_dataset))
             )
 
     # Create the enhanced trainer - ALL VALUES FROM CONFIG FILE
@@ -1275,11 +1256,11 @@ def build_clm_trainer(model, tokenizer, train_dataset, eval_dataset, cfg, output
         model=model,
         args=args,
         train_dataset=train_dataset,
-        eval_dataset=uncertainty_dataset,  # Use uncertainty dataset for standard evaluation
+        eval_dataset=validation_dataset,  # Use fixed validation dataset for standard evaluation
         data_collator=data_collator,
         tokenizer=tokenizer,
         beta=cfg["kl_loss_beta"],
-        ard_heldout_loader=ard_heldout_loader,  # Pre-configured DataLoader for ARD prior estimation
+        ard_heldout_loader=ard_heldout_loader,  # Will be updated by callbacks
         n_bins=cfg["uncertainty_n_bins"],
         output_dir=output_dir,
         ard_prior_samples=ard_prior_samples,
@@ -1432,11 +1413,12 @@ def build_clm_trainer(model, tokenizer, train_dataset, eval_dataset, cfg, output
     if enable_callbacks:
         device = next(model.parameters()).device
         
+        # NEW: Pass correct datasets for new architecture
         callbacks = create_ard_callbacks(
             device=device,
             output_dir=output_dir,
-            train_ds=train_dataset,
-            val_ds=eval_dataset,
+            train_ds=train_dataset,        # ✅ Full training data for ARD dynamic sampling
+            val_ds=validation_dataset,     # ✅ Fixed validation data for evaluation
             ard_prior_samples=ard_prior_samples,  # Use parameter passed to function
             batch_size=cfg["batch_size"],
             tokenizer=tokenizer,
@@ -1455,5 +1437,11 @@ def build_clm_trainer(model, tokenizer, train_dataset, eval_dataset, cfg, output
         print(f"[INFO] Added {len(callbacks)} ARD callbacks to trainer")
         for callback in callbacks:
             print(f"   - {callback.__class__.__name__}")
+        
+        print(f"\n[INFO] Callback Configuration:")
+        print(f"   • HeldoutResampleCallback: ARD samples from {len(train_dataset)} training samples")
+        print(f"   • UncertaintyEvaluationCallback: Uses {len(validation_dataset) if validation_dataset else 0} fixed validation samples")
+        print(f"   • PriorEstimationCallback: Uses dynamic ARD samples from training data")
+        print(f"   • LatentPlotCallback: Uses dynamic ARD samples from training data")
     
     return trainer
