@@ -779,7 +779,7 @@ class HeldoutResampleCallback(TrainerCallback):
             print(f"[HeldoutResampleCallback] Failed to resample ARD data from training: {e}")
 
 
-def prepare_validation_dataset(val_dataset, train_dataset=None, train_split_ratio=0.1, min_val_samples=2000, seed=42):
+def prepare_validation_dataset(val_dataset, train_dataset=None, train_split_ratio=0.1, seed=42):
     """
     Prepare validation dataset for new 3-way data architecture.
     
@@ -791,8 +791,7 @@ def prepare_validation_dataset(val_dataset, train_dataset=None, train_split_rati
     Args:
         val_dataset: Original validation dataset from new data loading (can be None)
         train_dataset: Training dataset (used if val_dataset is None)
-        train_split_ratio: Fraction of training data to use for validation when val_dataset is None (min 10%)
-        min_val_samples: Minimum validation samples needed
+        train_split_ratio: Fraction of training data to use for validation when val_dataset is None (typically 10%)
         seed: Random seed for reproducible splits
     
     Returns:
@@ -815,9 +814,9 @@ def prepare_validation_dataset(val_dataset, train_dataset=None, train_split_rati
     
     # Create validation split from training data
     total_train = len(train_dataset)
-    # Calculate validation size: at least 10% of training data and at least min_val_samples
-    min_val_size = max(int(total_train * min_split_ratio), min_val_samples)
-    val_size = min(min_val_size, total_train // 2)  # Don't use more than half of training data
+    # Calculate validation size: use the specified split ratio (typically 10%)
+    val_size = int(total_train * min_split_ratio)
+    val_size = min(val_size, total_train // 2)  # Don't use more than half of training data
     
     np.random.seed(seed)
     val_indices = np.random.choice(total_train, val_size, replace=False)
@@ -1161,7 +1160,6 @@ def build_clm_trainer(model, tokenizer, train_dataset, eval_dataset, cfg, output
         eval_dataset, 
         train_dataset=train_dataset,
         train_split_ratio=cfg["validation_split_ratio"],
-        min_val_samples=cfg["min_validation_samples"],
         seed=cfg["random_seed"]
     )
     
