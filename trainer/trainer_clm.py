@@ -1107,6 +1107,21 @@ def create_ard_callbacks(device, output_dir, train_ds=None, val_ds=None,
     """
     callbacks = []
     
+    # Add resampling callback if enabled and datasets available
+    if enable_resampling and train_ds is not None:
+        callbacks.append(HeldoutResampleCallback(
+            train_ds=train_ds,        # ✅ Full training data for ARD sampling
+            val_ds=val_ds,            # ✅ Fixed validation data (never changes)
+            ard_prior_samples=ard_prior_samples,
+            batch_size=batch_size,
+            tokenizer=tokenizer,
+            data_collator=data_collator  # For dynamic ARD DataLoader creation
+        ))
+        
+        print(f"[INFO] HeldoutResampleCallback configured:")
+        print(f"   • Will sample {ard_prior_samples} ARD samples from {len(train_ds)} training samples each epoch")
+        print(f"   • Validation data remains fixed: {len(val_ds) if val_ds else 0} samples")
+
     # Always add uncertainty evaluation callback
     callbacks.append(UncertaintyEvaluationCallback())
     
@@ -1125,22 +1140,7 @@ def create_ard_callbacks(device, output_dir, train_ds=None, val_ds=None,
             interval=plot_interval,
             plot_batch_size=plot_batch_size
         ))
-    
-    # Add resampling callback if enabled and datasets available
-    if enable_resampling and train_ds is not None:
-        callbacks.append(HeldoutResampleCallback(
-            train_ds=train_ds,        # ✅ Full training data for ARD sampling
-            val_ds=val_ds,            # ✅ Fixed validation data (never changes)
-            ard_prior_samples=ard_prior_samples,
-            batch_size=batch_size,
-            tokenizer=tokenizer,
-            data_collator=data_collator  # For dynamic ARD DataLoader creation
-        ))
-        
-        print(f"[INFO] HeldoutResampleCallback configured:")
-        print(f"   • Will sample {ard_prior_samples} ARD samples from {len(train_ds)} training samples each epoch")
-        print(f"   • Validation data remains fixed: {len(val_ds) if val_ds else 0} samples")
-    
+
     return callbacks
 
 
