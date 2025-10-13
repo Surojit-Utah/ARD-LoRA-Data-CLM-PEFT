@@ -332,91 +332,63 @@ class ARDCLMTrainer(Trainer):
     
     def _compute_eval_loss_components(self, model):
         """Compute CE and KL loss components on evaluation dataset.
-        
         Always uses self.eval_dataset for evaluation.
-        """
+        Matches training logic: uses output_hidden_states=True and use_cache=False for KL computation."""
         was_training = model.training
         try:
-            # Set model to eval mode
             model.eval()
-            
-            # Get a batch from eval dataset
             eval_dataloader = self.get_eval_dataloader(self.eval_dataset)
             batch = next(iter(eval_dataloader))
-            
-            # Move batch to device
             batch = {k: v.to(model.device) for k, v in batch.items()}
-            
             with torch.no_grad():
-                # Forward pass to get loss components
-                outputs = model(**batch)
-                
-                # Get CE loss
+                # Forward pass with hidden states for KL computation
+                outputs = model(
+                    **batch,
+                    output_hidden_states=True,
+                    use_cache=False
+                )
+                logits = outputs.logits
+                hidden_states = outputs.hidden_states
                 labels = batch.get('labels')
-                if hasattr(outputs, 'loss') and outputs.loss is not None:
-                    ce_loss = outputs.loss
+                if labels is not None:
+                    shift_logits = logits[..., :-1, :].contiguous()
+                    shift_labels = labels[..., 1:].contiguous()
+                    loss_fct = torch.nn.CrossEntropyLoss()
+                    shift_logits = shift_logits.view(-1, shift_logits.size(-1))
+                    shift_labels = shift_labels.view(-1)
+                    shift_labels = shift_labels.to(shift_logits.device)
+                    ce_loss = loss_fct(shift_logits, shift_labels)
                 else:
-                    # Manual causal LM loss computation
-                    logits = outputs.logits
-                    if labels is not None:
-                        shift_logits = logits[..., :-1, :].contiguous()
-                        shift_labels = labels[..., 1:].contiguous()
-                        loss_fct = torch.nn.CrossEntropyLoss()
-                        shift_logits = shift_logits.view(-1, shift_logits.size(-1))
-                        shift_labels = shift_labels.view(-1)
-                        shift_labels = shift_labels.to(shift_logits.device)
-                        ce_loss = loss_fct(shift_logits, shift_labels)
-                    else:
-                        ce_loss = torch.tensor(0.0, device=outputs.logits.device)
-                
-                # GRADIENT FIX: Compute KL divergence using component collection for proper gradient flow
-                kl_components = []
-                for module in model.modules():
-                    if hasattr(module, 'kl_divergence'):
-                        try:
-                            module_kl = module.kl_divergence()
-                            if torch.is_tensor(module_kl):
-                                kl_components.append(module_kl)
-                        except Exception:
-                            continue
-                
-                # Enhanced KL computation fallback with proper tensor operations
-                if len(kl_components) == 0:
-                    if hasattr(model, 'model') and hasattr(model.model, 'layers'):
-                        for layer in model.model.layers:
-                            # Use trainer's layer configuration
+                    ce_loss = torch.tensor(0.0, device=logits.device)
+
+                # KL computation: match training logic using kl_divergence_latent
+                kl = 0.0
+                if hidden_states is not None and hasattr(model, 'model') and hasattr(model.model, 'layers'):
+                    for layer_idx, layer in enumerate(model.model.layers):
+                        layer_input = hidden_states[layer_idx] if layer_idx < len(hidden_states) else None
+                        if layer_input is not None:
                             if hasattr(layer, 'self_attn') and self.target_attention_layers:
                                 attn = layer.self_attn
                                 for proj_name in self.target_attention_layers:
                                     if hasattr(attn, proj_name):
                                         proj = getattr(attn, proj_name)
-                                        if hasattr(proj, 'kl_divergence'):
+                                        if hasattr(proj, 'kl_divergence_latent'):
                                             try:
-                                                module_kl = proj.kl_divergence()
-                                                if torch.is_tensor(module_kl):
-                                                    kl_components.append(module_kl)
+                                                kl_val = proj.kl_divergence_latent(layer_input)
+                                                if torch.is_tensor(kl_val):
+                                                    kl = kl + kl_val
                                             except Exception:
-                                                continue
-                
-                # GRADIENT FIX: Use torch.stack().sum() to maintain gradient flow
-                if kl_components:
-                    kl = torch.stack(kl_components).sum()
-                else:
-                    # Create zero tensor with gradient connection to model parameters
-                    model_param = next(model.parameters())
-                    kl = torch.zeros_like(ce_loss) + model_param.sum() * 0.0
-                
-                # Convert to float values
+                                                pass
+                if not torch.is_tensor(kl) or kl == 0.0:
+                    kl = torch.tensor(0.0, device=ce_loss.device)
+
                 ce_loss_val = ce_loss.item() if torch.is_tensor(ce_loss) else float(ce_loss)
                 kl_loss_val = kl.item() if torch.is_tensor(kl) else float(kl)
-                
                 return ce_loss_val, kl_loss_val
-                
         except Exception as e:
             print(f"⚠️ Failed to compute eval loss components: {e}")
             return 0.0, 0.0
         finally:
-            # CRITICAL: Always restore original training mode
             if was_training:
                 model.train()
             else:
