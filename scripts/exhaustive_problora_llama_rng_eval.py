@@ -142,27 +142,23 @@ def build_model_and_tokenizer(cfg):
 
     model.train()
 
-    # If running bf16/fp16 globally, but ProbLoRA expects fp32 math for its internals,
-    # attach hooks to cast inputs to ProbLoRALayer to fp32 and outputs back to original dtype.
+    # Fix ProbLoRA dtype issues by converting ProbLoRA components to fp32
+    # while keeping the rest of the model in bf16/fp16
     if ProbLoRALayer is not None and dtype in (torch.bfloat16, torch.float16):
-        def pre_hook(mod, inp):
-            (x,) = inp
-            mod._orig_dtype = x.dtype
-            return (x.to(torch.float32),)
-
-        def post_hook(mod, out):
-            dt = getattr(mod, '_orig_dtype', None)
-            if dt is not None and isinstance(out, torch.Tensor):
-                return out.to(dt)
-            return out
-
         count = 0
-        for m in model.modules():
-            if isinstance(m, ProbLoRALayer):
-                m.register_forward_pre_hook(pre_hook)
-                m.register_forward_hook(post_hook)
+        for name, module in model.named_modules():
+            if isinstance(module, ProbLoRALayer):
+                # Convert ProbLoRA internal components to fp32
+                if hasattr(module, 'base_proj'):
+                    module.base_proj = module.base_proj.to(torch.float32)
+                if hasattr(module, 'A'):
+                    module.A = module.A.to(torch.float32)
+                if hasattr(module, 'B'):
+                    module.B = module.B.to(torch.float32)
                 count += 1
-        print(f"[HOOKS] Attached fp32 compute hooks to {count} ProbLoRALayer modules")
+        print(f"[DTYPE] Converted {count} ProbLoRA layers to fp32 (rest of model stays {dtype})")
+    else:
+        print(f"[DTYPE] No ProbLoRA layers found or already fp32; model in {dtype}")
 
     return model, tok, device, dtype
 
