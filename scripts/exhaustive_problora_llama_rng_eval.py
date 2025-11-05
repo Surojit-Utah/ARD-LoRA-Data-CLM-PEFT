@@ -1,9 +1,16 @@
 import os
+import sys
 import math
 import argparse
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer
 from torch.utils.checkpoint import checkpoint as ckpt
+
+# Ensure repo root is on PYTHONPATH so `config` and `model` imports work when running from scripts/
+THIS_DIR = os.path.dirname(os.path.abspath(__file__))
+REPO_ROOT = os.path.abspath(os.path.join(THIS_DIR, os.pardir))
+if REPO_ROOT not in sys.path:
+    sys.path.insert(0, REPO_ROOT)
 
 from config import CONFIG
 from model.model_llama import inject_problora_llama
