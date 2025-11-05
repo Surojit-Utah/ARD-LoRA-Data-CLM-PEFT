@@ -91,8 +91,8 @@ def build_model_and_tokenizer(cfg):
 
     # ProbLoRA injection with config mapping
     print("[INJECT] ProbLoRA parameters:")
-    print(f"         rank={cfg['rank']}, scaling={cfg['scaling']}, num_tokens={cfg.get('num_tokens', cfg['max_len'])}")
-    print(f"         ard_prior_samples={cfg['ard_prior_samples']}")
+    print(f"         rank={cfg['rank']} ({type(cfg['rank']).__name__}), scaling={cfg['scaling']} ({type(cfg['scaling']).__name__}), num_tokens={cfg.get('num_tokens', cfg['max_len'])} ({type(cfg.get('num_tokens', cfg['max_len'])).__name__})")
+    print(f"         ard_prior_samples={cfg['ard_prior_samples']} ({type(cfg['ard_prior_samples']).__name__})")
     print(f"         attn_implementation={cfg['attn_implementation']}")
     print(f"         target_attention_layers={cfg['target_attention_layers']}")
     print(f"         clamps: logvar[{cfg['logvar_clamp_min']},{cfg['logvar_clamp_max']}], "
@@ -226,6 +226,37 @@ def main():
         if 'attn_implementation' not in cfg:
             cfg = dict(cfg)
         cfg['attn_implementation'] = args.attn_implementation
+
+    # Normalize/resolve YAML-derived numeric types and simple interpolations (e.g., num_tokens: ${max_len})
+    def normalize_cfg(c):
+        c = dict(c)
+        # Resolve num_tokens
+        nt = c.get('num_tokens', None)
+        if isinstance(nt, str):
+            s = nt.strip()
+            if s == '${max_len}':
+                c['num_tokens'] = int(c['max_len'])
+            else:
+                try:
+                    c['num_tokens'] = int(s)
+                except Exception:
+                    raise ValueError(f"Invalid num_tokens value: {nt}")
+        elif nt is None:
+            # not present; will fallback to max_len downstream
+            pass
+
+        # Ensure mandatory numeric fields have proper types
+        int_fields = ['rank', 'ard_prior_samples', 'max_len', 'batch_size']
+        float_fields = ['scaling', 'logvar_clamp_min','logvar_clamp_max','beta_logvar_clamp_min','beta_logvar_clamp_max','sample_clamp_min','sample_clamp_max']
+        for k in int_fields:
+            if k in c and isinstance(c[k], str):
+                c[k] = int(c[k])
+        for k in float_fields:
+            if k in c and isinstance(c[k], str):
+                c[k] = float(c[k])
+        return c
+
+    cfg = normalize_cfg(cfg)
 
     # Build model and tokenizer with real ProbLoRA injection
     model, tok, device, dtype = build_model_and_tokenizer(cfg)
