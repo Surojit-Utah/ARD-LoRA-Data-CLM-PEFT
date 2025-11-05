@@ -148,13 +148,13 @@ def build_model_and_tokenizer(cfg):
         count = 0
         for name, module in model.named_modules():
             if isinstance(module, ProbLoRALayer):
-                # Convert ProbLoRA internal components to fp32
+                # Convert ProbLoRA internal components to fp32, preserving Parameter wrapper
                 if hasattr(module, 'base_proj'):
                     module.base_proj = module.base_proj.to(torch.float32)
-                if hasattr(module, 'A'):
-                    module.A = module.A.to(torch.float32)
-                if hasattr(module, 'B'):
-                    module.B = module.B.to(torch.float32)
+                if hasattr(module, 'A') and isinstance(module.A, torch.nn.Parameter):
+                    module.A = torch.nn.Parameter(module.A.data.to(torch.float32))
+                if hasattr(module, 'B') and isinstance(module.B, torch.nn.Parameter):
+                    module.B = torch.nn.Parameter(module.B.data.to(torch.float32))
                 count += 1
         print(f"[DTYPE] Converted {count} ProbLoRA layers to fp32 (rest of model stays {dtype})")
     else:
