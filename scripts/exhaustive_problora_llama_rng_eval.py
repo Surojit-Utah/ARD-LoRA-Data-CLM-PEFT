@@ -14,6 +14,11 @@ if REPO_ROOT not in sys.path:
 
 from config import CONFIG
 from model.model_llama import inject_problora_llama
+try:
+    # For dtype-fix hooks
+    from model.model_llama import ProbLoRALayer  # type: ignore
+except Exception:
+    ProbLoRALayer = None
 
 """
 Exhaustive ProbLoRA + LLaMA RNG/Checkpointing Evaluation
@@ -141,6 +146,29 @@ def build_model_and_tokenizer(cfg):
         print(f"[WARN] gradient_checkpointing_enable/disable not supported: {e}")
 
     model.train()
+
+    # If running bf16/fp16 globally, but ProbLoRA expects fp32 math for its internals,
+    # attach hooks to cast inputs to ProbLoRALayer to fp32 and outputs back to original dtype.
+    if ProbLoRALayer is not None and compute_dtype in (torch.bfloat16, torch.float16):
+        def pre_hook(mod, inp):
+            (x,) = inp
+            mod._orig_dtype = x.dtype
+            return (x.to(torch.float32),)
+
+        def post_hook(mod, out):
+            dt = getattr(mod, '_orig_dtype', None)
+            if dt is not None and isinstance(out, torch.Tensor):
+                return out.to(dt)
+            return out
+
+        count = 0
+        for m in model.modules():
+            if isinstance(m, ProbLoRALayer):
+                m.register_forward_pre_hook(pre_hook)
+                m.register_forward_hook(post_hook)
+                count += 1
+        print(f"[HOOKS] Attached fp32 compute hooks to {count} ProbLoRALayer modules")
+
     return model, tok, device, dtype
 
 
@@ -206,8 +234,8 @@ def main():
     seed_default = cfg.get('random_seed', 42)
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('--batch', type=int, default=cfg.get('batch_size', 2))
-    parser.add_argument('--seq', type=int, default=None, help='Override max_len for the prompt length')
+    parser.add_argument('--batch', type=int, default=1)
+    parser.add_argument('--seq', type=int, default=None, help='Override max_len for the prompt length (defaults to a small value for eval)')
     parser.add_argument('--text', type=str, default='The quick brown fox jumps over the lazy dog.')
     parser.add_argument('--seed', type=int, default=seed_default, help='Random seed (default from YAML)')
     # Use YAML-controlled default for reentrant checkpointing; allow explicit override in CLI
@@ -224,7 +252,10 @@ def main():
     args = parser.parse_args()
 
     # Respect optional override of sequence length for this eval
-    max_len = args.seq or cfg['max_len']
+    default_eval_seq = min(128, int(cfg['max_len']))
+    max_len = args.seq or default_eval_seq
+    if max_len < int(cfg['max_len']):
+        print(f"[SEQ] Using reduced seq length for eval: {max_len} (YAML max_len={cfg['max_len']})")
 
     # Apply optional overrides
     if args.model is not None:
@@ -271,6 +302,10 @@ def main():
 
     # Build a small CLM batch
     input_ids, attention_mask, labels = make_clm_batch(tok, device, dtype, args.text, args.batch, max_len)
+
+    # Clear cache before heavy ops
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
 
     # 1) Stochasticity under checkpointing ON
     print(f"\n[1] Stochasticity with checkpointing enabled (use_reentrant={args.use_reentrant}, preserve_rng_state={args.preserve_rng_state})")
