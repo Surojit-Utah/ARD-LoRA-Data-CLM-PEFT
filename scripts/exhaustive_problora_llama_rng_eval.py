@@ -65,15 +65,10 @@ def build_model_and_tokenizer(cfg):
     tokenizer_name = cfg.get('tokenizer_name') or model_name_or_path
 
     device, dtype = device_dtype_from_config(cfg)
-    # For this evaluation script, prefer fp32 compute to avoid mixed-dtype matmul issues
-    compute_dtype = dtype
-    if dtype in (torch.bfloat16, torch.float16):
-        print(f"[PRECISION] YAML requested {dtype}; using float32 for eval to avoid mixed-dtype issues in ProbLoRA compute")
-        compute_dtype = torch.float32
 
     print(f"[LOAD] Model: {model_name_or_path}")
     print(f"[LOAD] Tokenizer: {tokenizer_name}")
-    print(f"[ENV] Device: {device}, DType: {dtype}, ComputeDType: {compute_dtype}, bf16={cfg.get('bf16', False)}, fp16={cfg.get('fp16', False)}")
+    print(f"[ENV] Device: {device}, DType: {dtype}, bf16={cfg.get('bf16', False)}, fp16={cfg.get('fp16', False)}")
 
     model_kwargs = {}
     if cfg.get('load_in_4bit', False):
@@ -83,8 +78,8 @@ def build_model_and_tokenizer(cfg):
         except Exception as e:
             print(f"[WARN] load_in_4bit requested but BitsAndBytes not available: {e}")
 
-    if compute_dtype in (torch.bfloat16, torch.float16, torch.float32):
-        model_kwargs['torch_dtype'] = compute_dtype
+    if dtype in (torch.bfloat16, torch.float16, torch.float32):
+        model_kwargs['torch_dtype'] = dtype
 
     model = AutoModelForCausalLM.from_pretrained(model_name_or_path, **model_kwargs)
     tok = AutoTokenizer.from_pretrained(tokenizer_name)
@@ -126,8 +121,8 @@ def build_model_and_tokenizer(cfg):
     )
 
     model.to(device)
-    if compute_dtype in (torch.bfloat16, torch.float16, torch.float32):
-        model.to(dtype=compute_dtype)
+    if dtype in (torch.bfloat16, torch.float16, torch.float32):
+        model.to(dtype=dtype)
 
     # Mirror training-time gradient checkpointing setting on the model if supported
     try:
@@ -149,7 +144,7 @@ def build_model_and_tokenizer(cfg):
 
     # If running bf16/fp16 globally, but ProbLoRA expects fp32 math for its internals,
     # attach hooks to cast inputs to ProbLoRALayer to fp32 and outputs back to original dtype.
-    if ProbLoRALayer is not None and compute_dtype in (torch.bfloat16, torch.float16):
+    if ProbLoRALayer is not None and dtype in (torch.bfloat16, torch.float16):
         def pre_hook(mod, inp):
             (x,) = inp
             mod._orig_dtype = x.dtype
@@ -194,18 +189,22 @@ def forward_loss(model, input_ids, attention_mask, labels):
     return out.loss
 
 
-def run_checkpoint_once(model, input_ids, attention_mask, labels, use_reentrant=False, preserve_rng_state=True):
-    # Ensure at least one input to checkpoint requires grad; tie loss to this dummy to satisfy checkpoint
-    dummy = torch.ones(1, device=input_ids.device, dtype=torch.float32, requires_grad=True)
-
-    def block(d, x_ids, x_mask, x_lbls):
-        return forward_loss(model, x_ids, x_mask, x_lbls) * d
-
-    # Build graph under checkpoint (nested with model's internal checkpointing if enabled)
-    loss = ckpt(block, dummy, input_ids, attention_mask, labels,
-                use_reentrant=use_reentrant, preserve_rng_state=preserve_rng_state)
-    # Trigger recompute during backward
-    loss.backward(retain_graph=False)
+def run_simple_forward_backward(model, input_ids, attention_mask, labels):
+    """Simple forward/backward without additional checkpointing to avoid double-checkpointing."""
+    input_ids = input_ids.detach().requires_grad_(False)
+    attention_mask = attention_mask.detach().requires_grad_(False)
+    labels = labels.detach().requires_grad_(False)
+    
+    # Ensure there's at least one parameter that requires grad
+    has_grad_params = any(p.requires_grad for p in model.parameters())
+    if not has_grad_params:
+        # If no params require grad, create a dummy
+        dummy = torch.ones(1, device=input_ids.device, dtype=torch.float32, requires_grad=True)
+        loss = forward_loss(model, input_ids, attention_mask, labels) * dummy
+    else:
+        loss = forward_loss(model, input_ids, attention_mask, labels)
+    
+    loss.backward()
     return loss.detach()
 
 
@@ -308,38 +307,26 @@ def main():
         torch.cuda.empty_cache()
 
     # 1) Stochasticity under checkpointing ON
-    print(f"\n[1] Stochasticity with checkpointing enabled (use_reentrant={args.use_reentrant}, preserve_rng_state={args.preserve_rng_state})")
+    print(f"\n[1] Stochasticity with model gradient checkpointing (model has GC enabled: {cfg.get('gradient_checkpointing', False)})")
     set_seed(args.seed)
     cpu0, cuda0 = save_rng_state()
-    loss1 = run_checkpoint_once(model, input_ids, attention_mask, labels,
-                                use_reentrant=args.use_reentrant,
-                                preserve_rng_state=args.preserve_rng_state)
+    loss1 = run_simple_forward_backward(model, input_ids, attention_mask, labels)
 
     set_seed(args.seed + 1)
-    loss2 = run_checkpoint_once(model, input_ids, attention_mask, labels,
-                                use_reentrant=args.use_reentrant,
-                                preserve_rng_state=args.preserve_rng_state)
+    loss2 = run_simple_forward_backward(model, input_ids, attention_mask, labels)
 
     diff12 = (loss1 - loss2).abs().item()
     print(f"Loss(seed=a)={loss1.item():.6f}, Loss(seed=b)={loss2.item():.6f}, |Δ|={diff12:.6f}")
 
     # 2) RNG preservation under checkpointing (forward vs recompute equivalence test)
-    print(f"\n[2] RNG preservation under checkpointing (forward vs recompute equivalence)")
+    print(f"\n[2] RNG preservation test (using model's built-in gradient checkpointing)")
     set_seed(args.seed)
     cpu_state, cuda_state = save_rng_state()
 
-    # Build-graph forward under checkpoint
-    # Same dummy trick here to ensure checkpoint sees a grad-requiring input
-    dummy2 = torch.ones(1, device=input_ids.device, dtype=torch.float32, requires_grad=True)
-    loss_fwd = ckpt(lambda d, x_ids, x_mask, x_lbls: forward_loss(model, x_ids, x_mask, x_lbls) * d,
-                    dummy2, input_ids, attention_mask, labels,
-                    use_reentrant=args.use_reentrant,
-                    preserve_rng_state=args.preserve_rng_state)
+    # First forward/backward
+    loss_fwd = run_simple_forward_backward(model, input_ids, attention_mask, labels)
 
-    # Backward triggers recompute forward
-    loss_fwd.backward(retain_graph=False)
-
-    # Now restore EXACT pre-forward RNG state and run a plain forward (no checkpoint)
+    # Now restore EXACT pre-forward RNG state and run a plain forward (no backward)
     restore_rng_state(cpu_state, cuda_state)
     loss_ref = forward_loss(model, input_ids, attention_mask, labels)
 
