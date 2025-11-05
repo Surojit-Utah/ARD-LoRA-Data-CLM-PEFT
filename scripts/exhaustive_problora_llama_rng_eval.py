@@ -121,8 +121,7 @@ def build_model_and_tokenizer(cfg):
     )
 
     model.to(device)
-    if dtype in (torch.bfloat16, torch.float16, torch.float32):
-        model.to(dtype=dtype)
+    # No explicit dtype conversion - model already loaded with correct torch_dtype
 
     # Mirror training-time gradient checkpointing setting on the model if supported
     try:
