@@ -167,11 +167,14 @@ def forward_loss(model, input_ids, attention_mask, labels):
 
 
 def run_checkpoint_once(model, input_ids, attention_mask, labels, use_reentrant=False, preserve_rng_state=True):
-    def block(x_ids, x_mask, x_lbls):
-        return forward_loss(model, x_ids, x_mask, x_lbls)
+    # Ensure at least one input to checkpoint requires grad; tie loss to this dummy to satisfy checkpoint
+    dummy = torch.ones(1, device=input_ids.device, dtype=torch.float32, requires_grad=True)
 
-    # Build graph under checkpoint
-    loss = ckpt(block, input_ids, attention_mask, labels,
+    def block(d, x_ids, x_mask, x_lbls):
+        return forward_loss(model, x_ids, x_mask, x_lbls) * d
+
+    # Build graph under checkpoint (nested with model's internal checkpointing if enabled)
+    loss = ckpt(block, dummy, input_ids, attention_mask, labels,
                 use_reentrant=use_reentrant, preserve_rng_state=preserve_rng_state)
     # Trigger recompute during backward
     loss.backward(retain_graph=False)
@@ -291,8 +294,10 @@ def main():
     cpu_state, cuda_state = save_rng_state()
 
     # Build-graph forward under checkpoint
-    loss_fwd = ckpt(lambda x_ids, x_mask, x_lbls: forward_loss(model, x_ids, x_mask, x_lbls),
-                    input_ids, attention_mask, labels,
+    # Same dummy trick here to ensure checkpoint sees a grad-requiring input
+    dummy2 = torch.ones(1, device=input_ids.device, dtype=torch.float32, requires_grad=True)
+    loss_fwd = ckpt(lambda d, x_ids, x_mask, x_lbls: forward_loss(model, x_ids, x_mask, x_lbls) * d,
+                    dummy2, input_ids, attention_mask, labels,
                     use_reentrant=args.use_reentrant,
                     preserve_rng_state=args.preserve_rng_state)
 
