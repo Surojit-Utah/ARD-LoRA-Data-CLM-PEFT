@@ -1,0 +1,295 @@
+import os
+import math
+import argparse
+import torch
+from transformers import AutoModelForCausalLM, AutoTokenizer
+from torch.utils.checkpoint import checkpoint as ckpt
+
+from config import CONFIG
+from model.model_llama import inject_problora_llama
+
+"""
+Exhaustive ProbLoRA + LLaMA RNG/Checkpointing Evaluation
+=======================================================
+This script loads the real LLaMA Causal LM via HF Transformers, injects ProbLoRA
+using the same pathway as training (inject_problora_llama), and runs
+three targeted experiments:
+
+1) Stochasticity under checkpointing ON (different seeds -> different loss)
+2) RNG preservation under checkpointing (forward vs recompute equality test)
+3) No-checkpoint baseline with explicit RNG restore (determinism validation)
+
+It also prints how key config parameters map to the model/injection.
+
+Important notes:
+- FlashAttention: We set model.config.attn_implementation through inject_problora_llama
+  using CONFIG['defaults']['attn_implementation']. The attention kernel consumes the
+  already-stochastic Q/K/V produced by ProbLoRA and is otherwise deterministic.
+- Gradient checkpointing: We test RNG preservation by saving the RNG state before
+  calling checkpoint, then after backward (which triggers recompute) restoring that
+  exact RNG state and doing a plain forward. If RNG is preserved, the original
+  forward value equals the post-restore plain forward value.
+- We do not rely on internal epsilon capture; this works with the production layer.
+"""
+
+
+def set_seed(seed: int):
+    torch.manual_seed(seed)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed_all(seed)
+
+
+def device_dtype_from_config(cfg):
+    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    if device == 'cuda' and cfg.get('bf16', False) and torch.cuda.is_bf16_supported():
+        return device, torch.bfloat16
+    if device == 'cuda' and cfg.get('fp16', False):
+        return device, torch.float16
+    return device, torch.float32
+
+
+def build_model_and_tokenizer(cfg):
+    model_name_or_path = cfg['model_name_or_path']
+    tokenizer_name = cfg.get('tokenizer_name') or model_name_or_path
+
+    device, dtype = device_dtype_from_config(cfg)
+
+    print(f"[LOAD] Model: {model_name_or_path}")
+    print(f"[LOAD] Tokenizer: {tokenizer_name}")
+    print(f"[ENV] Device: {device}, DType: {dtype}, bf16={cfg.get('bf16', False)}, fp16={cfg.get('fp16', False)}")
+
+    model_kwargs = {}
+    if cfg.get('load_in_4bit', False):
+        try:
+            from transformers import BitsAndBytesConfig
+            model_kwargs['quantization_config'] = BitsAndBytesConfig(load_in_4bit=True)
+        except Exception as e:
+            print(f"[WARN] load_in_4bit requested but BitsAndBytes not available: {e}")
+
+    if dtype in (torch.bfloat16, torch.float16):
+        model_kwargs['torch_dtype'] = dtype
+
+    model = AutoModelForCausalLM.from_pretrained(model_name_or_path, **model_kwargs)
+    tok = AutoTokenizer.from_pretrained(tokenizer_name)
+
+    if tok.pad_token is None:
+        tok.pad_token = tok.eos_token
+        print(f"[TOKENIZER] pad_token set to eos_token: id={tok.pad_token_id}")
+
+    # use_cache memory tuning
+    use_cache = cfg.get('use_cache', False)
+    orig = getattr(model.config, 'use_cache', None)
+    model.config.use_cache = use_cache
+    print(f"[MEMORY] use_cache: {orig} -> {model.config.use_cache}")
+
+    # ProbLoRA injection with config mapping
+    print("[INJECT] ProbLoRA parameters:")
+    print(f"         rank={cfg['rank']}, scaling={cfg['scaling']}, num_tokens={cfg.get('num_tokens', cfg['max_len'])}")
+    print(f"         ard_prior_samples={cfg['ard_prior_samples']}")
+    print(f"         attn_implementation={cfg['attn_implementation']}")
+    print(f"         target_attention_layers={cfg['target_attention_layers']}")
+    print(f"         clamps: logvar[{cfg['logvar_clamp_min']},{cfg['logvar_clamp_max']}], "
+          f"beta[{cfg['beta_logvar_clamp_min']},{cfg['beta_logvar_clamp_max']}], "
+          f"sample[{cfg['sample_clamp_min']},{cfg['sample_clamp_max']}]")
+
+    model = inject_problora_llama(
+        model,
+        rank=cfg['rank'],
+        scaling=cfg['scaling'],
+        num_tokens=cfg.get('num_tokens', cfg['max_len']),
+        ard_prior_samples=cfg['ard_prior_samples'],
+        logvar_clamp_min=cfg['logvar_clamp_min'],
+        logvar_clamp_max=cfg['logvar_clamp_max'],
+        beta_logvar_clamp_min=cfg['beta_logvar_clamp_min'],
+        beta_logvar_clamp_max=cfg['beta_logvar_clamp_max'],
+        sample_clamp_min=cfg['sample_clamp_min'],
+        sample_clamp_max=cfg['sample_clamp_max'],
+        attn_implementation=cfg['attn_implementation'],
+        target_attention_layers=cfg['target_attention_layers']
+    )
+
+    model.to(device)
+    if dtype in (torch.bfloat16, torch.float16):
+        model.to(dtype=dtype)
+
+    # Mirror training-time gradient checkpointing setting on the model if supported
+    try:
+        if cfg.get('gradient_checkpointing', False):
+            gckw = cfg.get('gradient_checkpointing_kwargs', None)
+            if gckw is not None:
+                model.gradient_checkpointing_enable(gradient_checkpointing_kwargs=gckw)
+            else:
+                model.gradient_checkpointing_enable()
+            print(f"[GC] Enabled model.gradient_checkpointing (kwargs={gckw})")
+        else:
+            if hasattr(model, 'gradient_checkpointing_disable'):
+                model.gradient_checkpointing_disable()
+            print("[GC] Disabled model.gradient_checkpointing")
+    except Exception as e:
+        print(f"[WARN] gradient_checkpointing_enable/disable not supported: {e}")
+
+    model.train()
+    return model, tok, device, dtype
+
+
+def make_clm_batch(tok, device, dtype, text: str, batch_size: int, max_len: int):
+    enc = tok(
+        [text] * batch_size,
+        padding='max_length',
+        truncation=True,
+        max_length=max_len,
+        return_tensors='pt'
+    )
+    input_ids = enc['input_ids'].to(device)
+    attention_mask = enc['attention_mask'].to(device)
+    # Labels: typical CLM uses input_ids as labels (teacher forcing)
+    labels = input_ids.clone()
+    # Cast to dtype where relevant (embeddings use int64; mask/labels stay long)
+    return input_ids, attention_mask, labels
+
+
+def forward_loss(model, input_ids, attention_mask, labels):
+    out = model(input_ids=input_ids, attention_mask=attention_mask, labels=labels)
+    # out.loss is scalar float32/float16/bfloat16; ensure tensor
+    return out.loss
+
+
+def run_checkpoint_once(model, input_ids, attention_mask, labels, use_reentrant=False, preserve_rng_state=True):
+    def block(x_ids, x_mask, x_lbls):
+        return forward_loss(model, x_ids, x_mask, x_lbls)
+
+    # Build graph under checkpoint
+    loss = ckpt(block, input_ids, attention_mask, labels,
+                use_reentrant=use_reentrant, preserve_rng_state=preserve_rng_state)
+    # Trigger recompute during backward
+    loss.backward(retain_graph=False)
+    return loss.detach()
+
+
+def save_rng_state():
+    cpu = torch.get_rng_state()
+    cuda = torch.cuda.get_rng_state() if torch.cuda.is_available() else None
+    return cpu, cuda
+
+
+def restore_rng_state(cpu, cuda):
+    torch.set_rng_state(cpu)
+    if cuda is not None and torch.cuda.is_available():
+        torch.cuda.set_rng_state(cuda)
+
+
+def cosine_sim(a: torch.Tensor, b: torch.Tensor) -> float:
+    a32 = a.detach().flatten().float().cpu()
+    b32 = b.detach().flatten().float().cpu()
+    return torch.nn.functional.cosine_similarity(a32, b32, dim=0).item()
+
+
+def main():
+    # Load config first to set sensible CLI defaults from YAML
+    cfg = CONFIG['defaults']
+    gc_default = cfg.get('gradient_checkpointing_kwargs', {}).get('use_reentrant', False)
+    seed_default = cfg.get('random_seed', 42)
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--batch', type=int, default=cfg.get('batch_size', 2))
+    parser.add_argument('--seq', type=int, default=None, help='Override max_len for the prompt length')
+    parser.add_argument('--text', type=str, default='The quick brown fox jumps over the lazy dog.')
+    parser.add_argument('--seed', type=int, default=seed_default, help='Random seed (default from YAML)')
+    # Use YAML-controlled default for reentrant checkpointing; allow explicit override in CLI
+    parser.add_argument('--use_reentrant', dest='use_reentrant', action='store_true', help='Use legacy reentrant checkpoint path')
+    parser.add_argument('--no-use_reentrant', dest='use_reentrant', action='store_false', help='Disable legacy reentrant checkpoint path (default from YAML)')
+    parser.set_defaults(use_reentrant=gc_default)
+    # Default to True for preserve_rng_state to mirror typical safe training config
+    parser.add_argument('--preserve_rng_state', dest='preserve_rng_state', action='store_true', help='Preserve RNG state during checkpoint recompute (default)')
+    parser.add_argument('--no-preserve_rng_state', dest='preserve_rng_state', action='store_false', help='Disable RNG state preservation during checkpoint recompute')
+    parser.set_defaults(preserve_rng_state=True)
+    # Optional overrides to ease local testing
+    parser.add_argument('--model', type=str, default=None, help='Override CONFIG.defaults.model_name_or_path')
+    parser.add_argument('--attn_implementation', type=str, default=None, choices=['eager', 'sdpa', 'flash_attention_2'], help='Override attention implementation')
+    args = parser.parse_args()
+
+    # Respect optional override of sequence length for this eval
+    max_len = args.seq or cfg['max_len']
+
+    # Apply optional overrides
+    if args.model is not None:
+        cfg = dict(cfg)
+        cfg['model_name_or_path'] = args.model
+    if args.attn_implementation is not None:
+        if 'attn_implementation' not in cfg:
+            cfg = dict(cfg)
+        cfg['attn_implementation'] = args.attn_implementation
+
+    # Build model and tokenizer with real ProbLoRA injection
+    model, tok, device, dtype = build_model_and_tokenizer(cfg)
+
+    # Build a small CLM batch
+    input_ids, attention_mask, labels = make_clm_batch(tok, device, dtype, args.text, args.batch, max_len)
+
+    # 1) Stochasticity under checkpointing ON
+    print(f"\n[1] Stochasticity with checkpointing enabled (use_reentrant={args.use_reentrant}, preserve_rng_state={args.preserve_rng_state})")
+    set_seed(args.seed)
+    cpu0, cuda0 = save_rng_state()
+    loss1 = run_checkpoint_once(model, input_ids, attention_mask, labels,
+                                use_reentrant=args.use_reentrant,
+                                preserve_rng_state=args.preserve_rng_state)
+
+    set_seed(args.seed + 1)
+    loss2 = run_checkpoint_once(model, input_ids, attention_mask, labels,
+                                use_reentrant=args.use_reentrant,
+                                preserve_rng_state=args.preserve_rng_state)
+
+    diff12 = (loss1 - loss2).abs().item()
+    print(f"Loss(seed=a)={loss1.item():.6f}, Loss(seed=b)={loss2.item():.6f}, |Δ|={diff12:.6f}")
+
+    # 2) RNG preservation under checkpointing (forward vs recompute equivalence test)
+    print(f"\n[2] RNG preservation under checkpointing (forward vs recompute equivalence)")
+    set_seed(args.seed)
+    cpu_state, cuda_state = save_rng_state()
+
+    # Build-graph forward under checkpoint
+    loss_fwd = ckpt(lambda x_ids, x_mask, x_lbls: forward_loss(model, x_ids, x_mask, x_lbls),
+                    input_ids, attention_mask, labels,
+                    use_reentrant=args.use_reentrant,
+                    preserve_rng_state=args.preserve_rng_state)
+
+    # Backward triggers recompute forward
+    loss_fwd.backward(retain_graph=False)
+
+    # Now restore EXACT pre-forward RNG state and run a plain forward (no checkpoint)
+    restore_rng_state(cpu_state, cuda_state)
+    loss_ref = forward_loss(model, input_ids, attention_mask, labels)
+
+    # If RNG was preserved for recompute, loss_fwd should equal loss_ref
+    delta = (loss_fwd.detach() - loss_ref.detach()).abs().item()
+    print(f"Loss_fwd={loss_fwd.item():.6f}, Loss_ref={loss_ref.item():.6f}, |Δ|={delta:.6f}")
+
+    # 3) No checkpointing + explicit RNG restore
+    print("\n[3] No checkpointing + explicit RNG restoration (determinism validation)")
+    set_seed(args.seed)
+    cpu_state2, cuda_state2 = save_rng_state()
+    loss_nc_1 = forward_loss(model, input_ids, attention_mask, labels)
+
+    # Rewind RNG and run again
+    restore_rng_state(cpu_state2, cuda_state2)
+    loss_nc_2 = forward_loss(model, input_ids, attention_mask, labels)
+
+    delta_nc = (loss_nc_1.detach() - loss_nc_2.detach()).abs().item()
+    print(f"Loss_nc1={loss_nc_1.item():.6f}, Loss_nc2={loss_nc_2.item():.6f}, |Δ|={delta_nc:.6f}")
+
+    print("\n[INFO] Config mapping recap:")
+    print(f"  attn_implementation -> model.config.attn_implementation (Flash/SDPA selection) = {cfg['attn_implementation']}")
+    print(f"  target_attention_layers -> which projections received ProbLoRA = {cfg['target_attention_layers']}")
+    print(f"  rank/scaling/max_len/ard_prior_samples -> ProbLoRA latent shape and ARD prior settings")
+    print(f"  clamp params -> numerical stability for log-variance and samples")
+    yaml_reentrant = cfg.get('gradient_checkpointing_kwargs', {}).get('use_reentrant', None)
+    print(f"  gradient_checkpointing_kwargs.use_reentrant (YAML) = {yaml_reentrant}; effective use_reentrant (script) = {args.use_reentrant}")
+    print(f"  gradient_checkpointing (YAML) = {cfg.get('gradient_checkpointing', False)}; preserve_rng_state (script) = {args.preserve_rng_state}")
+    print(f"  precision -> bf16={cfg.get('bf16', False)}, fp16={cfg.get('fp16', False)}; load_in_4bit={cfg.get('load_in_4bit', False)}; use_cache={cfg.get('use_cache', False)}")
+    print(f"  batch_size (YAML) = {cfg.get('batch_size', 'n/a')} (script default for --batch)")
+
+    print("\nDone.")
+
+
+if __name__ == '__main__':
+    main()
