@@ -60,10 +60,15 @@ def build_model_and_tokenizer(cfg):
     tokenizer_name = cfg.get('tokenizer_name') or model_name_or_path
 
     device, dtype = device_dtype_from_config(cfg)
+    # For this evaluation script, prefer fp32 compute to avoid mixed-dtype matmul issues
+    compute_dtype = dtype
+    if dtype in (torch.bfloat16, torch.float16):
+        print(f"[PRECISION] YAML requested {dtype}; using float32 for eval to avoid mixed-dtype issues in ProbLoRA compute")
+        compute_dtype = torch.float32
 
     print(f"[LOAD] Model: {model_name_or_path}")
     print(f"[LOAD] Tokenizer: {tokenizer_name}")
-    print(f"[ENV] Device: {device}, DType: {dtype}, bf16={cfg.get('bf16', False)}, fp16={cfg.get('fp16', False)}")
+    print(f"[ENV] Device: {device}, DType: {dtype}, ComputeDType: {compute_dtype}, bf16={cfg.get('bf16', False)}, fp16={cfg.get('fp16', False)}")
 
     model_kwargs = {}
     if cfg.get('load_in_4bit', False):
@@ -73,8 +78,8 @@ def build_model_and_tokenizer(cfg):
         except Exception as e:
             print(f"[WARN] load_in_4bit requested but BitsAndBytes not available: {e}")
 
-    if dtype in (torch.bfloat16, torch.float16):
-        model_kwargs['torch_dtype'] = dtype
+    if compute_dtype in (torch.bfloat16, torch.float16, torch.float32):
+        model_kwargs['torch_dtype'] = compute_dtype
 
     model = AutoModelForCausalLM.from_pretrained(model_name_or_path, **model_kwargs)
     tok = AutoTokenizer.from_pretrained(tokenizer_name)
@@ -116,8 +121,8 @@ def build_model_and_tokenizer(cfg):
     )
 
     model.to(device)
-    if dtype in (torch.bfloat16, torch.float16):
-        model.to(dtype=dtype)
+    if compute_dtype in (torch.bfloat16, torch.float16, torch.float32):
+        model.to(dtype=compute_dtype)
 
     # Mirror training-time gradient checkpointing setting on the model if supported
     try:
