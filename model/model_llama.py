@@ -65,7 +65,7 @@ class ProbLoRALayer(nn.Module):
             bound = math.sqrt(6.0 / self.in_features)
             nn.init.uniform_(M_part, -bound, bound)        # mean M: Xavier-UNIFORM
             eps0 = 1e-3                                    # small target variance
-            low, high = math.sqrt(eps0) / 2.0, eps0        # G ∈ [√ε/2, ε]
+            low, high = eps0 / math.sqrt(2.0), eps0        # G ∼ U(ε/√2, ε)
             nn.init.uniform_(G_part, low, high)            # positive, small
 
             self.A = nn.Parameter(A_tensor)
