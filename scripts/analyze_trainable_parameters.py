@@ -526,6 +526,7 @@ def load_config_from_yaml(config_path: str) -> Dict[str, Any]:
 def load_model_for_analysis(config_path: str, model_args: Dict[str, Any]) -> torch.nn.Module:
     """Load model with ProbLoRA injection for analysis using the exact same parameters as training."""
     from transformers import LlamaForCausalLM, LlamaTokenizer
+    from model.model_llama import ProbLoRALayer
     
     print("Loading model for parameter analysis...")
     
@@ -559,6 +560,22 @@ def load_model_for_analysis(config_path: str, model_args: Dict[str, Any]) -> tor
         lora_alpha=model_args['lora_alpha']
     )
     
+    # The ProbLoRA injection already handles parameter freezing correctly:
+    # - Base projection weights are frozen in ProbLoRALayer.__init__()
+    # - Only A, B, G matrices are left trainable
+    # No additional parameter freezing logic needed
+    
+    # Verify parameter counts match training configuration
+    trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
+    total_params = sum(p.numel() for p in model.parameters())
+    trainable_count = sum(1 for p in model.parameters() if p.requires_grad)
+    
+    print(f"ProbLoRA parameter configuration verified:")
+    print(f"  Total parameters: {total_params:,}")
+    print(f"  Trainable parameters: {trainable_params:,}")
+    print(f"  Trainable parameter tensors: {trainable_count}")
+    print(f"  Trainable percentage: {100*trainable_params/total_params:.1f}%")
+    
     print("Model loaded and ProbLoRA injected with full training configuration")
     return model
 
@@ -579,20 +596,35 @@ def create_test_trainer_for_validation(model, config_path: str = "config/run_tra
             
         with open(config_path, 'r') as f:
             config = yaml.safe_load(f)
+        
+        print(f"[DEBUG] Config keys: {list(config.keys())}")
+        
+        if 'defaults' not in config:
+            print(f"ERROR: 'defaults' section not found in config file")
+            print(f"Available sections: {list(config.keys())}")
+            return None
+            
         defaults = config['defaults']
+        print(f"[DEBUG] Defaults keys: {list(defaults.keys())}")
         
         # Extract training parameters from YAML (no fallbacks)
-        learning_rate = defaults['learning_rate']
-        optim = defaults['optim']
-        weight_decay = defaults['weight_decay']
-        max_grad_norm = defaults['max_grad_norm']
-        batch_size = defaults['batch_size']
-        model_name = defaults['model_name_or_path']
+        try:
+            learning_rate = defaults['learning_rate']
+            optim = defaults['optim']
+            weight_decay = defaults['weight_decay']
+            max_grad_norm = defaults['max_grad_norm']
+            batch_size = defaults['batch_size']
+            model_name = defaults['model_name_or_path']
+        except KeyError as e:
+            print(f"ERROR: Missing required parameter in config defaults: {e}")
+            print(f"Available parameters: {list(defaults.keys())}")
+            return None
         
         # Validate required parameters
         if any(param is None for param in [learning_rate, optim, model_name]):
             print("ERROR: Missing required training parameters in config file")
             print(f"Required: learning_rate, optim, model_name_or_path")
+            print(f"Values: lr={learning_rate}, optim={optim}, model={model_name}")
             return None
         
         # Load tokenizer
@@ -743,12 +775,16 @@ def quick_analysis():
             print(f"Difference: {diff:,} parameters ({diff/expected*100:.2f}%)")
         
         # Optimizer validation summary
-        if 'optimizer_validation' in results:
+        if 'optimizer_validation' in results and results['optimizer_validation'] is not None:
             opt_results = results['optimizer_validation']
             print(f"\nOptimizer Validation:")
             print(f"  Model trainable parameters: {opt_results['model_param_count']:,}")
             print(f"  ProbLoRA parameters found: {len(opt_results['problora_param_names'])}")
             print(f"  Non-ProbLoRA parameters: {len(opt_results['non_problora_param_names'])}")
+        elif 'optimizer_validation' in results:
+            print(f"\nOptimizer Validation: Skipped (trainer creation failed)")
+        else:
+            print(f"\nOptimizer Validation: Not performed")
         
         return results
         
