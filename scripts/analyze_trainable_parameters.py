@@ -668,13 +668,28 @@ def create_test_trainer_for_validation(model, config_path: str = "config/run_tra
         
         print("Creating test trainer for optimizer validation...")
         
+        # Resolve config path relative to project root (scripts is subdirectory)
+        script_dir = Path(__file__).parent  # scripts directory
+        project_root = script_dir.parent    # ARD-LoRA-Data-CLM directory
+        
+        # If config_path is relative, resolve it from project root
+        if not Path(config_path).is_absolute():
+            resolved_config_path = project_root / config_path
+        else:
+            resolved_config_path = Path(config_path)
+            
+        print(f"[DEBUG] Script dir: {script_dir}")
+        print(f"[DEBUG] Project root: {project_root}")
+        print(f"[DEBUG] Config path: {config_path}")
+        print(f"[DEBUG] Resolved config path: {resolved_config_path}")
+        
         # Load config to get training parameters (required)
-        if not Path(config_path).exists():
-            print(f"ERROR: Configuration file not found: {config_path}")
+        if not resolved_config_path.exists():
+            print(f"ERROR: Configuration file not found: {resolved_config_path}")
             print("Cannot create test trainer without training configuration.")
             return None
             
-        with open(config_path, 'r') as f:
+        with open(resolved_config_path, 'r') as f:
             config = yaml.safe_load(f)
         
         print(f"[DEBUG] Config keys: {list(config.keys())}")
