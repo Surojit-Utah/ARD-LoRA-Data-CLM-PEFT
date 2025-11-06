@@ -493,6 +493,40 @@ class ParameterAnalyzer:
             
             self.log(f"   Backward pass completed")
             
+            # FIRST: Check parameter requires_grad status for all A/mu_A parameters
+            self.log(f"\n   PARAMETER REQUIRES_GRAD STATUS CHECK:")
+            mu_A_params_found = 0
+            mu_A_requires_grad = 0
+            B_params_found = 0
+            B_requires_grad = 0
+            
+            for name, param in self.model.named_parameters():
+                if '.mu_A' in name:
+                    mu_A_params_found += 1
+                    if param.requires_grad:
+                        mu_A_requires_grad += 1
+                    else:
+                        self.log(f"     WARNING: {name} has requires_grad=False!")
+                elif '.B' in name and any(attn in name for attn in ['q_proj', 'k_proj', 'v_proj']):
+                    B_params_found += 1
+                    if param.requires_grad:
+                        B_requires_grad += 1
+                    else:
+                        self.log(f"     WARNING: {name} has requires_grad=False!")
+            
+            self.log(f"     mu_A parameters found: {mu_A_params_found}")
+            self.log(f"     mu_A parameters with requires_grad=True: {mu_A_requires_grad}")
+            self.log(f"     B parameters found: {B_params_found}")
+            self.log(f"     B parameters with requires_grad=True: {B_requires_grad}")
+            
+            if mu_A_requires_grad == 0:
+                self.log(f"     CRITICAL: NO mu_A parameters have requires_grad=True!")
+                self.log(f"     This explains why mu_A doesn't receive gradients")
+            elif mu_A_requires_grad < mu_A_params_found:
+                self.log(f"     ISSUE: Only {mu_A_requires_grad}/{mu_A_params_found} mu_A parameters have requires_grad=True")
+            else:
+                self.log(f"     GOOD: All mu_A parameters have requires_grad=True")
+            
             # Analyze gradient distribution with detailed breakdown
             trainable_with_grads = 0
             trainable_without_grads = 0
@@ -597,12 +631,12 @@ class ParameterAnalyzer:
             ])
             
             # Verify your calculation: 32 layers × 3 attention types = 96 parameters
-            expected_attention_params = 32 * 3  # 32 layers × (q_proj, k_proj, v_proj)
+            expected_attention_params = 32 * 3 * 2  # 32 layers × (q_proj, k_proj, v_proj)
             actual_attention_params = sum(stats['total_params'] for name, stats in attention_module_analysis.items() 
                                         if name in ['q_proj', 'k_proj', 'v_proj'])
             
             self.log(f"\n   USER'S CALCULATION VERIFICATION:")
-            self.log(f"     Expected attention parameters (32 layers × 3 types): {expected_attention_params}")
+            self.log(f"     Expected attention parameters (32 layers × 3 types X 2 A&B): {expected_attention_params}")
             self.log(f"     Actual q/k/v parameters found: {actual_attention_params}")
             self.log(f"     Parameters with gradients: {trainable_with_grads}")
             self.log(f"     Your hypothesis: {'VERIFIED' if trainable_with_grads == expected_attention_params else 'NEEDS INVESTIGATION'}")
