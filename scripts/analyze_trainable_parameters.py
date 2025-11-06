@@ -449,6 +449,182 @@ class ParameterAnalyzer:
             'non_problora_param_names': [name for name in model_param_names if not any(matrix in name for matrix in ['.A', '.B', '.G', '.mu_A'])]
         }
 
+    def validate_gradient_flow_and_updates(self, trainer=None):
+        """
+        Validate that gradients flow correctly and only trainable parameters update.
+        This is the ultimate test for proper LoRA parameter handling.
+        """
+        self.log(f"\nGRADIENT FLOW AND PARAMETER UPDATE VALIDATION:")
+        self.log("=" * 60)
+        
+        if trainer is None:
+            self.log("   ERROR: Trainer required for gradient flow validation")
+            return None
+        
+        try:
+            # Force optimizer creation if needed
+            if trainer.optimizer is None:
+                trainer.create_optimizer()
+            
+            # Create dummy input for forward/backward pass
+            tokenizer = trainer.tokenizer
+            dummy_text = "The quick brown fox jumps over the lazy dog."
+            inputs = tokenizer(dummy_text, return_tensors="pt", padding=True, truncation=True, max_length=32)
+            input_ids = inputs["input_ids"]
+            attention_mask = inputs["attention_mask"]
+            
+            self.log(f"   Using dummy input: '{dummy_text}'")
+            self.log(f"   Input shape: {input_ids.shape}")
+            
+            # Switch to training mode and clear gradients
+            self.model.train()
+            self.model.zero_grad(set_to_none=True)
+            
+            self.log(f"\n   FORWARD PASS AND GRADIENT COMPUTATION:")
+            
+            # Forward pass with loss computation
+            outputs = self.model(input_ids=input_ids, attention_mask=attention_mask, labels=input_ids)
+            loss = outputs.loss
+            
+            self.log(f"   Loss computed: {loss.item():.6f}")
+            
+            # Backward pass
+            loss.backward()
+            
+            self.log(f"   Backward pass completed")
+            
+            # Analyze gradient distribution
+            trainable_with_grads = 0
+            trainable_without_grads = 0
+            frozen_with_grads = 0
+            frozen_without_grads = 0
+            
+            trainable_grad_norm = 0.0
+            frozen_grad_norm = 0.0
+            
+            for name, param in self.model.named_parameters():
+                if param.requires_grad:
+                    if param.grad is not None and param.grad.abs().sum() > 0:
+                        trainable_with_grads += 1
+                        trainable_grad_norm += param.grad.abs().sum().item()
+                    else:
+                        trainable_without_grads += 1
+                else:
+                    if param.grad is not None and param.grad.abs().sum() > 0:
+                        frozen_with_grads += 1
+                        frozen_grad_norm += param.grad.abs().sum().item()
+                    else:
+                        frozen_without_grads += 1
+            
+            self.log(f"\n   GRADIENT ANALYSIS:")
+            self.log(f"     Trainable params with gradients: {trainable_with_grads}")
+            self.log(f"     Trainable params without gradients: {trainable_without_grads}")
+            self.log(f"     Frozen params with gradients: {frozen_with_grads}")
+            self.log(f"     Frozen params without gradients: {frozen_without_grads}")
+            self.log(f"     Total trainable gradient norm: {trainable_grad_norm:.6e}")
+            self.log(f"     Total frozen gradient norm: {frozen_grad_norm:.6e}")
+            
+            # Validation checks
+            if frozen_with_grads == 0:
+                self.log(f"     ✓ PASS: No frozen parameters received gradients")
+            else:
+                self.log(f"     ✗ FAIL: {frozen_with_grads} frozen parameters received gradients!")
+            
+            if trainable_with_grads > 0:
+                self.log(f"     ✓ PASS: {trainable_with_grads} trainable parameters received gradients")
+            else:
+                self.log(f"     ✗ FAIL: No trainable parameters received gradients!")
+            
+            # Take snapshot of trainable parameters before optimization
+            self.log(f"\n   PARAMETER UPDATE VALIDATION:")
+            param_snapshot = {}
+            for name, param in self.model.named_parameters():
+                if param.requires_grad:
+                    param_snapshot[name] = param.detach().clone()
+            
+            self.log(f"     Snapshot taken of {len(param_snapshot)} trainable parameters")
+            
+            # Perform optimizer step
+            trainer.optimizer.step()
+            trainer.optimizer.zero_grad(set_to_none=True)
+            
+            self.log(f"     Optimizer step completed")
+            
+            # Measure parameter changes
+            total_param_change = 0.0
+            params_that_changed = 0
+            params_that_didnt_change = 0
+            
+            for name, param in self.model.named_parameters():
+                if param.requires_grad and name in param_snapshot:
+                    delta = (param.detach() - param_snapshot[name]).abs().sum().item()
+                    total_param_change += delta
+                    
+                    if delta > 1e-10:  # Small threshold for numerical precision
+                        params_that_changed += 1
+                    else:
+                        params_that_didnt_change += 1
+            
+            self.log(f"     Parameters that changed: {params_that_changed}")
+            self.log(f"     Parameters that didn't change: {params_that_didnt_change}")
+            self.log(f"     Total parameter change magnitude: {total_param_change:.6e}")
+            
+            # Final validation
+            if total_param_change > 0:
+                self.log(f"     ✓ PASS: Trainable parameters were updated (total |Δ|: {total_param_change:.3e})")
+            else:
+                self.log(f"     ✗ FAIL: No parameter updates detected!")
+            
+            # Verify frozen parameters didn't change
+            frozen_params_changed = 0
+            for name, param in self.model.named_parameters():
+                if not param.requires_grad:
+                    # Frozen parameters should never change, so we don't need snapshots
+                    # But we can check if they somehow got gradients and warn
+                    if param.grad is not None:
+                        frozen_params_changed += 1
+            
+            if frozen_params_changed == 0:
+                self.log(f"     ✓ PASS: All frozen parameters remained unchanged")
+            else:
+                self.log(f"     ✗ WARNING: {frozen_params_changed} frozen parameters had gradients")
+            
+            # Summary
+            self.log(f"\n   GRADIENT FLOW VALIDATION SUMMARY:")
+            gradient_flow_correct = (frozen_with_grads == 0) and (trainable_with_grads > 0)
+            parameter_updates_correct = (total_param_change > 0) and (frozen_params_changed == 0)
+            
+            if gradient_flow_correct:
+                self.log(f"     ✓ Gradient flow: CORRECT (only trainable params receive gradients)")
+            else:
+                self.log(f"     ✗ Gradient flow: INCORRECT")
+                
+            if parameter_updates_correct:
+                self.log(f"     ✓ Parameter updates: CORRECT (only trainable params change)")
+            else:
+                self.log(f"     ✗ Parameter updates: INCORRECT")
+            
+            overall_pass = gradient_flow_correct and parameter_updates_correct
+            if overall_pass:
+                self.log(f"     OVERALL: PASS - Perfect LoRA parameter handling!")
+            else:
+                self.log(f"     OVERALL: FAIL - LoRA parameter handling has issues")
+            
+            return {
+                'gradient_flow_correct': gradient_flow_correct,
+                'parameter_updates_correct': parameter_updates_correct,
+                'overall_pass': overall_pass,
+                'trainable_with_grads': trainable_with_grads,
+                'frozen_with_grads': frozen_with_grads,
+                'total_param_change': total_param_change,
+                'params_that_changed': params_that_changed
+            }
+            
+        except Exception as e:
+            self.log(f"   ERROR during gradient flow validation: {e}")
+            traceback.print_exc()
+            return None
+
 
 def load_config_from_yaml(config_path: str) -> Dict[str, Any]:
     """Load and parse configuration from YAML file."""
@@ -780,7 +956,7 @@ def create_test_trainer_for_validation(model, config_path: str = "config/run_tra
 
 
 def analyze_with_optimizer_validation(model, config_path: str = "config/run_training_params.yaml", output_file: str = None):
-    """Analyze model parameters and validate optimizer usage."""
+    """Analyze model parameters and validate optimizer usage with comprehensive gradient flow testing."""
     
     # Create parameter analyzer
     analyzer = ParameterAnalyzer(model, output_file)
@@ -795,9 +971,15 @@ def analyze_with_optimizer_validation(model, config_path: str = "config/run_trai
     if trainer is not None:
         optimizer_results = analyzer.validate_optimizer_parameters(trainer=trainer)
         results['optimizer_validation'] = optimizer_results
+        
+        # NEW: Validate gradient flow and parameter updates (the ultimate test!)
+        gradient_flow_results = analyzer.validate_gradient_flow_and_updates(trainer=trainer)
+        results['gradient_flow_validation'] = gradient_flow_results
+        
     else:
-        print("Skipping optimizer validation due to trainer creation failure")
+        print("Skipping optimizer and gradient flow validation due to trainer creation failure")
         results['optimizer_validation'] = None
+        results['gradient_flow_validation'] = None
     
     # Save log
     analyzer.save_log()
@@ -884,6 +1066,24 @@ def quick_analysis():
             print(f"\nOptimizer Validation: Skipped (trainer creation failed)")
         else:
             print(f"\nOptimizer Validation: Not performed")
+        
+        # Gradient flow validation summary
+        if 'gradient_flow_validation' in results and results['gradient_flow_validation'] is not None:
+            gf_results = results['gradient_flow_validation']
+            print(f"\nGradient Flow Validation:")
+            print(f"  Trainable params with gradients: {gf_results['trainable_with_grads']}")
+            print(f"  Frozen params with gradients: {gf_results['frozen_with_grads']}")
+            print(f"  Parameters that updated: {gf_results['params_that_changed']}")
+            print(f"  Total parameter change: {gf_results['total_param_change']:.3e}")
+            
+            if gf_results['overall_pass']:
+                print(f"  Result: PERFECT LoRA parameter handling!")
+            else:
+                print(f"  Result: Issues detected in LoRA parameter handling")
+        elif 'gradient_flow_validation' in results:
+            print(f"\nGradient Flow Validation: Skipped (trainer creation failed)")
+        else:
+            print(f"\nGradient Flow Validation: Not performed")
         
         return results
         
@@ -974,6 +1174,16 @@ Examples:
             print(f"  Model trainable parameters: {opt_results['model_param_count']:,}")
             print(f"  ProbLoRA parameters found: {len(opt_results['problora_param_names'])}")
             print(f"  Non-ProbLoRA parameters: {len(opt_results['non_problora_param_names'])}")
+        
+        # Print gradient flow validation summary
+        if 'gradient_flow_validation' in results and results['gradient_flow_validation'] is not None:
+            gf_results = results['gradient_flow_validation']
+            print(f"\nGradient Flow Validation:")
+            print(f"  Gradient flow: {'✓ CORRECT' if gf_results['gradient_flow_correct'] else '✗ INCORRECT'}")
+            print(f"  Parameter updates: {'✓ CORRECT' if gf_results['parameter_updates_correct'] else '✗ INCORRECT'}")
+            print(f"  Overall result: {'PERFECT' if gf_results['overall_pass'] else 'ISSUES DETECTED'}")
+        else:
+            print(f"\nGradient Flow Validation: Not performed")
         
         return results
         
