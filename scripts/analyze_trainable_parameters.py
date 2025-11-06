@@ -25,12 +25,15 @@ from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Tuple, Any
 from collections import defaultdict
+import traceback
 
 # Add project root to Python path
 project_root = Path(__file__).parent.parent
 sys.path.append(str(project_root))
 
-from model.model_llama import inject_problora_llama
+from transformers import AutoModelForCausalLM, AutoTokenizer
+from model.model_llama import ProbLoRALayer, inject_problora_llama
+from transformers import TrainingArguments, Trainer, DataCollatorForLanguageModeling
 
 
 class ParameterAnalyzer:
@@ -90,7 +93,7 @@ class ParameterAnalyzer:
         }
         
         # Check if this is a ProbLoRA layer
-        if hasattr(layer_module, 'A') or hasattr(layer_module, 'B') or hasattr(layer_module, 'G'):
+        if isinstance(layer_module, ProbLoRALayer):
             self.log(f"\nAnalyzing ProbLoRA Layer: {layer_name}")
             
             # Analyze A matrix
@@ -101,31 +104,15 @@ class ParameterAnalyzer:
                 if A_info['requires_grad']:
                     layer_info['trainable_params'] += A_info['numel']
                 self.log(f"   A matrix: {A_info['shape']} = {A_info['numel']:,} params (trainable: {A_info['requires_grad']})")
-                
-                # Head-wise analysis for A matrix
-                if len(A_info['shape']) >= 2:
-                    # Assuming A is (rank, in_features) for attention layers
-                    rank, in_features = A_info['shape'][0], A_info['shape'][1]
-                    
-                    # Try to determine number of heads
-                    if hasattr(layer_module, 'num_heads'):
-                        num_heads = layer_module.num_heads
-                    elif 'self_attn' in layer_name or 'attention' in layer_name.lower():
-                        # Common attention head counts for LLaMA
-                        if in_features == 4096:  # LLaMA-7B hidden size
-                            num_heads = 32
-                        else:
-                            num_heads = in_features // 128  # Estimate based on head dim
-                    else:
-                        num_heads = 1  # Non-attention layer
-                    
-                    params_per_head = A_info['numel'] // max(num_heads, 1)
-                    layer_info['heads']['A'] = {
-                        'num_heads': num_heads,
-                        'params_per_head': params_per_head,
-                        'total_params': A_info['numel']
-                    }
-                    self.log(f"      A heads: {num_heads} heads × {params_per_head:,} params = {A_info['numel']:,}")
+            
+            # For deterministic mode, check mu_A instead of A
+            elif hasattr(layer_module, 'mu_A'):
+                A_info = self.analyze_parameter_tensor(layer_module.mu_A, f"{layer_name}.mu_A")
+                layer_info['matrices']['A'] = A_info
+                layer_info['total_params'] += A_info['numel']
+                if A_info['requires_grad']:
+                    layer_info['trainable_params'] += A_info['numel']
+                self.log(f"   mu_A matrix: {A_info['shape']} = {A_info['numel']:,} params (trainable: {A_info['requires_grad']})")
             
             # Analyze B matrix
             if hasattr(layer_module, 'B'):
@@ -135,32 +122,8 @@ class ParameterAnalyzer:
                 if B_info['requires_grad']:
                     layer_info['trainable_params'] += B_info['numel']
                 self.log(f"   B matrix: {B_info['shape']} = {B_info['numel']:,} params (trainable: {B_info['requires_grad']})")
-                
-                # Head-wise analysis for B matrix
-                if len(B_info['shape']) >= 2:
-                    # Assuming B is (out_features, rank) for attention layers
-                    out_features, rank = B_info['shape'][0], B_info['shape'][1]
-                    
-                    # Try to determine number of heads
-                    if hasattr(layer_module, 'num_heads'):
-                        num_heads = layer_module.num_heads
-                    elif 'self_attn' in layer_name or 'attention' in layer_name.lower():
-                        if out_features == 4096:  # LLaMA-7B hidden size
-                            num_heads = 32
-                        else:
-                            num_heads = out_features // 128  # Estimate based on head dim
-                    else:
-                        num_heads = 1  # Non-attention layer
-                    
-                    params_per_head = B_info['numel'] // max(num_heads, 1)
-                    layer_info['heads']['B'] = {
-                        'num_heads': num_heads,
-                        'params_per_head': params_per_head,
-                        'total_params': B_info['numel']
-                    }
-                    self.log(f"      B heads: {num_heads} heads × {params_per_head:,} params = {B_info['numel']:,}")
             
-            # Analyze G matrix (variance parameters)
+            # Analyze G matrix (variance parameters) - only in probabilistic mode
             if hasattr(layer_module, 'G'):
                 G_info = self.analyze_parameter_tensor(layer_module.G, f"{layer_name}.G")
                 layer_info['matrices']['G'] = G_info
@@ -169,43 +132,63 @@ class ParameterAnalyzer:
                     layer_info['trainable_params'] += G_info['numel']
                 self.log(f"   G matrix: {G_info['shape']} = {G_info['numel']:,} params (trainable: {G_info['requires_grad']})")
             
+            # Report layer mode
+            mode = "deterministic LoRA" if layer_module.deterministic else "probabilistic LoRA"
+            self.log(f"   Mode: {mode} (rank={layer_module.rank})")
+            
             # Layer summary
             self.log(f"   Layer Total: {layer_info['total_params']:,} params ({layer_info['trainable_params']:,} trainable)")
             
         return layer_info
     
     def analyze_model(self) -> Dict[str, Any]:
-        """Perform comprehensive model analysis."""
-        self.log("COMPREHENSIVE TRAINABLE PARAMETER ANALYSIS")
+        """Perform comprehensive model analysis focused on ProbLoRA parameters."""
+        self.log("PROBLORA-FOCUSED TRAINABLE PARAMETER ANALYSIS")
         self.log("=" * 80)
         self.log(f"Analysis Date: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
         self.log(f"Model Type: {type(self.model).__name__}")
+        self.log(f"Focus: ProbLoRA layers (A, B, G matrices) only")
         self.log("")
         
-        # Track all parameters first
+        # Track all parameters first, but distinguish ProbLoRA vs base model
+        problora_trainable = 0
+        base_model_trainable = 0
+        
         for name, param in self.model.named_parameters():
             self.total_parameters += param.numel()
             if param.requires_grad:
                 self.total_trainable += param.numel()
+                # Check if this is a ProbLoRA parameter (A, B, G matrices, or mu_A for deterministic)
+                if any(matrix in name for matrix in ['.A', '.B', '.G', '.mu_A']):
+                    problora_trainable += param.numel()
+                else:
+                    base_model_trainable += param.numel()
         
         self.log(f"OVERALL PARAMETER SUMMARY:")
         self.log(f"   Total parameters: {self.total_parameters:,}")
-        self.log(f"   Trainable parameters: {self.total_trainable:,}")
-        self.log(f"   Trainable percentage: {(self.total_trainable/self.total_parameters)*100:.2f}%")
+        self.log(f"   Total trainable parameters: {self.total_trainable:,}")
+        self.log(f"   ProbLoRA trainable parameters: {problora_trainable:,}")
+        self.log(f"   Base model trainable parameters: {base_model_trainable:,}")
+        self.log(f"   ProbLoRA percentage of total: {(problora_trainable/self.total_parameters)*100:.4f}%")
+        self.log(f"   ProbLoRA percentage of trainable: {(problora_trainable/self.total_trainable)*100:.2f}%")
         self.log("")
         
-        # Analyze layers with ProbLoRA components
+        # Warn if base model has trainable parameters (shouldn't happen with proper LoRA)
+        if base_model_trainable > 0:
+            self.log(f"WARNING: Base model has {base_model_trainable:,} trainable parameters!")
+            self.log(f"         In proper LoRA setup, only ProbLoRA matrices should be trainable.")
+            self.log("")
+        
+        # Analyze ProbLoRA layers specifically
         problora_layers_found = 0
         total_problora_params = 0
         
-        self.log("LAYER-BY-LAYER ANALYSIS:")
+        self.log("PROBLORA LAYER-BY-LAYER ANALYSIS:")
         self.log("-" * 60)
         
         for name, module in self.model.named_modules():
-            # Check if this module has ProbLoRA components
-            has_problora = any(hasattr(module, attr) for attr in ['A', 'B', 'G'])
-            
-            if has_problora:
+            # Check if this module is a ProbLoRA layer
+            if isinstance(module, ProbLoRALayer):
                 layer_info = self.analyze_problora_layer(name, module)
                 self.layer_stats[name] = layer_info
                 problora_layers_found += 1
@@ -272,19 +255,27 @@ class ParameterAnalyzer:
                 self.log(f"   Total {matrix_type} heads across all layers: {total_heads}")
     
     def validate_parameter_count(self):
-        """Validate the parameter count against expected values."""
-        self.log(f"\nVALIDATION:")
-        self.log("-" * 30)
+        """Validate the parameter count against expected values, focusing on ProbLoRA."""
+        self.log(f"\nPROBLORA PARAMETER VALIDATION:")
+        self.log("-" * 40)
         
         expected_count = 12_582_912  # The reported trainable parameter count
         actual_count = self.total_trainable
         
-        self.log(f"   Expected trainable parameters: {expected_count:,}")
-        self.log(f"   Actual trainable parameters:   {actual_count:,}")
-        self.log(f"   Difference: {abs(actual_count - expected_count):,}")
+        # Count ProbLoRA-specific parameters (including mu_A for deterministic mode)
+        problora_count = sum(p.numel() for name, p in self.model.named_parameters()
+                            if p.requires_grad and any(matrix in name for matrix in ['.A', '.B', '.G', '.mu_A']))
+        
+        non_problora_count = actual_count - problora_count
+        
+        self.log(f"   Expected total trainable parameters: {expected_count:,}")
+        self.log(f"   Actual total trainable parameters:   {actual_count:,}")
+        self.log(f"   ProbLoRA trainable parameters:       {problora_count:,}")
+        self.log(f"   Non-ProbLoRA trainable parameters:   {non_problora_count:,}")
+        self.log(f"   Difference from expected: {abs(actual_count - expected_count):,}")
         
         if actual_count == expected_count:
-            self.log("   Parameter count matches expected value!")
+            self.log("   ✓ Parameter count matches expected value!")
         else:
             percentage_diff = abs(actual_count - expected_count) / expected_count * 100
             self.log(f"   Parameter count differs by {percentage_diff:.2f}%")
@@ -293,6 +284,21 @@ class ParameterAnalyzer:
                 self.log("   Small difference, likely due to rounding or additional parameters")
             else:
                 self.log("   Significant difference, investigation needed")
+        
+        # ProbLoRA-specific validation
+        if non_problora_count == 0:
+            self.log("   ✓ EXCELLENT: Only ProbLoRA parameters are trainable (proper LoRA setup)")
+        else:
+            self.log(f"   ⚠ WARNING: {non_problora_count:,} non-ProbLoRA parameters are trainable")
+            self.log("     This suggests base model parameters may not be properly frozen")
+        
+        # Expected ProbLoRA parameter breakdown (for reference)
+        expected_problora = expected_count if non_problora_count == 0 else problora_count
+        if problora_count == expected_problora:
+            self.log(f"   ✓ ProbLoRA parameter count is correct: {problora_count:,}")
+        else:
+            diff = abs(problora_count - expected_problora)
+            self.log(f"   ⚠ ProbLoRA parameter difference: {diff:,} ({diff/expected_problora*100:.2f}%)")
 
     def validate_optimizer_parameters(self, trainer=None, optimizer=None):
         """
@@ -414,8 +420,8 @@ class ParameterAnalyzer:
                 self.log(f"     ... and {len(model_param_names) - 10} more parameters")
             
             # Check for parameters that should be trainable (ProbLoRA specific)
-            problora_params = [name for name in model_param_names if any(matrix in name for matrix in ['.A', '.B', '.G'])]
-            non_problora_params = [name for name in model_param_names if not any(matrix in name for matrix in ['.A', '.B', '.G'])]
+            problora_params = [name for name in model_param_names if any(matrix in name for matrix in ['.A', '.B', '.G', '.mu_A'])]
+            non_problora_params = [name for name in model_param_names if not any(matrix in name for matrix in ['.A', '.B', '.G', '.mu_A'])]
             
             self.log(f"\n   PARAMETER CLASSIFICATION:")
             self.log(f"     ProbLoRA parameters: {len(problora_params)}")
@@ -434,8 +440,8 @@ class ParameterAnalyzer:
         return {
             'model_param_count': model_param_count,
             'model_param_tensors': len(model_trainable_params),
-            'problora_param_names': [name for name in model_param_names if any(matrix in name for matrix in ['.A', '.B', '.G'])],
-            'non_problora_param_names': [name for name in model_param_names if not any(matrix in name for matrix in ['.A', '.B', '.G'])]
+            'problora_param_names': [name for name in model_param_names if any(matrix in name for matrix in ['.A', '.B', '.G', '.mu_A'])],
+            'non_problora_param_names': [name for name in model_param_names if not any(matrix in name for matrix in ['.A', '.B', '.G', '.mu_A'])]
         }
 
 
@@ -524,19 +530,22 @@ def load_config_from_yaml(config_path: str) -> Dict[str, Any]:
 
 
 def load_model_for_analysis(config_path: str, model_args: Dict[str, Any]) -> torch.nn.Module:
-    """Load model with ProbLoRA injection for analysis using the exact same parameters as training."""
-    from transformers import LlamaForCausalLM, LlamaTokenizer
-    from model.model_llama import ProbLoRALayer
+    """Load model with ProbLoRA injection for analysis focusing only on ProbLoRA parameters."""
     
-    print("Loading model for parameter analysis...")
+    print("Loading model for ProbLoRA-focused parameter analysis...")
     
-    # Load base model
-    model = LlamaForCausalLM.from_pretrained(
+    # Prepare model loading arguments
+    model_kwargs = {
+        'torch_dtype': torch.bfloat16 if model_args['bf16'] else torch.float16,
+        'device_map': "cpu",  # Keep on CPU for analysis
+        'load_in_4bit': False,  # No quantization for parameter counting
+        'trust_remote_code': True
+    }
+    
+    # Load base model using Auto class for flexibility
+    model = AutoModelForCausalLM.from_pretrained(
         model_args['model_name'],
-        torch_dtype=torch.bfloat16 if model_args['bf16'] else torch.float16,
-        device_map="cpu",  # Keep on CPU for analysis
-        load_in_4bit=False,  # No quantization for parameter counting
-        trust_remote_code=True
+        **model_kwargs
     )
     
     # Inject ProbLoRA using the exact same function and parameters as training
@@ -560,31 +569,38 @@ def load_model_for_analysis(config_path: str, model_args: Dict[str, Any]) -> tor
         lora_alpha=model_args['lora_alpha']
     )
     
-    # The ProbLoRA injection already handles parameter freezing correctly:
-    # - Base projection weights are frozen in ProbLoRALayer.__init__()
-    # - Only A, B, G matrices are left trainable
-    # No additional parameter freezing logic needed
-    
-    # Verify parameter counts match training configuration
-    trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
+    # Count parameters focusing only on trainable ones (ProbLoRA matrices)
     total_params = sum(p.numel() for p in model.parameters())
-    trainable_count = sum(1 for p in model.parameters() if p.requires_grad)
+    trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
+    problora_params = sum(p.numel() for name, p in model.named_parameters() 
+                         if p.requires_grad and any(matrix in name for matrix in ['.A', '.B', '.G', '.mu_A']))
     
-    print(f"ProbLoRA parameter configuration verified:")
-    print(f"  Total parameters: {total_params:,}")
-    print(f"  Trainable parameters: {trainable_params:,}")
-    print(f"  Trainable parameter tensors: {trainable_count}")
-    print(f"  Trainable percentage: {100*trainable_params/total_params:.1f}%")
+    print(f"Parameter analysis focus: ProbLoRA layers only")
+    print(f"  Total model parameters: {total_params:,}")
+    print(f"  Total trainable parameters: {trainable_params:,}")
+    print(f"  ProbLoRA trainable parameters: {problora_params:,}")
+    print(f"  ProbLoRA percentage of trainable: {100*problora_params/trainable_params:.1f}%")
     
-    print("Model loaded and ProbLoRA injected with full training configuration")
+    # Verify that only ProbLoRA parameters are trainable (as expected)
+    non_problora_trainable = [name for name, p in model.named_parameters() 
+                             if p.requires_grad and not any(matrix in name for matrix in ['.A', '.B', '.G', '.mu_A'])]
+    
+    if non_problora_trainable:
+        print(f"  WARNING: Found {len(non_problora_trainable)} non-ProbLoRA trainable parameters")
+        for name in non_problora_trainable[:5]:  # Show first 5
+            print(f"    - {name}")
+        if len(non_problora_trainable) > 5:
+            print(f"    ... and {len(non_problora_trainable) - 5} more")
+    else:
+        print(f"  VERIFIED: Only ProbLoRA parameters (A, B, G, mu_A matrices) are trainable")
+    
+    print("Model loaded - analysis will focus on ProbLoRA layers only")
     return model
 
 
 def create_test_trainer_for_validation(model, config_path: str = "config/run_training_params.yaml"):
     """Create a test trainer to validate optimizer parameter usage."""
     try:
-        from transformers import TrainingArguments, Trainer, DataCollatorForLanguageModeling
-        from transformers import LlamaTokenizer
         
         print("Creating test trainer for optimizer validation...")
         
@@ -628,7 +644,7 @@ def create_test_trainer_for_validation(model, config_path: str = "config/run_tra
             return None
         
         # Load tokenizer
-        tokenizer = LlamaTokenizer.from_pretrained(
+        tokenizer = AutoTokenizer.from_pretrained(
             model_name,
             trust_remote_code=True
         )
@@ -675,7 +691,6 @@ def create_test_trainer_for_validation(model, config_path: str = "config/run_tra
         
     except Exception as e:
         print(f"Warning: Could not create test trainer: {e}")
-        import traceback
         traceback.print_exc()
         return None
 
@@ -790,7 +805,6 @@ def quick_analysis():
         
     except Exception as e:
         print(f"Error during analysis: {e}")
-        import traceback
         traceback.print_exc()
         return None
 
@@ -881,7 +895,6 @@ Examples:
         
     except Exception as e:
         print(f"Error during analysis: {e}")
-        import traceback
         traceback.print_exc()
         sys.exit(1)
 
