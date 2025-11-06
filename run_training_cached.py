@@ -150,7 +150,7 @@ def setup_cache_directory(config):
     return drive_cache
 
 
-def load_model_with_problora(config):
+def load_model_with_problora(config, verbose=False):
     """Load LLaMA2 model and inject ProbLoRA layers"""
     model_name_or_path = config["model_name_or_path"]
     tokenizer_name = config.get("tokenizer_name") or model_name_or_path
@@ -214,7 +214,8 @@ def load_model_with_problora(config):
     trainable_count = 0
     lora_patterns = ['lora_a', 'lora_b', '.a.', '.b.', 'lora', 'adapter']
     
-    print("[DEBUG] Analyzing parameter names for LoRA detection...")
+    if verbose:
+        print("[DEBUG] Analyzing parameter names for LoRA detection...")
     all_param_names = []
     quantized_params_skipped = 0
     
@@ -225,16 +226,18 @@ def load_model_with_problora(config):
         
         if is_lora:
             # CRITICAL: Debug parameter details before setting gradients
-            print(f"[DEBUG] Found LoRA parameter: {name}")
-            print(f"[DEBUG]   Shape: {param.shape}")
-            print(f"[DEBUG]   Dtype: {param.dtype}")
-            print(f"[DEBUG]   Is floating point: {param.dtype.is_floating_point}")
+            if verbose:
+                print(f"[DEBUG] Found LoRA parameter: {name}")
+                print(f"[DEBUG]   Shape: {param.shape}")
+                print(f"[DEBUG]   Dtype: {param.dtype}")
+                print(f"[DEBUG]   Is floating point: {param.dtype.is_floating_point}")
             
             # CRITICAL: Only set gradients on floating-point parameters
             if param.dtype.is_floating_point:
                 param.requires_grad = True
                 trainable_count += 1
-                print(f"[DEBUG] ✅ Trainable LoRA param: {name} (shape: {param.shape}, dtype: {param.dtype})")
+                if verbose:
+                    print(f"[DEBUG] ✅ Trainable LoRA param: {name} (shape: {param.shape}, dtype: {param.dtype})")
             else:
                 quantized_params_skipped += 1
                 print(f"[WARNING] Skipping quantized LoRA param: {name} (dtype: {param.dtype})")
@@ -247,12 +250,14 @@ def load_model_with_problora(config):
     # If no LoRA parameters found, print all parameter names for debugging
     if trainable_count == 0:
         print("[ERROR] No LoRA parameters found! Printing all parameter names for debugging:")
-        for i, name in enumerate(all_param_names[:20]):  # Print first 20 parameter names
-            print(f"[DEBUG] Parameter {i+1}: {name}")
-        if len(all_param_names) > 20:
-            print(f"[DEBUG] ... and {len(all_param_names) - 20} more parameters")
+        if verbose:
+            for i, name in enumerate(all_param_names[:20]):  # Print first 20 parameter names
+                print(f"[DEBUG] Parameter {i+1}: {name}")
+            if len(all_param_names) > 20:
+                print(f"[DEBUG] ... and {len(all_param_names) - 20} more parameters")
         
-        print("\n[DEBUG] Trying alternative LoRA detection patterns...")
+        if verbose:
+            print("\n[DEBUG] Trying alternative LoRA detection patterns...")
         # Try broader patterns if standard ones fail
         broader_patterns = ['A', 'B', 'weight', 'bias']
         for name, param in model.named_parameters():
@@ -261,16 +266,18 @@ def load_model_with_problora(config):
                 max_rank_threshold = config.get("max_lora_rank_threshold", 64)  # Configurable threshold
                 if 'lora' in name.lower() or 'adapter' in name.lower() or (len(param.shape) == 2 and min(param.shape) <= max_rank_threshold):
                     # CRITICAL: Debug parameter details before setting gradients
-                    print(f"[DEBUG] Checking parameter: {name}")
-                    print(f"[DEBUG]   Shape: {param.shape}")
-                    print(f"[DEBUG]   Dtype: {param.dtype}")
-                    print(f"[DEBUG]   Is floating point: {param.dtype.is_floating_point}")
+                    if verbose:
+                        print(f"[DEBUG] Checking parameter: {name}")
+                        print(f"[DEBUG]   Shape: {param.shape}")
+                        print(f"[DEBUG]   Dtype: {param.dtype}")
+                        print(f"[DEBUG]   Is floating point: {param.dtype.is_floating_point}")
                     
                     # CRITICAL: Only set gradients on floating-point parameters
                     if param.dtype.is_floating_point:
                         param.requires_grad = True
                         trainable_count += 1
-                        print(f"[DEBUG] ✅ Alternative LoRA param: {name} (shape: {param.shape}, dtype: {param.dtype})")
+                        if verbose:
+                            print(f"[DEBUG] ✅ Alternative LoRA param: {name} (shape: {param.shape}, dtype: {param.dtype})")
                     else:
                         quantized_params_skipped += 1
                         print(f"[WARNING] Skipping quantized alternative param: {name} (dtype: {param.dtype})")
@@ -402,7 +409,7 @@ def main():
     
     # Load model with ProbLoRA
     print("\n[STEP 1] Loading model and injecting ProbLoRA...")
-    model, tokenizer = load_model_with_problora(config)
+    model, tokenizer = load_model_with_problora(config, verbose=False)
     
     # Load datasets with caching
     print(f"\n[STEP 2] Loading dataset with caching...")

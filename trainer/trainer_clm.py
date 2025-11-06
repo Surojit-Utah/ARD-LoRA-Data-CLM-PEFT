@@ -24,7 +24,7 @@ class ARDCLMTrainer(Trainer):
     """Enhanced ARD Trainer following DeBERTa pattern, adapted for LLaMA."""
     
     def __init__(self, *args, beta=0.01, ard_heldout_loader=None, 
-                 n_bins=15, output_dir=None, ard_prior_samples=100, target_attention_layers=None, **kwargs):
+                 n_bins=15, output_dir=None, ard_prior_samples=100, target_attention_layers=None, verbose=False, **kwargs):
         super().__init__(*args, **kwargs)
         self.beta = beta
         self.ard_heldout_loader = ard_heldout_loader  # Pre-configured DataLoader for ARD prior estimation
@@ -33,6 +33,7 @@ class ARDCLMTrainer(Trainer):
         self.uncertainty_evaluator = UncertaintyEvaluator(n_bins=n_bins)
         self.uncertainty_results = []  # Store results across epochs
         self.output_dir = output_dir or self.args.output_dir
+        self.verbose = verbose  # Control debug message verbosity
         
         # Store layer configuration from YAML - must be provided explicitly
         if target_attention_layers is None:
@@ -152,12 +153,13 @@ class ARDCLMTrainer(Trainer):
         # Only print once per epoch when epoch changes (use same integer epoch)
         if current_epoch > self._last_kl_debug_epoch:
             self._last_kl_debug_epoch = current_epoch
-            print(f"\n[KL DEBUG] Epoch {current_epoch} - KL Computation Details:")
-            print(f"[KL DEBUG]   Target attention layers: {self.target_attention_layers}")
-            print(f"[KL DEBUG]   Total layers with KL contribution: {total_kl_layers}")
-            print(f"[KL DEBUG]   Total KL value: {kl.item() if torch.is_tensor(kl) else float(kl):.6f}")
-            print(f"[KL DEBUG]   KL requires_grad: {kl.requires_grad if torch.is_tensor(kl) else 'N/A'}")
-            print(f"[KL DEBUG]   KL grad_fn: {kl.grad_fn is not None if torch.is_tensor(kl) else 'N/A'}")
+            if self.verbose:
+                print(f"\n[KL DEBUG] Epoch {current_epoch} - KL Computation Details:")
+                print(f"[KL DEBUG]   Target attention layers: {self.target_attention_layers}")
+                print(f"[KL DEBUG]   Total layers with KL contribution: {total_kl_layers}")
+                print(f"[KL DEBUG]   Total KL value: {kl.item() if torch.is_tensor(kl) else float(kl):.6f}")
+                print(f"[KL DEBUG]   KL requires_grad: {kl.requires_grad if torch.is_tensor(kl) else 'N/A'}")
+                print(f"[KL DEBUG]   KL grad_fn: {kl.grad_fn is not None if torch.is_tensor(kl) else 'N/A'}")
             
             if kl_debug_info:
                 print(f"[KL DEBUG]   Layer-wise breakdown:")
@@ -462,7 +464,8 @@ class PriorEstimationCallback(TrainerCallback):
             estimate_ard_priors_clm(model, eval_data, self.device, 
                                   high_relevance_threshold=high_threshold,
                                   medium_relevance_threshold=medium_threshold,
-                                  target_attention_layers=target_attention_layers)
+                                  target_attention_layers=target_attention_layers,
+                                  verbose=False)
             print("[PriorEstimationCallback] ARD prior estimation completed")
         except Exception as e:
             print(f"[PriorEstimationCallback] ARD prior estimation failed: {e}")
@@ -806,7 +809,7 @@ def prepare_validation_dataset(val_dataset, train_dataset=None, train_split_rati
 @torch.no_grad()
 def estimate_ard_priors_clm(model, ard_heldout_loader, device, 
                             high_relevance_threshold, medium_relevance_threshold,
-                            target_attention_layers):
+                            target_attention_layers, verbose=False):
     """
     Estimate ARD priors following DeBERTa pattern, adapted for LLaMA architecture.
     
@@ -928,7 +931,8 @@ def estimate_ard_priors_clm(model, ard_heldout_loader, device,
             print(f"   Processed {batch_idx + 1} batches, ~{sample_count} samples")
     
     # Update est_var for each layer (following DeBERTa pattern: est_var = beta / alpha + 1e-6)
-    print(f"\n[ARD] Updating estimated variances for {len(prob_lora_layers)} layers:")
+    if verbose:
+        print(f"\n[ARD] Updating estimated variances for {len(prob_lora_layers)} layers:")
     
     for layer_idx, projections in prob_lora_layers.items():
         for proj_name, proj in projections.items():
@@ -1234,7 +1238,8 @@ def build_clm_trainer(model, tokenizer, train_dataset, eval_dataset, cfg, output
         n_bins=cfg["uncertainty_n_bins"],
         output_dir=output_dir,
         ard_prior_samples=ard_prior_samples,
-        target_attention_layers=cfg["target_attention_layers"]  # REQUIRED from YAML config
+        target_attention_layers=cfg["target_attention_layers"],  # REQUIRED from YAML config
+        verbose=False  # Set verbose mode to False to suppress debug messages
     )
     
     # Set relevance thresholds on trainer for ARD prior estimation

@@ -155,7 +155,7 @@ class BayesianPEFTDataManager:
                 
                 datasets = {"train": train_data, "validation": val_data}
                 
-            elif dataset_name.lower() in ["piqa", "hellaswag", "winogrande_s", "winogrande_m", "arc_easy", "arc_challenge", "boolq", "anli", "rte", "cb", "copa"]:
+            elif dataset_name.lower() in ["piqa", "hellaswag", "winogrande_s", "winogrande_m", "arc_easy", "arc_challenge", "boolq", "anli", "rte", "cb", "copa", "glue_mrpc"]:
                 # Handle other classification datasets following their approach
                 if dataset_name.lower() == "piqa":
                     raw_dataset = load_dataset("piqa")
@@ -185,6 +185,8 @@ class BayesianPEFTDataManager:
                     raw_dataset = load_dataset("super_glue", "boolq")
                 elif dataset_name.lower() == "rte":
                     raw_dataset = load_dataset("glue", "rte")
+                elif dataset_name.lower() == "glue_mrpc":
+                    raw_dataset = load_dataset("glue", "mrpc")
                 elif dataset_name.lower() == "cb":
                     raw_dataset = load_dataset("super_glue", "cb")
                 elif dataset_name.lower() == "copa":
@@ -199,6 +201,9 @@ class BayesianPEFTDataManager:
                     # Extract main text field (varies by dataset)
                     if "sentence" in example:
                         text = example["sentence"]
+                    elif "sentence1" in example and "sentence2" in example:
+                        # Handle MRPC-style dual sentence format
+                        text = f"{example['sentence1']} {example['sentence2']}"
                     elif "question" in example:
                         text = example["question"]
                     elif "premise" in example:

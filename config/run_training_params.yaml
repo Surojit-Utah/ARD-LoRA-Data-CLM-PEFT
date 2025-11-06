@@ -1,6 +1,6 @@
 # LLaMA-2-7B causal LM experiments with ARD-LoRA and Bayesian-PEFT datasets
 defaults:
-  runId: 2
+  runId: 3
   # Model configuration
   model_name: "LLaMA2-7B"
   model_name_or_path: "meta-llama/Llama-2-7b-hf"
@@ -8,7 +8,8 @@ defaults:
   train_type: "causal_lm"  # Specify training type for validation
   attn_implementation: "flash_attention_2"  # Use Flash Attention 2 for better memory efficiency
   dataset_name: "BayesianPEFT"
-  dataset_name_specific: "winogrande_m"  # Which specific dataset from Bayesian-PEFT
+  # dataset_name_specific: "winogrande_m"  # Which specific dataset from Bayesian-PEFT
+  dataset_name_specific: "arc_easy"  # Which specific dataset from Bayesian-PEFT
   
   # Cache configuration
   cache_root: "/content/drive/MyDrive/ARD_LoRA_Data_Cache"  # Google Drive cache
@@ -16,11 +17,11 @@ defaults:
   use_google_drive: true  # Enable Google Drive caching
   
   # Training hyperparameters (adapted from Section 4.1 of BLoB / best-effort)
-  learning_rate: 0.00001  # Reduced from 0.0001 to 0.00001 for stability
+  learning_rate: 1.5e-05  # Reduced from 0.0001 to 0.00001 for stability
   lr_scheduler_type: "cosine"
   warmup_ratio: 0.03
   weight_decay: 0.0
-  train_epochs: 12
+  train_epochs: 6
   batch_size: 32  # Increased from 4 to 32 for better A100 utilization
   gradient_accumulation_steps: 4  # Reduced from 16 to 4 (maintains effective batch size of 128)
 
@@ -60,7 +61,7 @@ defaults:
   # Target Layer Configuration - REQUIRED
   # Specifies which attention projections to inject with ProbLoRA
   # Available options: q_proj, k_proj, v_proj, o_proj
-  target_attention_layers: ["q_proj", "k_proj", "v_proj", "o_proj"]  # Full attention coverage
+  target_attention_layers: ["q_proj", "k_proj", "v_proj"]  # Full attention coverage
   
   # ProbLoRA Model Parameters
   num_tokens: ${max_len}  # Always match max_len for full sequence ARD coverage
@@ -75,7 +76,7 @@ defaults:
   sample_clamp_max: 3.0   # Very tight sample bounds
   
   # ARD Loss Configuration
-  kl_loss_beta: 0.01  # Further reduced from 0.001 to 0.0001 to prevent loss explosion
+  kl_loss_beta: 0.005  # Further reduced from 0.001 to 0.0001 to prevent loss explosion
   
   # ARD Relevance Thresholds
   ard_high_relevance_threshold: 0.1
@@ -154,7 +155,7 @@ datasets:
     arc_easy:
       dataset_name: "arc_easy"
       dataset_class: "S2ClassDataset"
-      # max_len: removed to use global max_len=1024 consistently
+      max_len: 384 # Suggested by ChatGPT
       num_labels: 4
       validation_split_ratio: 0.1
       max_ard_ratio: 0.8
@@ -224,6 +225,14 @@ datasets:
       dataset_class: "S2ClassDataset"
       # max_len: removed to use global max_len=1024 consistently
       num_labels: 2
+      validation_split_ratio: 0.1
+      max_ard_ratio: 0.8
+      random_seed: 42
+
+    mrpc:
+      dataset_name: "glue_mrpc"
+      dataset_class: "S2ClassDataset"  # Binary classification task
+      num_labels: 2  # Binary: paraphrase (1) or not paraphrase (0)
       validation_split_ratio: 0.1
       max_ard_ratio: 0.8
       random_seed: 42
