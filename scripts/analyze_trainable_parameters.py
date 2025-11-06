@@ -527,6 +527,92 @@ class ParameterAnalyzer:
             else:
                 self.log(f"     GOOD: All mu_A parameters have requires_grad=True")
             
+            # SECOND: Check if mu_A parameters are in optimizer parameter groups
+            self.log(f"\n   OPTIMIZER PARAMETER GROUP CHECK:")
+            mu_A_in_optimizer = 0
+            B_in_optimizer = 0
+            optimizer_param_ids = set()
+            
+            # Collect all parameter IDs from optimizer
+            for group in trainer.optimizer.param_groups:
+                for param in group['params']:
+                    optimizer_param_ids.add(id(param))
+            
+            # Check if mu_A and B parameters are in optimizer
+            for name, param in self.model.named_parameters():
+                if '.mu_A' in name:
+                    if id(param) in optimizer_param_ids:
+                        mu_A_in_optimizer += 1
+                    else:
+                        self.log(f"     ERROR: {name} NOT in optimizer parameter groups!")
+                elif '.B' in name and any(attn in name for attn in ['q_proj', 'k_proj', 'v_proj']):
+                    if id(param) in optimizer_param_ids:
+                        B_in_optimizer += 1
+                    else:
+                        self.log(f"     ERROR: {name} NOT in optimizer parameter groups!")
+            
+            self.log(f"     mu_A parameters in optimizer: {mu_A_in_optimizer}/{mu_A_params_found}")
+            self.log(f"     B parameters in optimizer: {B_in_optimizer}/{B_params_found}")
+            
+            if mu_A_in_optimizer < mu_A_params_found:
+                self.log(f"     CRITICAL: {mu_A_params_found - mu_A_in_optimizer} mu_A parameters missing from optimizer!")
+            else:
+                self.log(f"     GOOD: All mu_A parameters are in optimizer")
+            
+            # THIRD: Check computational graph connectivity for a sample mu_A parameter
+            self.log(f"\n   COMPUTATIONAL GRAPH CONNECTIVITY CHECK:")
+            sample_mu_A_param = None
+            sample_mu_A_name = None
+            
+            for name, param in self.model.named_parameters():
+                if '.mu_A' in name:
+                    sample_mu_A_param = param
+                    sample_mu_A_name = name
+                    break
+            
+            if sample_mu_A_param is not None:
+                self.log(f"     Checking sample parameter: {sample_mu_A_name}")
+                self.log(f"     requires_grad: {sample_mu_A_param.requires_grad}")
+                self.log(f"     is_leaf: {sample_mu_A_param.is_leaf}")
+                self.log(f"     grad_fn: {sample_mu_A_param.grad_fn}")
+                
+                # Check if parameter appears in loss computation path
+                if hasattr(sample_mu_A_param, 'grad_fn') and sample_mu_A_param.grad_fn is not None:
+                    self.log(f"     WARNING: mu_A parameter has grad_fn (not a leaf node)")
+                    self.log(f"     This suggests it might be created through operations that break gradients")
+                elif not sample_mu_A_param.is_leaf:
+                    self.log(f"     WARNING: mu_A parameter is not a leaf node in computation graph")
+                    self.log(f"     This could prevent gradient flow")
+                else:
+                    self.log(f"     GOOD: mu_A parameter is properly connected as leaf node")
+                
+                # Check if parameter retains gradients
+                self.log(f"     retains_grad: {sample_mu_A_param.retains_grad if hasattr(sample_mu_A_param, 'retains_grad') else 'N/A'}")
+            else:
+                self.log(f"     ERROR: No mu_A parameters found for graph connectivity check")
+            
+            # FOURTH: Check forward pass usage pattern by inspecting ProbLoRA layers
+            self.log(f"\n   FORWARD PASS USAGE PATTERN CHECK:")
+            prob_lora_layers_found = 0
+            
+            for name, module in self.model.named_modules():
+                if hasattr(module, 'mu_A') and hasattr(module, 'deterministic'):
+                    prob_lora_layers_found += 1
+                    self.log(f"     ProbLoRA layer: {name}")
+                    self.log(f"       deterministic: {module.deterministic}")
+                    self.log(f"       has mu_A: {hasattr(module, 'mu_A')}")
+                    self.log(f"       has A: {hasattr(module, 'A')}")
+                    self.log(f"       mu_A requires_grad: {module.mu_A.requires_grad if hasattr(module, 'mu_A') else 'N/A'}")
+                    
+                    if prob_lora_layers_found <= 2:  # Only show first 2 for brevity
+                        # Check if mu_A is used in forward pass correctly
+                        if hasattr(module, 'mu_A'):
+                            self.log(f"       mu_A shape: {module.mu_A.shape}")
+                            self.log(f"       mu_A device: {module.mu_A.device}")
+                            self.log(f"       mu_A dtype: {module.mu_A.dtype}")
+                    
+            self.log(f"     Total ProbLoRA layers with mu_A: {prob_lora_layers_found}")
+            
             # Analyze gradient distribution with detailed breakdown
             trainable_with_grads = 0
             trainable_without_grads = 0
