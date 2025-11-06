@@ -208,7 +208,8 @@ def load_model_with_problora(config, verbose=False):
         sample_clamp_max=config["sample_clamp_max"],
         attn_implementation=config["attn_implementation"],
         target_attention_layers=config["target_attention_layers"],  # Read from YAML config
-        deterministic=config.get("deterministic_lora", False)  # Enable deterministic mode if configured
+        deterministic=config.get("deterministic_lora"),  # Enable deterministic mode if configured
+        enable_clamps=config.get("enable_clamps")  # Enable/disable numerical stability clamps
     )
     
     # Freeze base parameters and unfreeze LoRA parameters

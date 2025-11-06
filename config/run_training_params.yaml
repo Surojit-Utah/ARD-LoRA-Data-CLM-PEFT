@@ -59,7 +59,7 @@ defaults:
   max_lora_rank_threshold: 64
   
   # LoRA Mode Configuration
-  deterministic_lora: false  # Set to true for deterministic LoRA (no KL loss, no variance parameters)
+  deterministic_lora: True  # Set to true for deterministic LoRA (no KL loss, no variance parameters)
   
   # Target Layer Configuration - REQUIRED
   # Specifies which attention projections to inject with ProbLoRA
@@ -71,6 +71,7 @@ defaults:
   ard_prior_samples: 100  # Reduced from 100 to 25 for faster training
   
   # Numerical Stability Parameters - ULTRA CONSERVATIVE
+  enable_clamps: False  # Enable/disable numerical stability clamps (default: true)
   logvar_clamp_min: -5.0  # Very tight bounds to prevent overflow
   logvar_clamp_max: 5.0   # Very tight bounds to prevent overflow
   beta_logvar_clamp_min: -3.0  # Even tighter for beta sampling
