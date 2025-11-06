@@ -161,14 +161,14 @@ class ARDCLMTrainer(Trainer):
                 print(f"[KL DEBUG]   KL requires_grad: {kl.requires_grad if torch.is_tensor(kl) else 'N/A'}")
                 print(f"[KL DEBUG]   KL grad_fn: {kl.grad_fn is not None if torch.is_tensor(kl) else 'N/A'}")
             
-            if kl_debug_info:
-                print(f"[KL DEBUG]   Layer-wise breakdown:")
-                for layer_name, info in kl_debug_info.items():
-                    print(f"[KL DEBUG]     {layer_name}: {info['projections_processed']}/{len(info['target_projections'])} projections, "
-                          f"KL={info['layer_kl_total']:.6f}")
-            else:
-                print(f"[KL DEBUG]   ⚠️ WARNING: No KL contributions found from any layer!")
-                print(f"[KL DEBUG]   This may indicate ProbLoRA layers are not properly injected.")
+                if kl_debug_info:
+                    print(f"[KL DEBUG]   Layer-wise breakdown:")
+                    for layer_name, info in kl_debug_info.items():
+                        print(f"[KL DEBUG]     {layer_name}: {info['projections_processed']}/{len(info['target_projections'])} projections, "
+                              f"KL={info['layer_kl_total']:.6f}")
+                else:
+                    print(f"[KL DEBUG]   ⚠️ WARNING: No KL contributions found from any layer!")
+                    print(f"[KL DEBUG]   This may indicate ProbLoRA layers are not properly injected.")
         
         # Total loss with KL regularization (following DeBERTa pattern)
         loss = ce_loss + self.beta * kl
@@ -980,13 +980,14 @@ def estimate_ard_priors_clm(model, ard_heldout_loader, device,
                     # Give up quietly but report
                     print(f"[ARD] Warning: Could not set est_var for projection {proj_name} in layer {layer_idx}")
             
-            # Print statistics
-            avg_est_var = np.mean(est_var_values)
-            print(f"   Layer {layer_idx} {proj_name}: avg_est_var={avg_est_var:.6f}")
-            
-            # ARD relevance determination (using est_var)
-            relevance = "High" if avg_est_var > high_relevance_threshold else "Medium" if avg_est_var > medium_relevance_threshold else "Low"
-            print(f"     → Estimated relevance: {relevance}")
+            # Print statistics (only if verbose)
+            if verbose:
+                avg_est_var = np.mean(est_var_values)
+                print(f"   Layer {layer_idx} {proj_name}: avg_est_var={avg_est_var:.6f}")
+                
+                # ARD relevance determination (using est_var)
+                relevance = "High" if avg_est_var > high_relevance_threshold else "Medium" if avg_est_var > medium_relevance_threshold else "Low"
+                print(f"     → Estimated relevance: {relevance}")
     
     # Restore original training mode
     if was_training:

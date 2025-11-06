@@ -58,6 +58,9 @@ defaults:
   scaling: 0.25
   max_lora_rank_threshold: 64
   
+  # LoRA Mode Configuration
+  deterministic_lora: false  # Set to true for deterministic LoRA (no KL loss, no variance parameters)
+  
   # Target Layer Configuration - REQUIRED
   # Specifies which attention projections to inject with ProbLoRA
   # Available options: q_proj, k_proj, v_proj, o_proj

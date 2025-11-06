@@ -4,6 +4,7 @@ from torch import nn
 import numpy as np
 from contextlib import nullcontext
 import torch.cuda.amp as amp
+import math
 
 def _fp32_ctx(x):
     # If autocast is on, temporarily disable it; otherwise no-op.
@@ -20,7 +21,7 @@ class ProbLoRALayer(nn.Module):
     def __init__(self, base_proj: nn.Linear, rank, num_tokens, ard_prior_samples, scaling, 
                  logvar_clamp_min, logvar_clamp_max, 
                  beta_logvar_clamp_min, beta_logvar_clamp_max,
-                 sample_clamp_min, sample_clamp_max):
+                 sample_clamp_min, sample_clamp_max, deterministic=True, enable_clamps=False):
         super().__init__()
 
         self.base_proj = base_proj
@@ -29,6 +30,8 @@ class ProbLoRALayer(nn.Module):
         self.num_tokens = num_tokens
         self.ard_prior_samples = ard_prior_samples
         self.scaling = scaling
+        self.deterministic = deterministic  # Flag for deterministic vs probabilistic mode
+        self.enable_clamps = enable_clamps  # Flag to enable/disable numerical stability clamps
         
         # Numerical stability parameters
         self.logvar_clamp_min = logvar_clamp_min
@@ -41,33 +44,39 @@ class ProbLoRALayer(nn.Module):
         self.in_features = base_proj.in_features
         self.out_features = base_proj.out_features
 
-        # # Init mu_A, logvar_A separately for stability
-        # mu_A = torch.empty(rank, self.in_features)
-        # nn.init.xavier_normal_(mu_A)
-        # logvar_A = torch.full((rank, self.in_features), float(torch.log(torch.tensor(1e-2))))
-        # self.A = nn.Parameter(torch.cat([mu_A, logvar_A], dim=0))   # Wrap as parameters
+        if self.deterministic:
+            # Deterministic LoRA: Only create mean parameters (mu_A and B)
+            print(f"[INFO] Creating deterministic LoRA layer (rank={rank})")
+            mu_A_tensor = torch.empty(rank, self.in_features)
+            bound = math.sqrt(6.0 / self.in_features)
+            nn.init.uniform_(mu_A_tensor, -bound, bound)   # BLoB-style for μ
+            self.mu_A = nn.Parameter(mu_A_tensor)
+            # No logvar_A or sigma parameters created
+        else:
+            # Probabilistic LoRA: Create both mean and variance parameters
+            print(f"[INFO] Creating probabilistic LoRA layer (rank={rank})")
+            # Create raw tensors for both mu and logvar
+            A_tensor = torch.empty(2*rank, self.in_features)
 
-        # # Apply Xavier Normal initialization on matrix B
-        # B_tensor = torch.empty(self.out_features, self.rank)
-        # nn.init.xavier_normal_(B_tensor)
-        # self.B = nn.Parameter(B_tensor)     # Wrap as parameters
+            # Views
+            M_part, G_part = torch.split(A_tensor, rank, dim=0)
 
-        # Create raw tensors
-        A_tensor = torch.empty(2*rank, self.in_features)
-        B_tensor = torch.empty(self.out_features, self.rank)
+            # BLoB inits
+            bound = math.sqrt(6.0 / self.in_features)
+            nn.init.uniform_(M_part, -bound, bound)        # mean M: Xavier-UNIFORM
+            eps0 = 1e-3                                    # small target variance
+            low, high = math.sqrt(eps0) / 2.0, eps0        # G ∈ [√ε/2, ε]
+            nn.init.uniform_(G_part, low, high)            # positive, small
 
-        # Apply Xavier Normal initialization
-        nn.init.xavier_normal_(A_tensor)
-        nn.init.xavier_normal_(B_tensor)
+            self.A = nn.Parameter(A_tensor)
 
-        # Wrap as parameters
-        self.A = nn.Parameter(A_tensor)
-        self.B = nn.Parameter(B_tensor)
+        # B matrix is always created (shared between deterministic and probabilistic)
+        self.B = nn.Parameter(torch.zeros(self.out_features, self.rank)) 
 
-        # ARD prior parameter
+        # ARD prior parameters (only needed for probabilistic mode, but kept for compatibility)
         self.alpha = (self.num_tokens*self.ard_prior_samples) / 2.0
         self.beta = np.zeros(self.rank, dtype=np.float32)
-        self.register_buffer('est_var', torch.ones(self.rank))  # Initialize est_var as a buffer (will move with model to device)
+        self.register_buffer('est_var', torch.ones(self.rank))  # Initialize est_var as a buffer
 
     def forward(self, x):
         """Forward pass - works with any sequence length and masking strategy"""
@@ -75,48 +84,70 @@ class ProbLoRALayer(nn.Module):
 
         with _fp32_ctx(x):  # do sensitive math in FP32
             x32 = x.to(torch.float32)
-            mu_A, logvar_A_param = torch.split(self.A, self.rank, dim=0)  # if you keep packed A
-            # OR: mu_A = self.mu_A; logvar_A = log(softplus(self.raw_logvar_A)+1e-6)
+            
+            if self.deterministic:
+                # DETERMINISTIC MODE: Use only mean parameters
+                mu_A = self.mu_A  # Only mu_A exists, no logvar_A
+                B_mat = self.B  # FP32 master
 
-            # If keeping packed A and clamps:
-            logvar_A = logvar_A_param  # consider softplus reparam instead
-            # optional safety clamp on parameters (rarely hit if softplus is used)
-            logvar_A = logvar_A.clamp(self.logvar_clamp_min, self.logvar_clamp_max)
+                # variance mask (supports hard bool or soft 0..1)
+                mask_vec = getattr(self, "variance_mask", None)
+                if mask_vec is not None:
+                    mv = mask_vec.to(x32.device, dtype=torch.float32)
+                    mu_A = mu_A * mv.unsqueeze(1)
+                    B_mat = B_mat * mv.unsqueeze(0)
 
-            B_mat = self.B  # FP32 master
+                BS = x32.shape[0] * x32.shape[1]
+                x_flat = x32.reshape(BS, x32.shape[-1])
 
-            # variance mask (supports hard bool or soft 0..1)
-            mask_vec = getattr(self, "variance_mask", None)
-            if mask_vec is not None:
-                mv = mask_vec.to(x32.device, dtype=torch.float32)
-                mu_A = mu_A * mv.unsqueeze(1)
-                logvar_A = logvar_A * mv.unsqueeze(1)
-                B_mat = B_mat * mv.unsqueeze(0)
+                # Only compute mean output (no variance/sampling)
+                z = x_flat @ mu_A.T
+                del x_flat
 
-            BS = x32.shape[0] * x32.shape[1]
-            x_flat = x32.reshape(BS, x32.shape[-1])
-
-            mu = x_flat @ mu_A.T
-            logvar = x_flat @ logvar_A.T
-            # final guard (should be unnecessary if softplus used)
-            logvar = logvar.clamp(self.logvar_clamp_min, self.logvar_clamp_max)
-            del x_flat                       # <-- free early
-
-            if self.training:
-                eps = torch.randn_like(mu)
-                sigma = torch.exp(0.5 * logvar)
-                z = mu + eps * sigma
-                del eps, sigma
-                # optional gentle clamp on z
-                if self.sample_clamp_min is not None and self.sample_clamp_max is not None:
-                    z = z.clamp(self.sample_clamp_min, self.sample_clamp_max)
+                lora_out32 = z @ B_mat.T
+                out32 = lora_out32.reshape(x32.size(0), x32.size(1), -1)
+                del z, B_mat, lora_out32, x32
+                
             else:
-                z = mu  # deterministic eval
-            del mu, logvar
+                # PROBABILISTIC MODE: Original ProbLoRA behavior
+                mu_A, logvar_A_param = torch.split(self.A, self.rank, dim=0)
+                logvar_A = logvar_A_param
+                if self.enable_clamps:
+                    logvar_A = logvar_A.clamp(self.logvar_clamp_min, self.logvar_clamp_max)
 
-            lora_out32 = z @ B_mat.T
-            out32 = lora_out32.reshape(x32.size(0), x32.size(1), -1)
-            del z, B_mat, lora_out32, x32
+                B_mat = self.B  # FP32 master
+
+                # variance mask (supports hard bool or soft 0..1)
+                mask_vec = getattr(self, "variance_mask", None)
+                if mask_vec is not None:
+                    mv = mask_vec.to(x32.device, dtype=torch.float32)
+                    mu_A = mu_A * mv.unsqueeze(1)
+                    logvar_A = logvar_A * mv.unsqueeze(1)
+                    B_mat = B_mat * mv.unsqueeze(0)
+
+                BS = x32.shape[0] * x32.shape[1]
+                x_flat = x32.reshape(BS, x32.shape[-1])
+
+                mu = x_flat @ mu_A.T
+                logvar = x_flat @ logvar_A.T
+                if self.enable_clamps:
+                    logvar = logvar.clamp(self.logvar_clamp_min, self.logvar_clamp_max)
+                del x_flat
+
+                if self.training:
+                    eps = torch.randn_like(mu)
+                    sigma = torch.exp(0.5 * logvar)
+                    z = mu + eps * sigma
+                    del eps, sigma
+                    if self.enable_clamps and self.sample_clamp_min is not None and self.sample_clamp_max is not None:
+                        z = z.clamp(self.sample_clamp_min, self.sample_clamp_max)
+                else:
+                    z = mu  # deterministic eval
+                del mu, logvar
+
+                lora_out32 = z @ B_mat.T
+                out32 = lora_out32.reshape(x32.size(0), x32.size(1), -1)
+                del z, B_mat, lora_out32, x32
 
         out = out32.to(x.dtype)  # single downcast
         return base_out + self.scaling * out
@@ -178,17 +209,16 @@ class ProbLoRALayer(nn.Module):
         Works with both causal (LLaMA) and bidirectional (DeBERTa) attention.
         The computation is in the latent space and independent of masking strategy.
         
-        Optimizations:
-        - Reduced redundant matrix operations
-        - Cached device/dtype conversions
-        - Eliminated redundant exp() calls
-        - More efficient tensor operations
+        Returns zero KL divergence for deterministic mode.
         """
+        if self.deterministic:
+            # Deterministic mode: No KL divergence (no variance parameters)
+            return torch.tensor(0.0, device=x.device, dtype=x.dtype, requires_grad=True)
+        
+        # Probabilistic mode: Original KL divergence computation
         with _fp32_ctx(x):
             x32 = x.to(torch.float32)
             mu_A, logvar_A_param = torch.split(self.A, self.rank, dim=0)
-            # or use softplus reparam:
-            # logvar_A = torch.log(F.softplus(self.raw_logvar_A) + 1e-6)
             logvar_A = logvar_A_param
 
             mv = getattr(self, "variance_mask", None)
@@ -204,8 +234,9 @@ class ProbLoRALayer(nn.Module):
 
             mu = x_flat @ mu_A.T
             logvar = x_flat @ logvar_A.T
-            # last-resort guard:
-            logvar = logvar.clamp(self.beta_logvar_clamp_min, self.beta_logvar_clamp_max)
+            # Apply clamps only if enabled
+            if self.enable_clamps:
+                logvar = logvar.clamp(self.beta_logvar_clamp_min, self.beta_logvar_clamp_max)
 
             var = torch.exp(logvar)
             tvar = (self.est_var.to(x32.device) + 1e-6).unsqueeze(0)
@@ -289,6 +320,30 @@ class ProbLoRALayer(nn.Module):
     
     def beta_get_sample(self, x):
         """Sample from latent distribution for ARD prior estimation with numerical stability"""
+        if self.deterministic:
+            # Deterministic mode: Return mean output (no sampling)
+            mu_A = self.mu_A.to(dtype=x.dtype, device=x.device)
+            
+            # Apply variance mask if it exists
+            if hasattr(self, 'variance_mask') and self.variance_mask is not None:
+                mask = self.variance_mask.unsqueeze(1).to(dtype=x.dtype, device=x.device)  # Shape: [rank, 1]
+                mu_A_masked = mu_A * mask
+            else:
+                mu_A_masked = mu_A
+                
+            x_flat = x.view(-1, x.size(-1))
+            mu = (mu_A_masked @ x_flat.T).T      # [B*S, rank]
+            
+            # Apply latent masking
+            if hasattr(self, 'variance_mask') and self.variance_mask is not None:
+                mask_latent = self.variance_mask.unsqueeze(0).to(dtype=x.dtype, device=x.device)  # [1, rank]
+                mu = mu * mask_latent
+            
+            # For deterministic mode, return mean as "samples"
+            samples_float = mu.float().cpu().detach()
+            return samples_float.numpy()
+        
+        # Probabilistic mode: Original sampling behavior
         mu_A, logvar_A = torch.split(self.A, self.rank, dim=0)
         
         # Convert to input dtype and device for computation consistency
@@ -315,14 +370,16 @@ class ProbLoRALayer(nn.Module):
             mu = mu * mask_latent
             logvar = logvar * mask_latent
         
-        # NUMERICAL STABILITY: Clamp logvar to prevent extreme values
-        logvar = torch.clamp(logvar, min=self.beta_logvar_clamp_min, max=self.beta_logvar_clamp_max)  # Prevents exp() overflow/underflow
+        # NUMERICAL STABILITY: Clamp logvar to prevent extreme values (only if enabled)
+        if self.enable_clamps:
+            logvar = torch.clamp(logvar, min=self.beta_logvar_clamp_min, max=self.beta_logvar_clamp_max)  # Prevents exp() overflow/underflow
         
         eps = torch.randn_like(mu)
         samples = mu + eps * torch.exp(0.5 * logvar)  # [B*S, rank]
         
-        # NUMERICAL STABILITY: Clamp samples to prevent overflow in beta accumulation
-        samples = torch.clamp(samples, min=self.sample_clamp_min, max=self.sample_clamp_max)  # Prevents overflow in square operation
+        # NUMERICAL STABILITY: Clamp samples to prevent overflow in beta accumulation (only if enabled)
+        if self.enable_clamps:
+            samples = torch.clamp(samples, min=self.sample_clamp_min, max=self.sample_clamp_max)  # Prevents overflow in square operation
         
         # Convert to float32 before numpy conversion (BFloat16 not supported by numpy)
         samples_float = samples.float().cpu().detach()
@@ -341,21 +398,26 @@ def inject_problora_llama(model, rank, scaling, num_tokens, ard_prior_samples,
                          logvar_clamp_min, logvar_clamp_max,
                          beta_logvar_clamp_min, beta_logvar_clamp_max,
                          sample_clamp_min, sample_clamp_max, attn_implementation,
-                         target_attention_layers=None):
+                         target_attention_layers=None, deterministic=False, enable_clamps=True):
     """
     Inject ProbLoRA into LLaMA2-7B model.
     Targets configurable attention projections based on YAML configuration.
     
     Args:
         target_attention_layers: List of attention projection names to inject (from YAML config - REQUIRED)
+        deterministic: If True, creates deterministic LoRA (no variance parameters or KL loss)
+        enable_clamps: If True, applies numerical stability clamps (default: True)
     """
-    print(f"[INFO] Injecting ProbLoRA into LLaMA2 model with rank={rank}")
+    mode_str = "deterministic LoRA" if deterministic else "probabilistic LoRA (ProbLoRA)"
+    clamp_str = "with clamps" if enable_clamps else "without clamps"
+    print(f"[INFO] Injecting {mode_str} into LLaMA2 model with rank={rank} ({clamp_str})")
     
     # Validate required parameters
     if target_attention_layers is None:
         raise ValueError("target_attention_layers must be provided from YAML configuration")
     
     print(f"[INFO] Target attention layers: {target_attention_layers}")
+    print(f"[INFO] Mode: {mode_str}")
     
     # Set attention implementation from YAML config for A100 optimization
     if hasattr(model, 'config') and attn_implementation is not None:
@@ -378,12 +440,17 @@ def inject_problora_llama(model, rank, scaling, num_tokens, ard_prior_samples,
                             getattr(attn, proj_name), rank, num_tokens, ard_prior_samples, scaling,
                             logvar_clamp_min, logvar_clamp_max,
                             beta_logvar_clamp_min, beta_logvar_clamp_max,
-                            sample_clamp_min, sample_clamp_max))
+                            sample_clamp_min, sample_clamp_max, deterministic=deterministic, 
+                            enable_clamps=enable_clamps))
                         layers_modified += 1
     
-    print(f"[INFO] Successfully injected ProbLoRA into {layers_modified} linear layers")
-    print(f"[INFO] Each layer now has ARD-enabled latent space with rank={rank}")
-    print(f"[INFO] KL divergence will be computed in latent space (model-agnostic)")
-    print(f"[INFO] ProbLoRA injected into attention: {target_attention_layers}")
+    print(f"[INFO] Successfully injected {mode_str} into {layers_modified} linear layers")
+    if deterministic:
+        print(f"[INFO] Each layer has deterministic LoRA with rank={rank} (no variance parameters)")
+        print(f"[INFO] KL divergence will be zero (deterministic mode)")
+    else:
+        print(f"[INFO] Each layer now has ARD-enabled latent space with rank={rank}")
+        print(f"[INFO] KL divergence will be computed in latent space (model-agnostic)")
+    print(f"[INFO] LoRA injected into attention: {target_attention_layers}")
     
     return model
