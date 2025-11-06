@@ -92,6 +92,7 @@ class MultipleChoiceLabelMasker:
     def find_answer_tokens(self, input_ids: List[int], target_answer: str) -> Optional[Tuple[int, int]]:
         """
         Find the position of answer tokens in the input sequence.
+        Searches from the END to avoid matching choice enumerators instead of the final answer.
         
         Args:
             input_ids: List of token IDs
@@ -107,21 +108,29 @@ class MultipleChoiceLabelMasker:
         
         patterns = self.answer_token_patterns[target_answer]
         
-        # Search for each pattern in the input_ids
-        for pattern in patterns:
-            for i in range(len(input_ids) - len(pattern) + 1):
-                if input_ids[i:i+len(pattern)] == pattern:
-                    if self.debug:
-                        found_tokens = input_ids[i:i+len(pattern)]
-                        decoded = self.tokenizer.decode(found_tokens)
-                        print(f"[MASKER] Found answer tokens at positions {i}-{i+len(pattern)-1}: {found_tokens} -> '{decoded}'")
-                    return (i, i + len(pattern))
+        # Search for each pattern from the END of the sequence (reverse search)
+        # This prioritizes finding the final answer rather than choice enumerators
+        best_match = None
+        best_position = -1
         
-        if self.debug:
+        for pattern in patterns:
+            # Search backwards through the sequence
+            for i in range(len(input_ids) - len(pattern), -1, -1):
+                if input_ids[i:i+len(pattern)] == pattern:
+                    # Take the rightmost (latest) match
+                    if i > best_position:
+                        best_position = i
+                        best_match = (i, i + len(pattern))
+                        if self.debug:
+                            found_tokens = input_ids[i:i+len(pattern)]
+                            decoded = self.tokenizer.decode(found_tokens)
+                            print(f"[MASKER] Found answer tokens at positions {i}-{i+len(pattern)-1}: {found_tokens} -> '{decoded}' (searching from end)")
+        
+        if best_match is None and self.debug:
             print(f"[MASKER] WARNING: Could not find answer '{target_answer}' in sequence")
             print(f"[MASKER] Input sequence: {self.tokenizer.decode(input_ids)}")
         
-        return None
+        return best_match
     
     def mask_labels(self, input_ids: List[int], target_answer: str) -> List[int]:
         """
