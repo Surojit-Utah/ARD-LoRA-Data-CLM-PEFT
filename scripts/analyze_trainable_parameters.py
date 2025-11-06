@@ -1,0 +1,870 @@
+#!/usr/bin/env python3
+"""
+Comprehensive Trainable Parameter Analysis for ARD-LoRA
+
+This script provides detailed analysis of trainable parameters in the ARD-LoRA model,
+breaking down parameters by layer, head, and matrix type (A, B, G).
+
+Usage:
+    python scripts/analyze_trainable_parameters.py --model_path <path_to_model> --output <output_file>
+    
+Features:
+- Layer-wise parameter breakdown
+- Head-wise parameter counting for multi-head attention
+- Matrix-wise analysis (A, B, G matrices in ProbLoRA)
+- Detailed logging to text file
+- Validation against expected total parameter count
+"""
+
+import os
+import sys
+import argparse
+import torch
+import yaml
+from datetime import datetime
+from pathlib import Path
+from typing import Dict, List, Tuple, Any
+from collections import defaultdict
+
+# Add project root to Python path
+project_root = Path(__file__).parent.parent
+sys.path.append(str(project_root))
+
+from model.model_llama import inject_problora_llama
+
+
+class ParameterAnalyzer:
+    """Comprehensive parameter analysis for ARD-LoRA models."""
+    
+    def __init__(self, model, output_file: str = None):
+        """
+        Initialize parameter analyzer.
+        
+        Args:
+            model: The model to analyze
+            output_file: Path to output log file (optional)
+        """
+        self.model = model
+        self.output_file = output_file
+        self.log_lines = []
+        
+        # Parameter tracking
+        self.layer_stats = defaultdict(dict)
+        self.total_trainable = 0
+        self.total_parameters = 0
+        
+    def log(self, message: str, print_console: bool = True):
+        """Log message to both console and internal log."""
+        if print_console:
+            print(message)
+        self.log_lines.append(message)
+        
+    def save_log(self):
+        """Save log to file if output file is specified."""
+        if self.output_file:
+            os.makedirs(os.path.dirname(self.output_file), exist_ok=True)
+            with open(self.output_file, 'w', encoding='utf-8') as f:
+                f.write('\n'.join(self.log_lines))
+            self.log(f"Parameter analysis saved to: {self.output_file}")
+    
+    def analyze_parameter_tensor(self, param: torch.Tensor, param_name: str) -> Dict[str, Any]:
+        """Analyze a single parameter tensor."""
+        return {
+            'name': param_name,
+            'shape': list(param.shape),
+            'numel': param.numel(),
+            'requires_grad': param.requires_grad,
+            'dtype': str(param.dtype),
+            'device': str(param.device)
+        }
+    
+    def analyze_problora_layer(self, layer_name: str, layer_module) -> Dict[str, Any]:
+        """Analyze a ProbLoRA layer in detail."""
+        layer_info = {
+            'layer_name': layer_name,
+            'layer_type': type(layer_module).__name__,
+            'total_params': 0,
+            'trainable_params': 0,
+            'matrices': {},
+            'heads': {}
+        }
+        
+        # Check if this is a ProbLoRA layer
+        if hasattr(layer_module, 'A') or hasattr(layer_module, 'B') or hasattr(layer_module, 'G'):
+            self.log(f"\nAnalyzing ProbLoRA Layer: {layer_name}")
+            
+            # Analyze A matrix
+            if hasattr(layer_module, 'A'):
+                A_info = self.analyze_parameter_tensor(layer_module.A, f"{layer_name}.A")
+                layer_info['matrices']['A'] = A_info
+                layer_info['total_params'] += A_info['numel']
+                if A_info['requires_grad']:
+                    layer_info['trainable_params'] += A_info['numel']
+                self.log(f"   A matrix: {A_info['shape']} = {A_info['numel']:,} params (trainable: {A_info['requires_grad']})")
+                
+                # Head-wise analysis for A matrix
+                if len(A_info['shape']) >= 2:
+                    # Assuming A is (rank, in_features) for attention layers
+                    rank, in_features = A_info['shape'][0], A_info['shape'][1]
+                    
+                    # Try to determine number of heads
+                    if hasattr(layer_module, 'num_heads'):
+                        num_heads = layer_module.num_heads
+                    elif 'self_attn' in layer_name or 'attention' in layer_name.lower():
+                        # Common attention head counts for LLaMA
+                        if in_features == 4096:  # LLaMA-7B hidden size
+                            num_heads = 32
+                        else:
+                            num_heads = in_features // 128  # Estimate based on head dim
+                    else:
+                        num_heads = 1  # Non-attention layer
+                    
+                    params_per_head = A_info['numel'] // max(num_heads, 1)
+                    layer_info['heads']['A'] = {
+                        'num_heads': num_heads,
+                        'params_per_head': params_per_head,
+                        'total_params': A_info['numel']
+                    }
+                    self.log(f"      A heads: {num_heads} heads × {params_per_head:,} params = {A_info['numel']:,}")
+            
+            # Analyze B matrix
+            if hasattr(layer_module, 'B'):
+                B_info = self.analyze_parameter_tensor(layer_module.B, f"{layer_name}.B")
+                layer_info['matrices']['B'] = B_info
+                layer_info['total_params'] += B_info['numel']
+                if B_info['requires_grad']:
+                    layer_info['trainable_params'] += B_info['numel']
+                self.log(f"   B matrix: {B_info['shape']} = {B_info['numel']:,} params (trainable: {B_info['requires_grad']})")
+                
+                # Head-wise analysis for B matrix
+                if len(B_info['shape']) >= 2:
+                    # Assuming B is (out_features, rank) for attention layers
+                    out_features, rank = B_info['shape'][0], B_info['shape'][1]
+                    
+                    # Try to determine number of heads
+                    if hasattr(layer_module, 'num_heads'):
+                        num_heads = layer_module.num_heads
+                    elif 'self_attn' in layer_name or 'attention' in layer_name.lower():
+                        if out_features == 4096:  # LLaMA-7B hidden size
+                            num_heads = 32
+                        else:
+                            num_heads = out_features // 128  # Estimate based on head dim
+                    else:
+                        num_heads = 1  # Non-attention layer
+                    
+                    params_per_head = B_info['numel'] // max(num_heads, 1)
+                    layer_info['heads']['B'] = {
+                        'num_heads': num_heads,
+                        'params_per_head': params_per_head,
+                        'total_params': B_info['numel']
+                    }
+                    self.log(f"      B heads: {num_heads} heads × {params_per_head:,} params = {B_info['numel']:,}")
+            
+            # Analyze G matrix (variance parameters)
+            if hasattr(layer_module, 'G'):
+                G_info = self.analyze_parameter_tensor(layer_module.G, f"{layer_name}.G")
+                layer_info['matrices']['G'] = G_info
+                layer_info['total_params'] += G_info['numel']
+                if G_info['requires_grad']:
+                    layer_info['trainable_params'] += G_info['numel']
+                self.log(f"   G matrix: {G_info['shape']} = {G_info['numel']:,} params (trainable: {G_info['requires_grad']})")
+            
+            # Layer summary
+            self.log(f"   Layer Total: {layer_info['total_params']:,} params ({layer_info['trainable_params']:,} trainable)")
+            
+        return layer_info
+    
+    def analyze_model(self) -> Dict[str, Any]:
+        """Perform comprehensive model analysis."""
+        self.log("COMPREHENSIVE TRAINABLE PARAMETER ANALYSIS")
+        self.log("=" * 80)
+        self.log(f"Analysis Date: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+        self.log(f"Model Type: {type(self.model).__name__}")
+        self.log("")
+        
+        # Track all parameters first
+        for name, param in self.model.named_parameters():
+            self.total_parameters += param.numel()
+            if param.requires_grad:
+                self.total_trainable += param.numel()
+        
+        self.log(f"OVERALL PARAMETER SUMMARY:")
+        self.log(f"   Total parameters: {self.total_parameters:,}")
+        self.log(f"   Trainable parameters: {self.total_trainable:,}")
+        self.log(f"   Trainable percentage: {(self.total_trainable/self.total_parameters)*100:.2f}%")
+        self.log("")
+        
+        # Analyze layers with ProbLoRA components
+        problora_layers_found = 0
+        total_problora_params = 0
+        
+        self.log("LAYER-BY-LAYER ANALYSIS:")
+        self.log("-" * 60)
+        
+        for name, module in self.model.named_modules():
+            # Check if this module has ProbLoRA components
+            has_problora = any(hasattr(module, attr) for attr in ['A', 'B', 'G'])
+            
+            if has_problora:
+                layer_info = self.analyze_problora_layer(name, module)
+                self.layer_stats[name] = layer_info
+                problora_layers_found += 1
+                total_problora_params += layer_info['trainable_params']
+        
+        # Summary statistics
+        self.log(f"\nPROBLORA LAYER SUMMARY:")
+        self.log(f"   ProbLoRA layers found: {problora_layers_found}")
+        self.log(f"   Total ProbLoRA trainable params: {total_problora_params:,}")
+        self.log(f"   Non-ProbLoRA trainable params: {self.total_trainable - total_problora_params:,}")
+        
+        # Detailed breakdown by matrix type
+        self.analyze_matrix_breakdown()
+        
+        # Validation
+        self.validate_parameter_count()
+        
+        return {
+            'total_parameters': self.total_parameters,
+            'total_trainable': self.total_trainable,
+            'problora_layers': problora_layers_found,
+            'problora_trainable': total_problora_params,
+            'layer_stats': dict(self.layer_stats)
+        }
+    
+    def analyze_matrix_breakdown(self):
+        """Analyze parameters by matrix type (A, B, G)."""
+        self.log(f"\nMATRIX TYPE BREAKDOWN:")
+        self.log("-" * 40)
+        
+        matrix_totals = {'A': 0, 'B': 0, 'G': 0}
+        head_analysis = {'A': [], 'B': []}
+        
+        for layer_name, layer_info in self.layer_stats.items():
+            for matrix_type in ['A', 'B', 'G']:
+                if matrix_type in layer_info['matrices']:
+                    matrix_info = layer_info['matrices'][matrix_type]
+                    if matrix_info['requires_grad']:
+                        matrix_totals[matrix_type] += matrix_info['numel']
+                
+                # Collect head analysis for A and B
+                if matrix_type in ['A', 'B'] and matrix_type in layer_info['heads']:
+                    head_info = layer_info['heads'][matrix_type]
+                    head_analysis[matrix_type].append({
+                        'layer': layer_name,
+                        'num_heads': head_info['num_heads'],
+                        'params_per_head': head_info['params_per_head'],
+                        'total_params': head_info['total_params']
+                    })
+        
+        # Print matrix totals
+        for matrix_type, total in matrix_totals.items():
+            self.log(f"   {matrix_type} matrices: {total:,} parameters")
+        
+        # Print head analysis
+        for matrix_type in ['A', 'B']:
+            if head_analysis[matrix_type]:
+                self.log(f"\n{matrix_type} MATRIX HEAD ANALYSIS:")
+                total_heads = 0
+                for head_info in head_analysis[matrix_type]:
+                    layer_short = head_info['layer'].split('.')[-2] if '.' in head_info['layer'] else head_info['layer']
+                    self.log(f"   {layer_short}: {head_info['num_heads']} heads × {head_info['params_per_head']:,} = {head_info['total_params']:,}")
+                    total_heads += head_info['num_heads']
+                self.log(f"   Total {matrix_type} heads across all layers: {total_heads}")
+    
+    def validate_parameter_count(self):
+        """Validate the parameter count against expected values."""
+        self.log(f"\nVALIDATION:")
+        self.log("-" * 30)
+        
+        expected_count = 12_582_912  # The reported trainable parameter count
+        actual_count = self.total_trainable
+        
+        self.log(f"   Expected trainable parameters: {expected_count:,}")
+        self.log(f"   Actual trainable parameters:   {actual_count:,}")
+        self.log(f"   Difference: {abs(actual_count - expected_count):,}")
+        
+        if actual_count == expected_count:
+            self.log("   Parameter count matches expected value!")
+        else:
+            percentage_diff = abs(actual_count - expected_count) / expected_count * 100
+            self.log(f"   Parameter count differs by {percentage_diff:.2f}%")
+            
+            if percentage_diff < 1.0:
+                self.log("   Small difference, likely due to rounding or additional parameters")
+            else:
+                self.log("   Significant difference, investigation needed")
+
+    def validate_optimizer_parameters(self, trainer=None, optimizer=None):
+        """
+        Validate that HuggingFace trainer/optimizer is using the correct set of trainable parameters.
+        
+        Args:
+            trainer: HuggingFace Trainer instance (optional)
+            optimizer: PyTorch optimizer instance (optional)
+        """
+        self.log(f"\nOPTIMIZER PARAMETER VALIDATION:")
+        self.log("-" * 45)
+        
+        # Get model's trainable parameters
+        model_trainable_params = []
+        model_param_names = []
+        model_param_count = 0
+        
+        for name, param in self.model.named_parameters():
+            if param.requires_grad:
+                model_trainable_params.append(param)
+                model_param_names.append(name)
+                model_param_count += param.numel()
+        
+        self.log(f"   Model trainable parameters: {model_param_count:,}")
+        self.log(f"   Model trainable parameter tensors: {len(model_trainable_params)}")
+        
+        # Check trainer's optimizer if provided
+        if trainer is not None:
+            self.log(f"\n   TRAINER OPTIMIZER ANALYSIS:")
+            try:
+                trainer_optimizer = trainer.optimizer
+                
+                # Analyze optimizer parameters
+                optimizer_param_count = 0
+                optimizer_param_tensors = 0
+                optimizer_param_groups = len(trainer_optimizer.param_groups)
+                
+                for i, group in enumerate(trainer_optimizer.param_groups):
+                    group_param_count = 0
+                    for param in group['params']:
+                        optimizer_param_count += param.numel()
+                        group_param_count += param.numel()
+                        optimizer_param_tensors += 1
+                    self.log(f"   Parameter group {i+1}: {group_param_count:,} parameters")
+                
+                self.log(f"   Optimizer total parameters: {optimizer_param_count:,}")
+                self.log(f"   Optimizer parameter tensors: {optimizer_param_tensors}")
+                self.log(f"   Optimizer parameter groups: {optimizer_param_groups}")
+                
+                # Validation
+                if optimizer_param_count == model_param_count:
+                    self.log(f"   PASS: Optimizer parameter count matches model!")
+                else:
+                    diff = abs(optimizer_param_count - model_param_count)
+                    self.log(f"   FAIL: Parameter count mismatch!")
+                    self.log(f"   Difference: {diff:,} parameters")
+                
+                if optimizer_param_tensors == len(model_trainable_params):
+                    self.log(f"   PASS: Optimizer tensor count matches model!")
+                else:
+                    diff = abs(optimizer_param_tensors - len(model_trainable_params))
+                    self.log(f"   FAIL: Tensor count mismatch!")
+                    self.log(f"   Difference: {diff} tensors")
+                
+            except Exception as e:
+                self.log(f"   ERROR analyzing trainer optimizer: {e}")
+                return None
+        
+        # Check standalone optimizer if provided
+        if optimizer is not None:
+            self.log(f"\n   STANDALONE OPTIMIZER ANALYSIS:")
+            try:
+                optimizer_param_count = 0
+                optimizer_param_tensors = 0
+                optimizer_param_groups = len(optimizer.param_groups)
+                
+                for i, group in enumerate(optimizer.param_groups):
+                    group_param_count = 0
+                    for param in group['params']:
+                        optimizer_param_count += param.numel()
+                        group_param_count += param.numel()
+                        optimizer_param_tensors += 1
+                    self.log(f"   Parameter group {i+1}: {group_param_count:,} parameters")
+                
+                self.log(f"   Optimizer total parameters: {optimizer_param_count:,}")
+                self.log(f"   Optimizer parameter tensors: {optimizer_param_tensors}")
+                self.log(f"   Optimizer parameter groups: {optimizer_param_groups}")
+                
+                # Validation
+                if optimizer_param_count == model_param_count:
+                    self.log(f"   PASS: Optimizer parameter count matches model!")
+                else:
+                    diff = abs(optimizer_param_count - model_param_count)
+                    self.log(f"   FAIL: Parameter count mismatch!")
+                    self.log(f"   Difference: {diff:,} parameters")
+                
+                if optimizer_param_tensors == len(model_trainable_params):
+                    self.log(f"   PASS: Optimizer tensor count matches model!")
+                else:
+                    diff = abs(optimizer_param_tensors - len(model_trainable_params))
+                    self.log(f"   FAIL: Tensor count mismatch!")
+                    self.log(f"   Difference: {diff} tensors")
+                
+            except Exception as e:
+                self.log(f"   ERROR analyzing standalone optimizer: {e}")
+                return None
+        
+        # Detailed parameter name analysis
+        if trainer is not None or optimizer is not None:
+            self.log(f"\n   DETAILED PARAMETER ANALYSIS:")
+            
+            # Show sample of trainable parameter names
+            self.log(f"   Sample trainable parameter names:")
+            for i, name in enumerate(model_param_names[:10]):  # Show first 10
+                param = dict(self.model.named_parameters())[name]
+                self.log(f"     {i+1:2d}. {name} - {list(param.shape)} - {param.numel():,} params")
+            
+            if len(model_param_names) > 10:
+                self.log(f"     ... and {len(model_param_names) - 10} more parameters")
+            
+            # Check for parameters that should be trainable (ProbLoRA specific)
+            problora_params = [name for name in model_param_names if any(matrix in name for matrix in ['.A', '.B', '.G'])]
+            non_problora_params = [name for name in model_param_names if not any(matrix in name for matrix in ['.A', '.B', '.G'])]
+            
+            self.log(f"\n   PARAMETER CLASSIFICATION:")
+            self.log(f"     ProbLoRA parameters: {len(problora_params)}")
+            self.log(f"     Non-ProbLoRA parameters: {len(non_problora_params)}")
+            
+            if non_problora_params:
+                self.log(f"     WARNING: Found non-ProbLoRA trainable parameters:")
+                for name in non_problora_params[:5]:  # Show first 5
+                    param = dict(self.model.named_parameters())[name]
+                    self.log(f"       - {name} - {param.numel():,} params")
+                if len(non_problora_params) > 5:
+                    self.log(f"       ... and {len(non_problora_params) - 5} more")
+            else:
+                self.log(f"     PASS: All trainable parameters are ProbLoRA parameters")
+        
+        return {
+            'model_param_count': model_param_count,
+            'model_param_tensors': len(model_trainable_params),
+            'problora_param_names': [name for name in model_param_names if any(matrix in name for matrix in ['.A', '.B', '.G'])],
+            'non_problora_param_names': [name for name in model_param_names if not any(matrix in name for matrix in ['.A', '.B', '.G'])]
+        }
+
+
+def load_config_from_yaml(config_path: str) -> Dict[str, Any]:
+    """Load and parse configuration from YAML file."""
+    config_path = Path(config_path)
+    if not config_path.exists():
+        raise FileNotFoundError(f"Configuration file not found: {config_path}")
+    
+    with open(config_path, 'r') as f:
+        config = yaml.safe_load(f)
+    
+    # Extract defaults section
+    defaults = config.get('defaults')
+    
+    # Extract model configuration
+    model_name = defaults['model_name']
+    model_config = config.get('models').get(model_name)
+    
+    # Merge defaults with model-specific config
+    merged_config = {
+        # Model settings
+        'model_name': model_config.get('model_name_or_path') or defaults['model_name_or_path'],
+        'tokenizer_name': model_config.get('tokenizer_name') or defaults['tokenizer_name'],
+        'load_in_4bit': model_config.get('load_in_4bit') or defaults['load_in_4bit'],
+        'attn_implementation': defaults['attn_implementation'],
+        
+        # Training parameters
+        'learning_rate': defaults['learning_rate'],
+        'lr_scheduler_type': defaults['lr_scheduler_type'],
+        'warmup_ratio': defaults['warmup_ratio'],
+        'weight_decay': defaults['weight_decay'],
+        'optim': defaults['optim'],
+        'max_grad_norm': defaults['max_grad_norm'],
+        
+        # Training strategy
+        'batch_size': defaults['batch_size'],
+        'gradient_accumulation_steps': defaults['gradient_accumulation_steps'],
+        'train_epochs': defaults['train_epochs'],
+        'save_strategy': defaults['save_strategy'],
+        'eval_strategy': defaults['eval_strategy'],
+        'logging_steps': defaults['logging_steps'],
+        
+        # Precision settings
+        'bf16': defaults['bf16'],
+        'fp16': defaults['fp16'],
+        
+        # Memory optimization
+        'gradient_checkpointing': defaults['gradient_checkpointing'],
+        'use_cache': defaults['use_cache'],
+        'dataloader_num_workers': defaults['dataloader_num_workers'],
+        'dataloader_pin_memory': defaults['dataloader_pin_memory'],
+        'pad_to_multiple_of': defaults['pad_to_multiple_of'],
+        
+        # LoRA configuration
+        'rank': defaults['rank'],
+        'lora_alpha': defaults['lora_alpha'],
+        'target_modules': defaults['target_attention_layers'],
+        'enable_clamps': defaults['enable_clamps'],
+        'deterministic_lora': defaults['deterministic_lora'],
+        
+        # ARD configuration
+        'kl_loss_beta': defaults['kl_loss_beta'],
+        'ard_prior_samples': defaults['ard_prior_samples'],
+        'max_len': defaults['max_len'],
+        
+        # Numerical stability parameters for ProbLoRA
+        'logvar_clamp_min': defaults['logvar_clamp_min'],
+        'logvar_clamp_max': defaults['logvar_clamp_max'],
+        'beta_logvar_clamp_min': defaults['beta_logvar_clamp_min'],
+        'beta_logvar_clamp_max': defaults['beta_logvar_clamp_max'],
+        'sample_clamp_min': defaults['sample_clamp_min'],
+        'sample_clamp_max': defaults['sample_clamp_max'],
+        
+        # Dataset configuration
+        'dataset_name': defaults['dataset_name'],
+        'dataset_name_specific': defaults['dataset_name_specific'],
+        'random_seed': defaults['random_seed'],
+        
+        # Reporting
+        'report_to': defaults['report_to'],
+        'output_dir': f"output/{defaults['dataset_name_specific']}_run_{defaults['runId']}"
+    }
+    
+    return merged_config
+
+
+def load_model_for_analysis(config_path: str, model_args: Dict[str, Any]) -> torch.nn.Module:
+    """Load model with ProbLoRA injection for analysis using the exact same parameters as training."""
+    from transformers import LlamaForCausalLM, LlamaTokenizer
+    
+    print("Loading model for parameter analysis...")
+    
+    # Load base model
+    model = LlamaForCausalLM.from_pretrained(
+        model_args['model_name'],
+        torch_dtype=torch.bfloat16 if model_args['bf16'] else torch.float16,
+        device_map="cpu",  # Keep on CPU for analysis
+        load_in_4bit=False,  # No quantization for parameter counting
+        trust_remote_code=True
+    )
+    
+    # Inject ProbLoRA using the exact same function and parameters as training
+    print("Injecting ProbLoRA layers with full configuration...")
+    inject_problora_llama(
+        model=model,
+        rank=model_args['rank'],
+        scaling=model_args['lora_alpha'] / model_args['rank'],
+        num_tokens=model_args['max_len'],
+        ard_prior_samples=model_args['ard_prior_samples'],
+        logvar_clamp_min=model_args['logvar_clamp_min'],
+        logvar_clamp_max=model_args['logvar_clamp_max'],
+        beta_logvar_clamp_min=model_args['beta_logvar_clamp_min'],
+        beta_logvar_clamp_max=model_args['beta_logvar_clamp_max'],
+        sample_clamp_min=model_args['sample_clamp_min'],
+        sample_clamp_max=model_args['sample_clamp_max'],
+        attn_implementation=model_args['attn_implementation'],
+        target_attention_layers=model_args['target_modules'],
+        deterministic=model_args['deterministic_lora'],
+        enable_clamps=model_args['enable_clamps'],
+        lora_alpha=model_args['lora_alpha']
+    )
+    
+    print("Model loaded and ProbLoRA injected with full training configuration")
+    return model
+
+
+def create_test_trainer_for_validation(model, config_path: str = "config/run_training_params.yaml"):
+    """Create a test trainer to validate optimizer parameter usage."""
+    try:
+        from transformers import TrainingArguments, Trainer, DataCollatorForLanguageModeling
+        from transformers import LlamaTokenizer
+        
+        print("Creating test trainer for optimizer validation...")
+        
+        # Load config to get training parameters (required)
+        if not Path(config_path).exists():
+            print(f"ERROR: Configuration file not found: {config_path}")
+            print("Cannot create test trainer without training configuration.")
+            return None
+            
+        with open(config_path, 'r') as f:
+            config = yaml.safe_load(f)
+        defaults = config['defaults']
+        
+        # Extract training parameters from YAML (no fallbacks)
+        learning_rate = defaults['learning_rate']
+        optim = defaults['optim']
+        weight_decay = defaults['weight_decay']
+        max_grad_norm = defaults['max_grad_norm']
+        batch_size = defaults['batch_size']
+        model_name = defaults['model_name_or_path']
+        
+        # Validate required parameters
+        if any(param is None for param in [learning_rate, optim, model_name]):
+            print("ERROR: Missing required training parameters in config file")
+            print(f"Required: learning_rate, optim, model_name_or_path")
+            return None
+        
+        # Load tokenizer
+        tokenizer = LlamaTokenizer.from_pretrained(
+            model_name,
+            trust_remote_code=True
+        )
+        
+        # Add padding token if it doesn't exist
+        if tokenizer.pad_token is None:
+            tokenizer.pad_token = tokenizer.eos_token
+        
+        # Create training arguments from config
+        training_args = TrainingArguments(
+            output_dir="temp_output",
+            learning_rate=learning_rate,
+            per_device_train_batch_size=batch_size,
+            num_train_epochs=1,
+            optim=optim,
+            weight_decay=weight_decay,
+            max_grad_norm=max_grad_norm,
+            save_strategy="no",
+            logging_steps=100,
+            remove_unused_columns=False  # Important for causal LM
+        )
+        
+        # Create data collator
+        data_collator = DataCollatorForLanguageModeling(
+            tokenizer=tokenizer,
+            mlm=False
+        )
+        
+        # Create trainer
+        trainer = Trainer(
+            model=model,
+            args=training_args,
+            data_collator=data_collator,
+            tokenizer=tokenizer
+        )
+        
+        print("Test trainer created successfully")
+        print(f"Optimizer: {optim}")
+        print(f"Learning Rate: {learning_rate}")
+        print(f"Weight Decay: {weight_decay}")
+        print(f"Max Grad Norm: {max_grad_norm}")
+        
+        return trainer
+        
+    except Exception as e:
+        print(f"Warning: Could not create test trainer: {e}")
+        import traceback
+        traceback.print_exc()
+        return None
+
+
+def analyze_with_optimizer_validation(model, config_path: str = "config/run_training_params.yaml", output_file: str = None):
+    """Analyze model parameters and validate optimizer usage."""
+    
+    # Create parameter analyzer
+    analyzer = ParameterAnalyzer(model, output_file)
+    
+    # Run basic analysis
+    results = analyzer.analyze_model()
+    
+    # Create test trainer for optimizer validation
+    trainer = create_test_trainer_for_validation(model, config_path)
+    
+    # Validate optimizer parameters
+    if trainer is not None:
+        optimizer_results = analyzer.validate_optimizer_parameters(trainer=trainer)
+        results['optimizer_validation'] = optimizer_results
+    else:
+        print("Skipping optimizer validation due to trainer creation failure")
+        results['optimizer_validation'] = None
+    
+    # Save log
+    analyzer.save_log()
+    
+    return results, analyzer
+
+
+def quick_analysis():
+    """Run quick parameter analysis with configuration from YAML file."""
+    
+    # Load configuration from YAML
+    config_path = "config/run_training_params.yaml"
+    config_path_obj = Path(config_path)
+    
+    if not config_path_obj.exists():
+        print(f"ERROR: Configuration file not found: {config_path}")
+        print("The analysis requires the exact same configuration used for training.")
+        print("Please ensure the config/run_training_params.yaml file exists.")
+        return None
+    
+    # Load configuration from YAML (required)
+    config_args = load_config_from_yaml(config_path)
+    
+    # Create output directory
+    output_dir = Path("output")
+    output_dir.mkdir(exist_ok=True)
+    
+    # Generate output filename with timestamp
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    output_file = output_dir / f"parameter_analysis_{timestamp}.txt"
+    
+    print("Quick Parameter Analysis")
+    print("=" * 50)
+    print(f"Config File: {config_path}")
+    print(f"Model: {config_args['model_name']}")
+    print(f"LoRA Rank: {config_args['rank']}")
+    print(f"LoRA Alpha: {config_args['lora_alpha']}")
+    print(f"Target Modules: {config_args['target_modules']}")
+    print(f"Deterministic LoRA: {config_args['deterministic_lora']}")
+    print(f"Optimizer: {config_args['optim']}")
+    print(f"Learning Rate: {config_args['learning_rate']}")
+    print(f"Output: {output_file}")
+    print()
+    
+    try:
+        # Load model (this will take some time)
+        print("Loading model (this may take a few minutes)...")
+        model = load_model_for_analysis(config_path, config_args)
+        
+        # Analyze parameters with optimizer validation
+        print("Analyzing parameters and validating optimizer...")
+        results, analyzer = analyze_with_optimizer_validation(model, config_path, str(output_file))
+        
+        # Print summary
+        print("\n" + "=" * 50)
+        print("ANALYSIS COMPLETE!")
+        print("=" * 50)
+        print(f"Total Parameters: {results['total_parameters']:,}")
+        print(f"Trainable Parameters: {results['total_trainable']:,}")
+        print(f"Trainable Percentage: {(results['total_trainable']/results['total_parameters'])*100:.2f}%")
+        print(f"ProbLoRA Layers: {results['problora_layers']}")
+        print(f"ProbLoRA Trainable: {results['problora_trainable']:,}")
+        print()
+        print(f"Detailed report: {output_file}")
+        print(f"Target validation: 12,582,912 expected")
+        
+        # Validation status
+        expected = 12_582_912
+        actual = results['total_trainable']
+        if actual == expected:
+            print("Parameter count matches expected value!")
+        else:
+            diff = abs(actual - expected)
+            print(f"Difference: {diff:,} parameters ({diff/expected*100:.2f}%)")
+        
+        # Optimizer validation summary
+        if 'optimizer_validation' in results:
+            opt_results = results['optimizer_validation']
+            print(f"\nOptimizer Validation:")
+            print(f"  Model trainable parameters: {opt_results['model_param_count']:,}")
+            print(f"  ProbLoRA parameters found: {len(opt_results['problora_param_names'])}")
+            print(f"  Non-ProbLoRA parameters: {len(opt_results['non_problora_param_names'])}")
+        
+        return results
+        
+    except Exception as e:
+        print(f"Error during analysis: {e}")
+        import traceback
+        traceback.print_exc()
+        return None
+
+
+def analyze_existing_model(model, output_file: str = None):
+    """Analyze an already loaded model."""
+    if output_file is None:
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        output_file = f"output/parameter_analysis_{timestamp}.txt"
+    
+    analyzer = ParameterAnalyzer(model, output_file)
+    results = analyzer.analyze_model()
+    analyzer.save_log()
+    
+    return results
+
+
+def main():
+    """Main function for parameter analysis."""
+    parser = argparse.ArgumentParser(
+        description="Analyze trainable parameters in ARD-LoRA model",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples:
+  # Run quick analysis with defaults
+  python scripts/analyze_trainable_parameters.py --quick
+  
+  # Analyze with custom config
+  python scripts/analyze_trainable_parameters.py --config config/run_training_params.yaml
+  
+  # Analyze with custom output file
+  python scripts/analyze_trainable_parameters.py --output my_analysis.txt
+  
+  # Override model name
+  python scripts/analyze_trainable_parameters.py --model-name meta-llama/Llama-2-7b-hf
+        """
+    )
+    parser.add_argument("--config", type=str, default="config/run_training_params.yaml",
+                       help="Path to configuration file")
+    parser.add_argument("--output", type=str, default=None,
+                       help="Output file for parameter analysis (optional)")
+    parser.add_argument("--model-name", type=str, default=None,
+                       help="Override model name from config")
+    parser.add_argument("--quick", action="store_true",
+                       help="Run quick analysis with default configuration")
+    
+    args = parser.parse_args()
+    
+    # Run quick analysis if requested
+    if args.quick:
+        return quick_analysis()
+    
+    # Load configuration from YAML
+    config_args = load_config_from_yaml(args.config)
+    
+    # Override model name if provided
+    if args.model_name:
+        config_args['model_name'] = args.model_name
+    
+    # Set default output file if not provided
+    if args.output is None:
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        args.output = f"output/parameter_analysis_{timestamp}.txt"
+    
+    try:
+        # Load model with YAML configuration
+        model = load_model_for_analysis(args.config, config_args)
+        
+        # Analyze parameters with optimizer validation
+        results, analyzer = analyze_with_optimizer_validation(model, args.config, args.output)
+        
+        print(f"\nAnalysis complete!")
+        print(f"Found {results['total_trainable']:,} trainable parameters")
+        print(f"Analyzed {results['problora_layers']} ProbLoRA layers")
+        
+        if args.output:
+            print(f"Detailed report saved to: {args.output}")
+        
+        # Print optimizer validation summary
+        if 'optimizer_validation' in results:
+            opt_results = results['optimizer_validation']
+            print(f"\nOptimizer Validation:")
+            print(f"  Model trainable parameters: {opt_results['model_param_count']:,}")
+            print(f"  ProbLoRA parameters found: {len(opt_results['problora_param_names'])}")
+            print(f"  Non-ProbLoRA parameters: {len(opt_results['non_problora_param_names'])}")
+        
+        return results
+        
+    except Exception as e:
+        print(f"Error during analysis: {e}")
+        import traceback
+        traceback.print_exc()
+        sys.exit(1)
+
+
+if __name__ == "__main__":
+    # If no arguments provided, show usage and run quick analysis
+    if len(sys.argv) == 1:
+        print("ARD-LoRA Parameter Analysis Tool")
+        print("=" * 50)
+        print("This tool provides comprehensive analysis of trainable parameters in ARD-LoRA models.")
+        print()
+        print("Usage Options:")
+        print("  --quick                     : Run quick analysis with defaults")
+        print("  --config <file>            : Use specific config file")
+        print("  --output <file>            : Specify output file")
+        print("  --model-name <name>        : Override model name")
+        print()
+        print("Running quick analysis with default settings...")
+        print()
+        quick_analysis()
+    else:
+        main()

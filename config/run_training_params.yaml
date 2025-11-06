@@ -55,7 +55,8 @@ defaults:
 
   # ARD-LoRA Configuration
   rank: 16
-  scaling: 0.25
+  lora_alpha: 16  # LoRA alpha parameter (standard: 16, scaling = alpha/rank)
+  # scaling: 0.25  # Deprecated: now computed as lora_alpha/rank
   max_lora_rank_threshold: 64
   
   # LoRA Mode Configuration

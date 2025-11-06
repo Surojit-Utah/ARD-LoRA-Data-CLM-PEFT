@@ -15,7 +15,7 @@ Key Features:
 import os
 from pathlib import Path
 from config import CONFIG
-from model.model_llama import inject_problora_llama
+from model.model_llama import ProbLoRALayer, inject_problora_llama
 from trainer.trainer_clm import ARDCLMTrainer, estimate_ard_priors_clm, build_clm_trainer, create_ard_callbacks
 from dataloader.bayesian_peft_cached import load_bayesian_peft_with_caching
 from transformers import AutoModelForCausalLM, AutoTokenizer, TrainingArguments
@@ -84,11 +84,11 @@ def _validate_config_types(config):
     
     # Validate memory optimization settings for A100
     if not config["use_cache"]:
-        print(f"[CONFIG] ✅ KV caching disabled for memory optimization")
+        print(f"[CONFIG] KV caching disabled for memory optimization")
     if config["gradient_checkpointing"]:
-        print(f"[CONFIG] ✅ Gradient checkpointing enabled for memory optimization")
+        print(f"[CONFIG] Gradient checkpointing enabled for memory optimization")
     if config["bf16"]:
-        print(f"[CONFIG] ✅ BF16 precision enabled for A100 GPU optimization")
+        print(f"[CONFIG] BF16 precision enabled for A100 GPU optimization")
 
 
 def _validate_tokenizer_alignment(tokenizer):
@@ -109,31 +109,31 @@ def _validate_tokenizer_alignment(tokenizer):
         
         # Check EOS token (most critical for CLM)
         if tokenizer.eos_token_id == expected_eos_id:
-            print(f"[TOKENIZER] ✅ EOS token ID correct: {tokenizer.eos_token_id}")
+            print(f"[TOKENIZER] EOS token ID correct: {tokenizer.eos_token_id}")
         else:
-            print(f"[TOKENIZER] ⚠️  EOS token ID unexpected: got {tokenizer.eos_token_id}, expected {expected_eos_id}")
+            print(f"[TOKENIZER] WARNING: EOS token ID unexpected: got {tokenizer.eos_token_id}, expected {expected_eos_id}")
         
         # Check PAD token alignment
         if tokenizer.pad_token_id == tokenizer.eos_token_id:
-            print(f"[TOKENIZER] ✅ PAD token aligned with EOS: {tokenizer.pad_token_id}")
+            print(f"[TOKENIZER] PAD token aligned with EOS: {tokenizer.pad_token_id}")
         else:
-            print(f"[TOKENIZER] ⚠️  PAD token not aligned with EOS: pad={tokenizer.pad_token_id}, eos={tokenizer.eos_token_id}")
+            print(f"[TOKENIZER] WARNING: PAD token not aligned with EOS: pad={tokenizer.pad_token_id}, eos={tokenizer.eos_token_id}")
         
         # Check BOS token
         if tokenizer.bos_token_id == expected_bos_id:
-            print(f"[TOKENIZER] ✅ BOS token ID correct: {tokenizer.bos_token_id}")
+            print(f"[TOKENIZER] BOS token ID correct: {tokenizer.bos_token_id}")
         else:
-            print(f"[TOKENIZER] ⚠️  BOS token ID unexpected: got {tokenizer.bos_token_id}, expected {expected_bos_id}")
+            print(f"[TOKENIZER] WARNING: BOS token ID unexpected: got {tokenizer.bos_token_id}, expected {expected_bos_id}")
     
     # Check for potential issues
     if tokenizer.pad_token_id is None:
-        print(f"[TOKENIZER] ❌ ERROR: pad_token_id is None - this will cause training issues!")
+        print(f"[TOKENIZER] ERROR: pad_token_id is None - this will cause training issues!")
         raise ValueError("pad_token_id cannot be None for CLM training")
     
     if tokenizer.pad_token_id == tokenizer.unk_token_id:
-        print(f"[TOKENIZER] ⚠️  WARNING: pad_token_id equals unk_token_id - this may cause issues")
+        print(f"[TOKENIZER] WARNING: pad_token_id equals unk_token_id - this may cause issues")
     
-    print(f"[TOKENIZER] ✅ Tokenizer validation complete")
+    print(f"[TOKENIZER] Tokenizer validation complete")
 
 
 def setup_cache_directory(config):
@@ -197,7 +197,6 @@ def load_model_with_problora(config, verbose=False):
     model = inject_problora_llama(
         model,
         rank=config["rank"],
-        scaling=config["scaling"],
         num_tokens=config["max_len"],
         ard_prior_samples=config["ard_prior_samples"],
         logvar_clamp_min=config["logvar_clamp_min"],
@@ -209,96 +208,130 @@ def load_model_with_problora(config, verbose=False):
         attn_implementation=config["attn_implementation"],
         target_attention_layers=config["target_attention_layers"],  # Read from YAML config
         deterministic=config.get("deterministic_lora"),  # Enable deterministic mode if configured
-        enable_clamps=config.get("enable_clamps")  # Enable/disable numerical stability clamps
+        enable_clamps=config.get("enable_clamps"),  # Enable/disable numerical stability clamps
+        lora_alpha=config.get("lora_alpha"),  # Standard LoRA alpha parameter
+        scaling=config.get("scaling"),
     )
     
+    if verbose:
+        print("[DEBUG] Using ProbLoRALayer type-based parameter detection...")
+
     # Freeze base parameters and unfreeze LoRA parameters
     trainable_count = 0
-    lora_patterns = ['lora_a', 'lora_b', '.a.', '.b.', 'lora', 'adapter']
-    
-    if verbose:
-        print("[DEBUG] Analyzing parameter names for LoRA detection...")
     all_param_names = []
     quantized_params_skipped = 0
     
-    for name, param in model.named_parameters():
-        all_param_names.append(name)
-        # More comprehensive LoRA parameter detection
-        is_lora = any(pattern in name.lower() for pattern in lora_patterns)
-        
-        if is_lora:
-            # CRITICAL: Debug parameter details before setting gradients
+    # ProbLoRALayer detection
+    for mod_name, mod in model.named_modules():
+        if isinstance(mod, ProbLoRALayer):
             if verbose:
-                print(f"[DEBUG] Found LoRA parameter: {name}")
-                print(f"[DEBUG]   Shape: {param.shape}")
-                print(f"[DEBUG]   Dtype: {param.dtype}")
-                print(f"[DEBUG]   Is floating point: {param.dtype.is_floating_point}")
+                print(f"[DEBUG] Found ProbLoRALayer module: {mod_name}")
             
-            # CRITICAL: Only set gradients on floating-point parameters
-            if param.dtype.is_floating_point:
-                param.requires_grad = True
-                trainable_count += 1
+            # Only parameters directly on this module (no recursion)
+            for p_name, p in mod.named_parameters(recurse=False):
+                full_param_name = f"{mod_name}.{p_name}" if mod_name else p_name
+                all_param_names.append(full_param_name)
+                
+                # CRITICAL: Debug parameter details before setting gradients
                 if verbose:
-                    print(f"[DEBUG] ✅ Trainable LoRA param: {name} (shape: {param.shape}, dtype: {param.dtype})")
-            else:
-                quantized_params_skipped += 1
-                print(f"[WARNING] Skipping quantized LoRA param: {name} (dtype: {param.dtype})")
-                print(f"[WARNING] This LoRA parameter is quantized and cannot have gradients!")
-        else:
-            # Never touch quantized base weights - only set requires_grad on floating point
-            if param.dtype.is_floating_point:
-                param.requires_grad = False
-    
-    # If no LoRA parameters found, print all parameter names for debugging
-    if trainable_count == 0:
-        print("[ERROR] No LoRA parameters found! Printing all parameter names for debugging:")
-        if verbose:
-            for i, name in enumerate(all_param_names[:20]):  # Print first 20 parameter names
-                print(f"[DEBUG] Parameter {i+1}: {name}")
-            if len(all_param_names) > 20:
-                print(f"[DEBUG] ... and {len(all_param_names) - 20} more parameters")
-        
-        if verbose:
-            print("\n[DEBUG] Trying alternative LoRA detection patterns...")
-        # Try broader patterns if standard ones fail
-        broader_patterns = ['A', 'B', 'weight', 'bias']
-        for name, param in model.named_parameters():
-            if any(pattern in name for pattern in broader_patterns):
-                # Additional checks to avoid unfreezing all weights
-                max_rank_threshold = config.get("max_lora_rank_threshold", 64)  # Configurable threshold
-                if 'lora' in name.lower() or 'adapter' in name.lower() or (len(param.shape) == 2 and min(param.shape) <= max_rank_threshold):
-                    # CRITICAL: Debug parameter details before setting gradients
+                    print(f"[DEBUG] Found ProbLoRA parameter: {full_param_name}")
+                    print(f"[DEBUG]   Local name: {p_name}")
+                    print(f"[DEBUG]   Shape: {p.shape}")
+                    print(f"[DEBUG]   Dtype: {p.dtype}")
+                    print(f"[DEBUG]   Is floating point: {p.is_floating_point()}")
+                
+                # CRITICAL: Only set gradients on floating-point parameters
+                if p.is_floating_point():
+                    p.requires_grad_(True)
+                    trainable_count += 1
                     if verbose:
-                        print(f"[DEBUG] Checking parameter: {name}")
-                        print(f"[DEBUG]   Shape: {param.shape}")
-                        print(f"[DEBUG]   Dtype: {param.dtype}")
-                        print(f"[DEBUG]   Is floating point: {param.dtype.is_floating_point}")
-                    
-                    # CRITICAL: Only set gradients on floating-point parameters
-                    if param.dtype.is_floating_point:
-                        param.requires_grad = True
-                        trainable_count += 1
-                        if verbose:
-                            print(f"[DEBUG] ✅ Alternative LoRA param: {name} (shape: {param.shape}, dtype: {param.dtype})")
-                    else:
-                        quantized_params_skipped += 1
-                        print(f"[WARNING] Skipping quantized alternative param: {name} (dtype: {param.dtype})")
-                        print(f"[WARNING] This LoRA parameter is quantized and cannot have gradients!")
+                        print(f"[DEBUG] Trainable ProbLoRA param: {full_param_name} (shape: {p.shape}, dtype: {p.dtype})")
+                else:
+                    quantized_params_skipped += 1
+                    print(f"[WARNING] Skipping quantized ProbLoRA param: {full_param_name} (dtype: {p.dtype})")
+                    print(f"[WARNING] This ProbLoRA parameter is quantized and cannot have gradients!")
     
+    # Freeze all non-ProbLoRA parameters
+    for mod_name, mod in model.named_modules():
+        if not isinstance(mod, ProbLoRALayer):
+            for p_name, p in mod.named_parameters(recurse=False):
+                if p.is_floating_point():
+                    p.requires_grad_(False)
+    
+    # LEGACY APPROACH (commented out - kept for reference)
+    # lora_patterns = ['lora_a', 'lora_b', '.a.', '.b.', 'lora', 'adapter']
+    # 
+    # for name, param in model.named_parameters():
+    #     all_param_names.append(name)
+    #     # More comprehensive LoRA parameter detection
+    #     is_lora = any(pattern in name.lower() for pattern in lora_patterns)
+    #     
+    #     if is_lora:
+    #         # CRITICAL: Debug parameter details before setting gradients
+    #         if verbose:
+    #             print(f"[DEBUG] Found LoRA parameter: {name}")
+    #             print(f"[DEBUG]   Shape: {param.shape}")
+    #             print(f"[DEBUG]   Dtype: {param.dtype}")
+    #             print(f"[DEBUG]   Is floating point: {param.dtype.is_floating_point}")
+    #         
+    #         # CRITICAL: Only set gradients on floating-point parameters
+    #         if param.dtype.is_floating_point:
+    #             param.requires_grad = True
+    #             trainable_count += 1
+    #             if verbose:
+    #                 print(f"[DEBUG] ✅ Trainable LoRA param: {name} (shape: {param.shape}, dtype: {param.dtype})")
+    #         else:
+    #             quantized_params_skipped += 1
+    #             print(f"[WARNING] Skipping quantized LoRA param: {name} (dtype: {param.dtype})")
+    #             print(f"[WARNING] This LoRA parameter is quantized and cannot have gradients!")
+    #     else:
+    #         # Never touch quantized base weights - only set requires_grad on floating point
+    #         if param.dtype.is_floating_point:
+    #             param.requires_grad = False
+    
+    # If no ProbLoRA parameters found, provide detailed debugging
     if trainable_count == 0:
-        print(f"\n[CRITICAL ERROR] No trainable LoRA parameters found!")
+        print("[ERROR] No ProbLoRA parameters found! Debugging information:")
+        
+        # Count total ProbLoRALayer modules
+        problora_modules = []
+        for mod_name, mod in model.named_modules():
+            if isinstance(mod, ProbLoRALayer):
+                problora_modules.append(mod_name)
+        
+        print(f"[DEBUG] ProbLoRALayer modules found: {len(problora_modules)}")
+        if problora_modules and verbose:
+            for i, mod_name in enumerate(problora_modules[:10]):  # Show first 10
+                print(f"[DEBUG]   Module {i+1}: {mod_name}")
+            if len(problora_modules) > 10:
+                print(f"[DEBUG]   ... and {len(problora_modules) - 10} more modules")
+        
+        if len(problora_modules) == 0:
+            print("[ERROR] No ProbLoRALayer modules found in the model!")
+            print("[SOLUTION] Check that inject_problora_llama() was called successfully")
+        else:
+            print(f"[ERROR] Found {len(problora_modules)} ProbLoRALayer modules but no trainable parameters!")
+            print("[SOLUTION] Check for quantization issues or parameter dtype problems")
+        
+        if verbose and all_param_names:
+            print(f"\n[DEBUG] Sample of all model parameters (first 20):")
+            for i, name in enumerate(all_param_names[:20]):
+                print(f"[DEBUG]   Parameter {i+1}: {name}")
+            if len(all_param_names) > 20:
+                print(f"[DEBUG]   ... and {len(all_param_names) - 20} more parameters")
+        
         print(f"[INFO] Total parameters analyzed: {len(all_param_names)}")
         print(f"[INFO] Quantized parameters skipped: {quantized_params_skipped}")
         
         if quantized_params_skipped > 0:
-            print(f"[DIAGNOSIS] All LoRA parameters appear to be quantized.")
+            print(f"[DIAGNOSIS] All ProbLoRA parameters appear to be quantized.")
             print(f"[SOLUTION] Consider one of the following:")
             print(f"           1. Set load_in_4bit: false in config to disable quantization")
             print(f"           2. Use different LoRA injection that preserves floating-point parameters")
             print(f"           3. Check if ProbLoRA injection is compatible with quantization")
             print(f"[CONFIG] Current quantization setting: load_in_4bit = {config['load_in_4bit']}")
         
-        raise RuntimeError("No trainable LoRA parameters found! Check ProbLoRA injection and parameter naming.")
+        raise RuntimeError("No trainable ProbLoRA parameters found! Check ProbLoRA injection and parameter types.")
     
     trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
     total_params = sum(p.numel() for p in model.parameters())
@@ -352,20 +385,20 @@ def create_trainer(model, tokenizer, train_ds, val_ds, config, output_dir, tb_lo
     
     # Post-creation validation - ensure trainer uses the same tokenizer
     if hasattr(trainer, 'tokenizer') and trainer.tokenizer is not tokenizer:
-        print(f"[TOKENIZER] ⚠️  WARNING: Trainer tokenizer differs from input tokenizer!")
+        print(f"[TOKENIZER] WARNING: Trainer tokenizer differs from input tokenizer!")
         print(f"[TOKENIZER]   Input tokenizer PAD ID: {tokenizer.pad_token_id}")
         print(f"[TOKENIZER]   Trainer tokenizer PAD ID: {trainer.tokenizer.pad_token_id}")
     else:
-        print(f"[TOKENIZER] ✅ Trainer tokenizer consistency verified")
+        print(f"[TOKENIZER] Trainer tokenizer consistency verified")
     
     # Validate data collator tokenizer consistency
     if hasattr(trainer, 'data_collator') and hasattr(trainer.data_collator, 'tokenizer'):
         if trainer.data_collator.tokenizer is not tokenizer:
-            print(f"[TOKENIZER] ⚠️  WARNING: DataCollator tokenizer differs from input tokenizer!")
+            print(f"[TOKENIZER] WARNING: DataCollator tokenizer differs from input tokenizer!")
             print(f"[TOKENIZER]   Input tokenizer PAD ID: {tokenizer.pad_token_id}")
             print(f"[TOKENIZER]   DataCollator tokenizer PAD ID: {trainer.data_collator.tokenizer.pad_token_id}")
         else:
-            print(f"[TOKENIZER] ✅ DataCollator tokenizer consistency verified")
+            print(f"[TOKENIZER] DataCollator tokenizer consistency verified")
     
     return trainer
 def main():
@@ -430,9 +463,9 @@ def main():
         print(f"[TOKENIZER]   PAD token ID: {tokenizer.pad_token_id}")
         print(f"[TOKENIZER]   EOS token ID: {tokenizer.eos_token_id}")
         if tokenizer.pad_token_id != tokenizer.eos_token_id:
-            print(f"[TOKENIZER] ⚠️  WARNING: PAD and EOS token IDs don't match after dataset loading!")
+            print(f"[TOKENIZER] WARNING: PAD and EOS token IDs don't match after dataset loading!")
         else:
-            print(f"[TOKENIZER] ✅ PAD and EOS alignment maintained: {tokenizer.pad_token_id}")
+            print(f"[TOKENIZER] PAD and EOS alignment maintained: {tokenizer.pad_token_id}")
         
         print(f"[INFO] Training samples: {len(train_ds) if train_ds else 0}")
         print(f"[INFO] Validation samples: {len(val_ds) if val_ds else 0}")
@@ -490,9 +523,9 @@ def main():
         trainer.data_collator.tokenizer.pad_token_id
     ]
     if len(set(all_pad_ids)) == 1:
-        print(f"[TOKENIZER] ✅ All components use consistent PAD token ID: {all_pad_ids[0]}")
+        print(f"[TOKENIZER] All components use consistent PAD token ID: {all_pad_ids[0]}")
     else:
-        print(f"[TOKENIZER] ❌ ERROR: Inconsistent PAD token IDs found: {all_pad_ids}")
+        print(f"[TOKENIZER] ERROR: Inconsistent PAD token IDs found: {all_pad_ids}")
         raise ValueError("Tokenizer PAD token ID mismatch detected - this will cause training issues!")
     
     # Training with ARD
@@ -558,9 +591,9 @@ def main():
             print(f"       - uncertainty/nll: Negative Log-Likelihood after each epoch")
         
         print("\n" + "=" * 80)
-        print("✅ ARD-LoRA training with Bayesian-PEFT datasets completed successfully!")
-        print(f"📁 Cached data available at: {cache_root}")
-        print(f"📊 Model and logs saved to: {output_dir}")
+        print("ARD-LoRA training with Bayesian-PEFT datasets completed successfully!")
+        print(f"Cached data available at: {cache_root}")
+        print(f"Model and logs saved to: {output_dir}")
         print("=" * 80)
         
     except Exception as e:

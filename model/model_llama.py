@@ -21,7 +21,7 @@ class ProbLoRALayer(nn.Module):
     def __init__(self, base_proj: nn.Linear, rank, num_tokens, ard_prior_samples, scaling, 
                  logvar_clamp_min, logvar_clamp_max, 
                  beta_logvar_clamp_min, beta_logvar_clamp_max,
-                 sample_clamp_min, sample_clamp_max, deterministic=True, enable_clamps=False):
+                 sample_clamp_min, sample_clamp_max, deterministic=True, enable_clamps=False, lora_alpha=None):
         super().__init__()
 
         self.base_proj = base_proj
@@ -29,7 +29,15 @@ class ProbLoRALayer(nn.Module):
         self.rank = rank
         self.num_tokens = num_tokens
         self.ard_prior_samples = ard_prior_samples
-        self.scaling = scaling
+        
+        # Compute LoRA scaling: use lora_alpha/rank if provided, otherwise use scaling parameter
+        if lora_alpha is not None:
+            self.scaling = lora_alpha / rank
+            print(f"[INFO] Using standard LoRA scaling: α/r = {lora_alpha}/{rank} = {self.scaling:.3f}")
+        else:
+            self.scaling = scaling
+            print(f"[INFO] Using manual scaling: {self.scaling}")
+            
         self.deterministic = deterministic  # Flag for deterministic vs probabilistic mode
         self.enable_clamps = enable_clamps  # Flag to enable/disable numerical stability clamps
         
@@ -48,8 +56,7 @@ class ProbLoRALayer(nn.Module):
             # Deterministic LoRA: Only create mean parameters (mu_A and B)
             print(f"[INFO] Creating deterministic LoRA layer (rank={rank})")
             mu_A_tensor = torch.empty(rank, self.in_features)
-            bound = math.sqrt(6.0 / self.in_features)
-            nn.init.uniform_(mu_A_tensor, -bound, bound)   # BLoB-style for μ
+            nn.init.normal_(mu_A_tensor, mean=0.0, std=0.02) # LoRA-default
             self.mu_A = nn.Parameter(mu_A_tensor)
             # No logvar_A or sigma parameters created
         else:
@@ -90,12 +97,12 @@ class ProbLoRALayer(nn.Module):
                 mu_A = self.mu_A  # Only mu_A exists, no logvar_A
                 B_mat = self.B  # FP32 master
 
-                # variance mask (supports hard bool or soft 0..1)
-                mask_vec = getattr(self, "variance_mask", None)
-                if mask_vec is not None:
-                    mv = mask_vec.to(x32.device, dtype=torch.float32)
-                    mu_A = mu_A * mv.unsqueeze(1)
-                    B_mat = B_mat * mv.unsqueeze(0)
+                # variance mask (supports hard bool or soft 0..1) - DISABLED
+                # mask_vec = getattr(self, "variance_mask", None)
+                # if mask_vec is not None:
+                #     mv = mask_vec.to(x32.device, dtype=torch.float32)
+                #     mu_A = mu_A * mv.unsqueeze(1)
+                #     B_mat = B_mat * mv.unsqueeze(0)
 
                 BS = x32.shape[0] * x32.shape[1]
                 x_flat = x32.reshape(BS, x32.shape[-1])
@@ -117,13 +124,13 @@ class ProbLoRALayer(nn.Module):
 
                 B_mat = self.B  # FP32 master
 
-                # variance mask (supports hard bool or soft 0..1)
-                mask_vec = getattr(self, "variance_mask", None)
-                if mask_vec is not None:
-                    mv = mask_vec.to(x32.device, dtype=torch.float32)
-                    mu_A = mu_A * mv.unsqueeze(1)
-                    logvar_A = logvar_A * mv.unsqueeze(1)
-                    B_mat = B_mat * mv.unsqueeze(0)
+                # variance mask (supports hard bool or soft 0..1) - DISABLED
+                # mask_vec = getattr(self, "variance_mask", None)
+                # if mask_vec is not None:
+                #     mv = mask_vec.to(x32.device, dtype=torch.float32)
+                #     mu_A = mu_A * mv.unsqueeze(1)
+                #     logvar_A = logvar_A * mv.unsqueeze(1)
+                #     B_mat = B_mat * mv.unsqueeze(0)
 
                 BS = x32.shape[0] * x32.shape[1]
                 x_flat = x32.reshape(BS, x32.shape[-1])
@@ -221,13 +228,14 @@ class ProbLoRALayer(nn.Module):
             mu_A, logvar_A_param = torch.split(self.A, self.rank, dim=0)
             logvar_A = logvar_A_param
 
-            mv = getattr(self, "variance_mask", None)
-            if mv is not None:
-                mvf = mv.to(x32.device, dtype=torch.float32)
-                if mvf.sum() == 0:
-                    return torch.tensor(0.0, device=x.device, dtype=x.dtype, requires_grad=True)
-                mu_A = mu_A * mvf.unsqueeze(1)
-                logvar_A = logvar_A * mvf.unsqueeze(1)
+            # variance mask handling - DISABLED
+            # mv = getattr(self, "variance_mask", None)
+            # if mv is not None:
+            #     mvf = mv.to(x32.device, dtype=torch.float32)
+            #     if mvf.sum() == 0:
+            #         return torch.tensor(0.0, device=x.device, dtype=x.dtype, requires_grad=True)
+            #     mu_A = mu_A * mvf.unsqueeze(1)
+            #     logvar_A = logvar_A * mvf.unsqueeze(1)
 
             BS = x32.shape[0] * x32.shape[1]
             x_flat = x32.reshape(BS, x32.shape[-1])
@@ -241,9 +249,10 @@ class ProbLoRALayer(nn.Module):
             var = torch.exp(logvar)
             tvar = (self.est_var.to(x32.device) + 1e-6).unsqueeze(0)
 
-            if mv is not None:
-                idx = torch.where(mv.to(x32.device) > 0)[0]
-                mu, logvar, var, tvar = mu[:, idx], logvar[:, idx], var[:, idx], tvar[:, idx]
+            # variance mask filtering - DISABLED
+            # if mv is not None:
+            #     idx = torch.where(mv.to(x32.device) > 0)[0]
+            #     mu, logvar, var, tvar = mu[:, idx], logvar[:, idx], var[:, idx], tvar[:, idx]
 
             kld = 0.5 * (torch.log(tvar) - logvar + (var + mu.pow(2)) / tvar - 1.0)
             out = kld.mean()
@@ -324,20 +333,21 @@ class ProbLoRALayer(nn.Module):
             # Deterministic mode: Return mean output (no sampling)
             mu_A = self.mu_A.to(dtype=x.dtype, device=x.device)
             
-            # Apply variance mask if it exists
-            if hasattr(self, 'variance_mask') and self.variance_mask is not None:
-                mask = self.variance_mask.unsqueeze(1).to(dtype=x.dtype, device=x.device)  # Shape: [rank, 1]
-                mu_A_masked = mu_A * mask
-            else:
-                mu_A_masked = mu_A
+            # Apply variance mask if it exists - DISABLED
+            # if hasattr(self, 'variance_mask') and self.variance_mask is not None:
+            #     mask = self.variance_mask.unsqueeze(1).to(dtype=x.dtype, device=x.device)  # Shape: [rank, 1]
+            #     mu_A_masked = mu_A * mask
+            # else:
+            #     mu_A_masked = mu_A
+            mu_A_masked = mu_A
                 
             x_flat = x.view(-1, x.size(-1))
             mu = (mu_A_masked @ x_flat.T).T      # [B*S, rank]
             
-            # Apply latent masking
-            if hasattr(self, 'variance_mask') and self.variance_mask is not None:
-                mask_latent = self.variance_mask.unsqueeze(0).to(dtype=x.dtype, device=x.device)  # [1, rank]
-                mu = mu * mask_latent
+            # Apply latent masking - DISABLED
+            # if hasattr(self, 'variance_mask') and self.variance_mask is not None:
+            #     mask_latent = self.variance_mask.unsqueeze(0).to(dtype=x.dtype, device=x.device)  # [1, rank]
+            #     mu = mu * mask_latent
             
             # For deterministic mode, return mean as "samples"
             samples_float = mu.float().cpu().detach()
@@ -350,25 +360,27 @@ class ProbLoRALayer(nn.Module):
         mu_A = mu_A.to(dtype=x.dtype, device=x.device)
         logvar_A = logvar_A.to(dtype=x.dtype, device=x.device)
         
-        # Apply variance mask if it exists
-        if hasattr(self, 'variance_mask') and self.variance_mask is not None:
-            # Mask the latent dimensions (output dims of A matrices)
-            mask = self.variance_mask.unsqueeze(1).to(dtype=x.dtype, device=x.device)  # Shape: [rank, 1]
-            mu_A_masked = mu_A * mask
-            logvar_A_masked = logvar_A * mask
-        else:
-            mu_A_masked = mu_A
-            logvar_A_masked = logvar_A
+        # Apply variance mask if it exists - DISABLED
+        # if hasattr(self, 'variance_mask') and self.variance_mask is not None:
+        #     # Mask the latent dimensions (output dims of A matrices)
+        #     mask = self.variance_mask.unsqueeze(1).to(dtype=x.dtype, device=x.device)  # Shape: [rank, 1]
+        #     mu_A_masked = mu_A * mask
+        #     logvar_A_masked = logvar_A * mask
+        # else:
+        #     mu_A_masked = mu_A
+        #     logvar_A_masked = logvar_A
+        mu_A_masked = mu_A
+        logvar_A_masked = logvar_A
             
         x_flat = x.view(-1, x.size(-1))
         mu = (mu_A_masked @ x_flat.T).T      # [B*S, rank]
         logvar = (logvar_A_masked @ x_flat.T).T  # [B*S, rank]
         
-        # Apply additional masking to latent outputs
-        if hasattr(self, 'variance_mask') and self.variance_mask is not None:
-            mask_latent = self.variance_mask.unsqueeze(0).to(dtype=x.dtype, device=x.device)  # [1, rank]
-            mu = mu * mask_latent
-            logvar = logvar * mask_latent
+        # Apply additional masking to latent outputs - DISABLED
+        # if hasattr(self, 'variance_mask') and self.variance_mask is not None:
+        #     mask_latent = self.variance_mask.unsqueeze(0).to(dtype=x.dtype, device=x.device)  # [1, rank]
+        #     mu = mu * mask_latent
+        #     logvar = logvar * mask_latent
         
         # NUMERICAL STABILITY: Clamp logvar to prevent extreme values (only if enabled)
         if self.enable_clamps:
@@ -398,7 +410,7 @@ def inject_problora_llama(model, rank, scaling, num_tokens, ard_prior_samples,
                          logvar_clamp_min, logvar_clamp_max,
                          beta_logvar_clamp_min, beta_logvar_clamp_max,
                          sample_clamp_min, sample_clamp_max, attn_implementation,
-                         target_attention_layers=None, deterministic=False, enable_clamps=True):
+                         target_attention_layers=None, deterministic=False, enable_clamps=True, lora_alpha=None):
     """
     Inject ProbLoRA into LLaMA2-7B model.
     Targets configurable attention projections based on YAML configuration.
@@ -407,10 +419,20 @@ def inject_problora_llama(model, rank, scaling, num_tokens, ard_prior_samples,
         target_attention_layers: List of attention projection names to inject (from YAML config - REQUIRED)
         deterministic: If True, creates deterministic LoRA (no variance parameters or KL loss)
         enable_clamps: If True, applies numerical stability clamps (default: True)
+        lora_alpha: LoRA alpha parameter for computing scaling = alpha/rank (standard LoRA)
     """
+    # Compute effective scaling
+    if lora_alpha is not None:
+        effective_scaling = lora_alpha / rank
+        scaling_info = f"α/r = {lora_alpha}/{rank} = {effective_scaling:.3f}"
+    else:
+        effective_scaling = scaling
+        scaling_info = f"manual = {scaling}"
+        
     mode_str = "deterministic LoRA" if deterministic else "probabilistic LoRA (ProbLoRA)"
     clamp_str = "with clamps" if enable_clamps else "without clamps"
     print(f"[INFO] Injecting {mode_str} into LLaMA2 model with rank={rank} ({clamp_str})")
+    print(f"[INFO] LoRA scaling: {scaling_info}")
     
     # Validate required parameters
     if target_attention_layers is None:
@@ -441,7 +463,7 @@ def inject_problora_llama(model, rank, scaling, num_tokens, ard_prior_samples,
                             logvar_clamp_min, logvar_clamp_max,
                             beta_logvar_clamp_min, beta_logvar_clamp_max,
                             sample_clamp_min, sample_clamp_max, deterministic=deterministic, 
-                            enable_clamps=enable_clamps))
+                            enable_clamps=enable_clamps, lora_alpha=lora_alpha))
                         layers_modified += 1
     
     print(f"[INFO] Successfully injected {mode_str} into {layers_modified} linear layers")
