@@ -716,7 +716,7 @@ class ParameterAnalyzer:
                 attention_module_analysis['v_proj']['total_params']
             ])
             
-            # Verify your calculation: 32 layers × 3 attention types = 96 parameters
+            # Verify your calculation: 32 layers × 3 attention types = 192 parameters
             expected_attention_params = 32 * 3 * 2  # 32 layers × (q_proj, k_proj, v_proj)
             actual_attention_params = sum(stats['total_params'] for name, stats in attention_module_analysis.items() 
                                         if name in ['q_proj', 'k_proj', 'v_proj'])
@@ -759,6 +759,117 @@ class ParameterAnalyzer:
             trainer.optimizer.zero_grad(set_to_none=True)
             
             self.log(f"     Optimizer step completed")
+            
+            # SECOND BACKWARD PASS: Test gradient flow after B matrices are no longer zero
+            self.log(f"\n   SECOND BACKWARD PASS ANALYSIS (After B ≠ 0):")
+            self.log(f"     Testing hypothesis: Now that B matrices are non-zero, mu_A should receive gradients")
+            
+            # Clear any existing gradients
+            self.model.zero_grad(set_to_none=True)
+            
+            # Second forward pass with same input
+            outputs_2 = self.model(input_ids=input_ids, attention_mask=attention_mask, labels=input_ids)
+            loss_2 = outputs_2.loss
+            
+            self.log(f"     Second forward pass loss: {loss_2.item():.6f}")
+            
+            # Second backward pass
+            loss_2.backward()
+            
+            self.log(f"     Second backward pass completed")
+            
+            # Analyze gradient distribution for second pass
+            trainable_with_grads_2 = 0
+            trainable_without_grads_2 = 0
+            
+            mu_A_with_grads_2 = 0
+            mu_A_without_grads_2 = 0
+            B_with_grads_2 = 0
+            B_without_grads_2 = 0
+            
+            for name, param in self.model.named_parameters():
+                if param.requires_grad:
+                    has_gradient = param.grad is not None and param.grad.abs().sum() > 0 if param.grad is not None else False
+                    
+                    if has_gradient:
+                        trainable_with_grads_2 += 1
+                    else:
+                        trainable_without_grads_2 += 1
+                    
+                    # Track mu_A and B specifically
+                    if '.mu_A' in name:
+                        if has_gradient:
+                            mu_A_with_grads_2 += 1
+                        else:
+                            mu_A_without_grads_2 += 1
+                            self.log(f"       mu_A still without gradients: {name}")
+                    elif '.B' in name and any(attn in name for attn in ['q_proj', 'k_proj', 'v_proj']):
+                        if has_gradient:
+                            B_with_grads_2 += 1
+                        else:
+                            B_without_grads_2 += 1
+                            self.log(f"       B without gradients: {name}")
+            
+            self.log(f"     Second pass - Trainable with gradients: {trainable_with_grads_2}")
+            self.log(f"     Second pass - mu_A with gradients: {mu_A_with_grads_2}/{mu_A_with_grads_2 + mu_A_without_grads_2}")
+            self.log(f"     Second pass - B with gradients: {B_with_grads_2}/{B_with_grads_2 + B_without_grads_2}")
+            
+            # Compare first vs second pass
+            mu_A_improvement = mu_A_with_grads_2 - matrix_grad_analysis['mu_A']['with_grads']
+            B_change = B_with_grads_2 - matrix_grad_analysis['B']['with_grads']
+            
+            self.log(f"\n     GRADIENT FLOW IMPROVEMENT ANALYSIS:")
+            self.log(f"     mu_A gradients: {matrix_grad_analysis['mu_A']['with_grads']} → {mu_A_with_grads_2} (Δ+{mu_A_improvement})")
+            self.log(f"     B gradients: {matrix_grad_analysis['B']['with_grads']} → {B_with_grads_2} (Δ{B_change:+d})")
+            
+            if mu_A_improvement > 0:
+                self.log(f"     ✓ HYPOTHESIS CONFIRMED: mu_A now receives gradients after B ≠ 0!")
+                self.log(f"     ✓ This validates the mathematical analysis:")
+                self.log(f"       - Step 0: ΔW = mu_A @ B^T = mu_A @ 0 = 0 → ∂L/∂mu_A = 0")
+                self.log(f"       - Step 1+: ΔW = mu_A @ B^T ≠ 0 → ∂L/∂mu_A ≠ 0")
+            elif mu_A_with_grads_2 == 0:
+                self.log(f"     ✗ HYPOTHESIS NOT CONFIRMED: mu_A still receives no gradients")
+                self.log(f"     This suggests a deeper issue with gradient flow or parameter setup")
+            else:
+                self.log(f"     ⚠ PARTIAL CONFIRMATION: Some mu_A parameters now have gradients")
+            
+            # Check if B matrices are indeed non-zero after optimizer step
+            self.log(f"\n     B MATRIX NON-ZERO VERIFICATION:")
+            B_nonzero_count = 0
+            B_total_count = 0
+            B_max_abs_value = 0.0
+            
+            for name, param in self.model.named_parameters():
+                if '.B' in name and any(attn in name for attn in ['q_proj', 'k_proj', 'v_proj']):
+                    B_total_count += 1
+                    max_abs_val = param.abs().max().item()
+                    B_max_abs_value = max(B_max_abs_value, max_abs_val)
+                    
+                    if max_abs_val > 1e-10:  # Non-zero threshold
+                        B_nonzero_count += 1
+                    else:
+                        self.log(f"       B matrix still zero: {name} (max |val|: {max_abs_val:.2e})")
+            
+            self.log(f"     B matrices that are non-zero: {B_nonzero_count}/{B_total_count}")
+            self.log(f"     Maximum |B| value across all B matrices: {B_max_abs_value:.6e}")
+            
+            if B_nonzero_count == 0:
+                self.log(f"     ⚠ WARNING: All B matrices are still zero after optimizer step!")
+                self.log(f"     This could explain why mu_A doesn't receive gradients in second pass")
+            elif B_nonzero_count < B_total_count:
+                self.log(f"     ⚠ PARTIAL: Only {B_nonzero_count}/{B_total_count} B matrices are non-zero")
+            else:
+                self.log(f"     ✓ GOOD: All B matrices are now non-zero")
+            
+            # Store second pass results for final summary
+            second_pass_results = {
+                'mu_A_with_grads': mu_A_with_grads_2,
+                'B_with_grads': B_with_grads_2,
+                'mu_A_improvement': mu_A_improvement,
+                'B_nonzero_count': B_nonzero_count,
+                'B_total_count': B_total_count,
+                'hypothesis_confirmed': mu_A_improvement > 0
+            }
             
             # Measure parameter changes
             total_param_change = 0.0
@@ -814,13 +925,31 @@ class ParameterAnalyzer:
             else:
                 self.log(f"     ✗ Parameter updates: INCORRECT")
             
-            overall_pass = gradient_flow_correct and parameter_updates_correct
+            # Include second pass analysis in summary
+            if 'second_pass_results' in locals():
+                self.log(f"\n   MATHEMATICAL HYPOTHESIS VALIDATION:")
+                if second_pass_results['hypothesis_confirmed']:
+                    self.log(f"     ✓ HYPOTHESIS CONFIRMED: mu_A gradients appear after B ≠ 0")
+                    self.log(f"       - Step 0: {matrix_grad_analysis['mu_A']['with_grads']} mu_A params had gradients")
+                    self.log(f"       - Step 1: {second_pass_results['mu_A_with_grads']} mu_A params have gradients")
+                    self.log(f"       - Improvement: +{second_pass_results['mu_A_improvement']} mu_A params now receive gradients")
+                    overall_pass = gradient_flow_correct and parameter_updates_correct and True
+                else:
+                    self.log(f"     ✗ HYPOTHESIS NOT CONFIRMED: mu_A gradients still missing")
+                    self.log(f"       - This suggests issues beyond the B=0 initialization problem")
+                    overall_pass = False
+                
+                self.log(f"     B matrix status: {second_pass_results['B_nonzero_count']}/{second_pass_results['B_total_count']} non-zero after optimizer step")
+            else:
+                overall_pass = gradient_flow_correct and parameter_updates_correct
+            
             if overall_pass:
                 self.log(f"     OVERALL: PASS - Perfect LoRA parameter handling!")
             else:
                 self.log(f"     OVERALL: FAIL - LoRA parameter handling has issues")
             
-            return {
+            # Prepare return results
+            results = {
                 'gradient_flow_correct': gradient_flow_correct,
                 'parameter_updates_correct': parameter_updates_correct,
                 'overall_pass': overall_pass,
@@ -829,6 +958,12 @@ class ParameterAnalyzer:
                 'total_param_change': total_param_change,
                 'params_that_changed': params_that_changed
             }
+            
+            # Add second pass results if available
+            if 'second_pass_results' in locals():
+                results['second_pass'] = second_pass_results
+            
+            return results
             
         except Exception as e:
             self.log(f"   ERROR during gradient flow validation: {e}")
@@ -1285,6 +1420,17 @@ def quick_analysis():
             print(f"  Frozen params with gradients: {gf_results['frozen_with_grads']}")
             print(f"  Parameters that updated: {gf_results['params_that_changed']}")
             print(f"  Total parameter change: {gf_results['total_param_change']:.3e}")
+            
+            # Check for second pass results
+            if 'second_pass' in gf_results:
+                sp_results = gf_results['second_pass']
+                print(f"\nSecond Pass Analysis (After B ≠ 0):")
+                print(f"  mu_A gradient improvement: +{sp_results['mu_A_improvement']}")
+                print(f"  B matrices non-zero: {sp_results['B_nonzero_count']}/{sp_results['B_total_count']}")
+                if sp_results['hypothesis_confirmed']:
+                    print(f"  ✓ Hypothesis confirmed: mu_A gradients appear after B becomes non-zero!")
+                else:
+                    print(f"  ✗ Hypothesis not confirmed: mu_A gradients still missing")
             
             if gf_results['overall_pass']:
                 print(f"  Result: PERFECT LoRA parameter handling!")
