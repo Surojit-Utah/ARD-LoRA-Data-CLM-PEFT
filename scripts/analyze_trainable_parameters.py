@@ -329,6 +329,11 @@ class ParameterAnalyzer:
         if trainer is not None:
             self.log(f"\n   TRAINER OPTIMIZER ANALYSIS:")
             try:
+                # Force optimizer creation if it doesn't exist
+                if trainer.optimizer is None:
+                    self.log(f"   Creating optimizer (trainer.optimizer was None)...")
+                    trainer.create_optimizer()
+                
                 trainer_optimizer = trainer.optimizer
                 
                 # Analyze optimizer parameters
