@@ -493,7 +493,7 @@ class ParameterAnalyzer:
             
             self.log(f"   Backward pass completed")
             
-            # Analyze gradient distribution
+            # Analyze gradient distribution with detailed breakdown
             trainable_with_grads = 0
             trainable_without_grads = 0
             frozen_with_grads = 0
@@ -502,15 +502,59 @@ class ParameterAnalyzer:
             trainable_grad_norm = 0.0
             frozen_grad_norm = 0.0
             
+            # Detailed LoRA matrix and attention module analysis
+            matrix_grad_analysis = {
+                'A': {'with_grads': 0, 'without_grads': 0, 'examples': []},
+                'mu_A': {'with_grads': 0, 'without_grads': 0, 'examples': []},
+                'B': {'with_grads': 0, 'without_grads': 0, 'examples': []},
+                'G': {'with_grads': 0, 'without_grads': 0, 'examples': []}
+            }
+            
+            attention_module_analysis = {
+                'q_proj': {'A': 0, 'mu_A': 0, 'B': 0, 'G': 0, 'total_with_grads': 0, 'total_params': 0},
+                'k_proj': {'A': 0, 'mu_A': 0, 'B': 0, 'G': 0, 'total_with_grads': 0, 'total_params': 0},
+                'v_proj': {'A': 0, 'mu_A': 0, 'B': 0, 'G': 0, 'total_with_grads': 0, 'total_params': 0},
+            }
+            
             for name, param in self.model.named_parameters():
+                has_gradient = param.grad is not None and param.grad.abs().sum() > 0 if param.grad is not None else False
+                
                 if param.requires_grad:
-                    if param.grad is not None and param.grad.abs().sum() > 0:
+                    if has_gradient:
                         trainable_with_grads += 1
                         trainable_grad_norm += param.grad.abs().sum().item()
                     else:
                         trainable_without_grads += 1
+                    
+                    # Analyze LoRA matrix types
+                    for matrix_type in ['A', 'mu_A', 'B', 'G']:
+                        if f'.{matrix_type}' in name:
+                            if has_gradient:
+                                matrix_grad_analysis[matrix_type]['with_grads'] += 1
+                                if len(matrix_grad_analysis[matrix_type]['examples']) < 3:
+                                    matrix_grad_analysis[matrix_type]['examples'].append(name)
+                            else:
+                                matrix_grad_analysis[matrix_type]['without_grads'] += 1
+                                if len(matrix_grad_analysis[matrix_type]['examples']) < 3:
+                                    matrix_grad_analysis[matrix_type]['examples'].append(f"{name} (no grad)")
+                            break
+                    
+                    # Analyze attention module types
+                    for attn_type in ['q_proj', 'k_proj', 'v_proj']:
+                        if f'.{attn_type}.' in name:
+                            attention_module_analysis[attn_type]['total_params'] += 1
+                            if has_gradient:
+                                attention_module_analysis[attn_type]['total_with_grads'] += 1
+                            
+                            # Track matrix type within attention module
+                            for matrix_type in ['A', 'mu_A', 'B', 'G']:
+                                if f'.{matrix_type}' in name:
+                                    if has_gradient:
+                                        attention_module_analysis[attn_type][matrix_type] += 1
+                                    break
+                            break
                 else:
-                    if param.grad is not None and param.grad.abs().sum() > 0:
+                    if has_gradient:
                         frozen_with_grads += 1
                         frozen_grad_norm += param.grad.abs().sum().item()
                     else:
@@ -523,6 +567,52 @@ class ParameterAnalyzer:
             self.log(f"     Frozen params without gradients: {frozen_without_grads}")
             self.log(f"     Total trainable gradient norm: {trainable_grad_norm:.6e}")
             self.log(f"     Total frozen gradient norm: {frozen_grad_norm:.6e}")
+            
+            # Detailed LoRA matrix analysis
+            self.log(f"\n   LORA MATRIX GRADIENT BREAKDOWN:")
+            for matrix_type, stats in matrix_grad_analysis.items():
+                total = stats['with_grads'] + stats['without_grads']
+                if total > 0:
+                    self.log(f"     {matrix_type} matrices: {stats['with_grads']}/{total} have gradients ({stats['with_grads']/total*100:.1f}%)")
+                    if stats['examples']:
+                        self.log(f"       Examples: {', '.join(stats['examples'][:2])}")
+            
+            # Attention module analysis
+            self.log(f"\n   ATTENTION MODULE GRADIENT BREAKDOWN:")
+            for attn_type, stats in attention_module_analysis.items():
+                if stats['total_params'] > 0:
+                    self.log(f"     {attn_type}: {stats['total_with_grads']}/{stats['total_params']} params have gradients")
+                    matrix_breakdown = []
+                    for matrix_type in ['A', 'mu_A', 'B', 'G']:
+                        if stats[matrix_type] > 0:
+                            matrix_breakdown.append(f"{matrix_type}:{stats[matrix_type]}")
+                    if matrix_breakdown:
+                        self.log(f"       Matrix breakdown: {', '.join(matrix_breakdown)}")
+            
+            # Calculate layer statistics
+            total_layers = max([
+                attention_module_analysis['q_proj']['total_params'],
+                attention_module_analysis['k_proj']['total_params'], 
+                attention_module_analysis['v_proj']['total_params']
+            ])
+            
+            # Verify your calculation: 32 layers × 3 attention types = 96 parameters
+            expected_attention_params = 32 * 3  # 32 layers × (q_proj, k_proj, v_proj)
+            actual_attention_params = sum(stats['total_params'] for name, stats in attention_module_analysis.items() 
+                                        if name in ['q_proj', 'k_proj', 'v_proj'])
+            
+            self.log(f"\n   USER'S CALCULATION VERIFICATION:")
+            self.log(f"     Expected attention parameters (32 layers × 3 types): {expected_attention_params}")
+            self.log(f"     Actual q/k/v parameters found: {actual_attention_params}")
+            self.log(f"     Parameters with gradients: {trainable_with_grads}")
+            self.log(f"     Your hypothesis: {'VERIFIED' if trainable_with_grads == expected_attention_params else 'NEEDS INVESTIGATION'}")
+            
+            if trainable_with_grads == expected_attention_params:
+                self.log(f"     Analysis: Either A or B matrices get gradients (not both simultaneously)")
+            elif trainable_with_grads == expected_attention_params * 2:
+                self.log(f"     Analysis: Both A and B matrices get gradients simultaneously")
+            else:
+                self.log(f"     Analysis: Gradient pattern differs from expected A/B distribution")
             
             # Validation checks
             if frozen_with_grads == 0:
