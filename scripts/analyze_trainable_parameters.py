@@ -569,17 +569,68 @@ def load_model_for_analysis(config_path: str, model_args: Dict[str, Any]) -> tor
         lora_alpha=model_args['lora_alpha']
     )
     
+    # Use EXACT same parameter handling as training script
+    print("Applying exact training script parameter handling...")
+    verbose = True  # Enable verbose output for analysis
+    
+    # Freeze base parameters and unfreeze LoRA parameters (EXACT COPY FROM TRAINING SCRIPT)
+    trainable_count = 0
+    all_param_names = []
+    quantized_params_skipped = 0
+    
+    # ProbLoRALayer detection
+    for mod_name, mod in model.named_modules():
+        if isinstance(mod, ProbLoRALayer):
+            if verbose:
+                print(f"[DEBUG] Found ProbLoRALayer module: {mod_name}")
+            
+            # Only parameters directly on this module (no recursion)
+            for p_name, p in mod.named_parameters(recurse=False):
+                full_param_name = f"{mod_name}.{p_name}" if mod_name else p_name
+                all_param_names.append(full_param_name)
+                
+                # CRITICAL: Debug parameter details before setting gradients
+                if verbose:
+                    print(f"[DEBUG] Found ProbLoRA parameter: {full_param_name}")
+                    print(f"[DEBUG]   Local name: {p_name}")
+                    print(f"[DEBUG]   Shape: {p.shape}")
+                    print(f"[DEBUG]   Dtype: {p.dtype}")
+                    print(f"[DEBUG]   Is floating point: {p.is_floating_point()}")
+                
+                # CRITICAL: Only set gradients on floating-point parameters
+                if p.is_floating_point():
+                    p.requires_grad_(True)
+                    trainable_count += 1
+                    if verbose:
+                        print(f"[DEBUG] Trainable ProbLoRA param: {full_param_name} (shape: {p.shape}, dtype: {p.dtype})")
+                else:
+                    quantized_params_skipped += 1
+                    print(f"[WARNING] Skipping quantized ProbLoRA param: {full_param_name} (dtype: {p.dtype})")
+                    print(f"[WARNING] This ProbLoRA parameter is quantized and cannot have gradients!")
+    
+    # Freeze all non-ProbLoRA parameters
+    for mod_name, mod in model.named_modules():
+        if not isinstance(mod, ProbLoRALayer):
+            for p_name, p in mod.named_parameters(recurse=False):
+                if p.is_floating_point():
+                    p.requires_grad_(False)
+    
     # Count parameters focusing only on trainable ones (ProbLoRA matrices)
     total_params = sum(p.numel() for p in model.parameters())
     trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
     problora_params = sum(p.numel() for name, p in model.named_parameters() 
                          if p.requires_grad and any(matrix in name for matrix in ['.A', '.B', '.G', '.mu_A']))
     
-    print(f"Parameter analysis focus: ProbLoRA layers only")
+    print(f"\nParameter analysis focus: ProbLoRA layers only")
     print(f"  Total model parameters: {total_params:,}")
     print(f"  Total trainable parameters: {trainable_params:,}")
     print(f"  ProbLoRA trainable parameters: {problora_params:,}")
-    print(f"  ProbLoRA percentage of trainable: {100*problora_params/trainable_params:.1f}%")
+    print(f"  Trainable parameter groups: {trainable_count}")
+    print(f"  Quantized parameters skipped: {quantized_params_skipped}")
+    
+    if trainable_params > 0:
+        print(f"  ProbLoRA percentage of trainable: {100*problora_params/trainable_params:.1f}%")
+        print(f"  Trainable percentage of total: {100*trainable_params/total_params:.4f}%")
     
     # Verify that only ProbLoRA parameters are trainable (as expected)
     non_problora_trainable = [name for name, p in model.named_parameters() 
@@ -594,7 +645,20 @@ def load_model_for_analysis(config_path: str, model_args: Dict[str, Any]) -> tor
     else:
         print(f"  VERIFIED: Only ProbLoRA parameters (A, B, G, mu_A matrices) are trainable")
     
-    print("Model loaded - analysis will focus on ProbLoRA layers only")
+    # Final verification using training script method
+    if trainable_count == 0:
+        print("\n[ERROR] No ProbLoRA parameters found! Debugging information:")
+        problora_modules = []
+        for mod_name, mod in model.named_modules():
+            if isinstance(mod, ProbLoRALayer):
+                problora_modules.append(mod_name)
+        print(f"[DEBUG] ProbLoRALayer modules found: {len(problora_modules)}")
+        if quantized_params_skipped > 0:
+            print(f"[DIAGNOSIS] All ProbLoRA parameters appear to be quantized.")
+            print(f"[SOLUTION] Consider disabling quantization: load_in_4bit: false")
+        raise RuntimeError("No trainable ProbLoRA parameters found! Check ProbLoRA injection and parameter types.")
+    
+    print("Model loaded - analysis will use EXACT training script parameter handling")
     return model
 
 
