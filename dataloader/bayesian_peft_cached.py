@@ -92,7 +92,7 @@ class BayesianPEFTDataManager:
         
         # Check if we have both train and validation cached - if so, use them directly
         if "train" in cached_data and "validation" in cached_data:
-            print(f"[CACHE] ✅ Using existing cached train/validation split (train={len(cached_data['train'])}, val={len(cached_data['validation'])})")
+            print(f"[CACHE] Using existing cached train/validation split (train={len(cached_data['train'])}, val={len(cached_data['validation'])})")
             return cached_data
         
         # Only create validation split if we ONLY have training data cached
@@ -301,7 +301,7 @@ class BayesianPEFTDataManager:
         Downloads once, then uses cache for subsequent calls.
         """
         if self.is_cached(dataset_name):
-            print(f"[CACHE] ✅ Loading {dataset_name} from cache (no download needed)...")
+            print(f"[CACHE] Loading {dataset_name} from cache (no download needed)...")
             return self.load_cached_dataset(dataset_name)
         else:
             print(f"[DOWNLOAD] ⬇️ {dataset_name} not cached, downloading and caching...")
@@ -365,6 +365,13 @@ class ARDLoRADatasetWrapper:
             arc_easy_patterns = self._get_answer_choice_patterns()
         
         def tokenize_and_mask(batch):
+            # Debug: Print batch keys for ARC-Easy
+            if self.dataset_name.lower() == "arc_easy":
+                print(f"[DEBUG] Batch keys: {list(batch.keys())}")
+                if len(batch.get("full_text", [])) > 0:
+                    print(f"[DEBUG] First sample full_text: {batch['full_text'][0][:100]}...")
+                    print(f"[DEBUG] First sample label: {batch.get('label', ['N/A'])[0]}")
+            
             # Handle different input formats
             if "full_text" in batch:
                 full_texts = batch["full_text"]
@@ -409,9 +416,16 @@ class ARDLoRADatasetWrapper:
             # Create labels with dataset-specific masking
             labels = []
             for i, (full_ids, prompt_ids, label_idx) in enumerate(zip(full_tok["input_ids"], prompt_tok["input_ids"], labels_meta)):
+                # Debug ARC-Easy masking
+                if self.dataset_name.lower() == "arc_easy" and i == 0:  # Only debug first sample
+                    print(f"[DEBUG] ARC-Easy masking - label_idx: {label_idx}, patterns available: {arc_easy_patterns is not None}")
+                
                 if self.dataset_name.lower() == "arc_easy" and arc_easy_patterns:
                     # ARC-Easy: Apply answer-focused masking
                     label = self._create_arc_easy_labels(full_ids, label_idx, arc_easy_patterns)
+                    if i == 0:  # Debug first sample
+                        unmasked_count = sum(1 for x in label if x != -100)
+                        print(f"[DEBUG] ARC-Easy masking result - unmasked tokens: {unmasked_count}")
                 else:
                     # Default: Apply prompt masking
                     label = full_ids.copy()
@@ -460,49 +474,68 @@ class ARDLoRADatasetWrapper:
     def _find_answer_span_backward(self, input_ids, choice_patterns, window=64):
         """Search for answer tokens from the end of sequence (backward search)"""
         N = len(input_ids)
-        start_search = max(0, N - window)
         
-        # Search backwards to prefer the final answer occurrence
-        for i in range(N - 1, start_search - 1, -1):
+        # Find actual end of content (before padding)
+        actual_end = N
+        for i in range(N - 1, -1, -1):
+            if input_ids[i] != self.tokenizer.pad_token_id:
+                actual_end = i + 1
+                break
+        
+        start_search = max(0, actual_end - window)
+        
+        # Search backwards from actual content end to prefer the final answer occurrence
+        for i in range(actual_end - 1, start_search - 1, -1):
             for pattern in choice_patterns:
                 pattern_len = len(pattern)
-                if i - pattern_len + 1 >= 0 and input_ids[i - pattern_len + 1 : i + 1] == pattern:
-                    # Return inclusive start, exclusive end
-                    return i - pattern_len + 1, i + 1
+                if i - pattern_len + 1 >= 0:
+                    candidate = input_ids[i - pattern_len + 1 : i + 1]
+                    if candidate == pattern:
+                        return i - pattern_len + 1, i + 1
+        
         return None
     
     def _create_arc_easy_labels(self, input_ids, label_idx, patterns):
         """Create labels for ARC-Easy with answer-focused masking"""
+        # Debug
+        debug = False  # Minimal debug output
+        if debug:
+            choice_map = {0: "A", 1: "B", 2: "C", 3: "D"}
+            target_choice = choice_map.get(label_idx, "A")
+            print(f"[DEBUG] Creating labels for label_idx={label_idx} -> choice='{target_choice}'")
+            print(f"[DEBUG] Input sequence length: {len(input_ids)}")
+            
         # Initialize all labels as masked
         labels = [-100] * len(input_ids)
-        
+
         # Map label index to choice letter (0->A, 1->B, 2->C, 3->D)
         choice_map = {0: "A", 1: "B", 2: "C", 3: "D"}
         target_choice = choice_map.get(label_idx, "A")  # Default to A if invalid
-        
+
         # Search for answer span using backward search
         choice_patterns = patterns.get(target_choice, [])
-        answer_span = self._find_answer_span_backward(input_ids, choice_patterns, window=64)
         
+        answer_span = self._find_answer_span_backward(input_ids, choice_patterns, window=64)
+
         if answer_span is not None:
             start_idx, end_idx = answer_span
             # Unmask only the answer tokens
             labels[start_idx:end_idx] = input_ids[start_idx:end_idx]
         else:
+            if debug:
+                print(f"[DEBUG] No answer span found, using fallback prompt masking")
             # Fallback: Use prompt masking if answer not found
             # This ensures training doesn't break for edge cases
             # Find prompt length estimate by searching for common prompt end patterns
             prompt_end_patterns = ["The answer is", "Answer:", "The correct answer is"]
             prompt_len = len(input_ids) // 2  # Conservative fallback
-            
+
             for pattern_text in prompt_end_patterns:
                 pattern_tokens = self.tokenizer.encode(pattern_text, add_special_tokens=False)
                 for i in range(len(input_ids) - len(pattern_tokens)):
                     if input_ids[i:i+len(pattern_tokens)] == pattern_tokens:
                         prompt_len = i + len(pattern_tokens)
-                        break
-            
-            # Apply prompt masking as fallback
+                        break            # Apply prompt masking as fallback
             label_fallback = input_ids.copy()
             for j in range(min(prompt_len, len(label_fallback))):
                 label_fallback[j] = -100
