@@ -626,18 +626,28 @@ class PredictionTrackerCallback(TrainerCallback):
     
     def on_train_begin(self, args, state, control, **kwargs):
         """Select fixed examples at the start of training."""
+        print(f"\n [PredictionTracker] on_train_begin called - examples_selected: {self.examples_selected}")
+        print(f" [PredictionTracker] train_dataset is not None: {self.train_dataset is not None}")
+        
         if not self.examples_selected and self.train_dataset is not None:
-            print(f"\n📝 [PredictionTracker] Selecting {self.prediction_tracker.n_examples} examples for tracking...")
+            print(f"\n [PredictionTracker] Selecting {self.prediction_tracker.n_examples} examples for tracking...")
             
             # Select examples from training and validation sets
             if self.eval_dataset is not None:
+                print(f" [PredictionTracker] Using both train and eval datasets for example selection")
                 self.prediction_tracker.select_examples(self.train_dataset, self.eval_dataset)
             else:
                 # If no eval dataset, just use training set
+                print(f" [PredictionTracker] Using only train dataset for example selection")
                 self.prediction_tracker.select_examples(self.train_dataset, None)
             
             self.examples_selected = True
-            print(f"📝 [PredictionTracker] Examples selected and will be tracked every epoch")
+            print(f" [PredictionTracker] Examples selected and will be tracked every epoch")
+        else:
+            if self.examples_selected:
+                print(f" [PredictionTracker] Examples already selected, skipping selection")
+            if self.train_dataset is None:
+                print(f" [PredictionTracker] WARNING: train_dataset is None, cannot select examples")
     
     def on_epoch_end(self, args, state, control, **kwargs):
         """Track predictions at the end of each epoch."""
@@ -1478,12 +1488,12 @@ def build_clm_trainer(model, tokenizer, train_dataset, eval_dataset, cfg, output
             data_collator=data_collator,  # Pass data_collator for dynamic ARD DataLoader creation
             enable_plotting=cfg["enable_plotting"],
             enable_resampling=cfg["enable_resampling"],
-            enable_prediction_tracking=cfg.get("enable_prediction_tracking"),  # New parameter
+            enable_prediction_tracking=cfg.get("enable_prediction_tracking"),  # Default to True
             plot_start_epoch=cfg["plot_start_epoch"],
             plot_interval=cfg["plot_interval"],
             plot_batch_size=cfg["plot_batch_size"],
-            prediction_n_examples=cfg.get("prediction_n_examples"),  # New parameter
-            dataset_name=cfg.get("dataset_name"),  # New parameter
+            prediction_n_examples=cfg.get("prediction_n_examples"),  # Default to 10
+            dataset_name=cfg.get("dataset_name", "arc_easy"),  # Default dataset name
             predictions_dir=predictions_dir  # Pass predictions directory from get_output_dirs()
         )
         
