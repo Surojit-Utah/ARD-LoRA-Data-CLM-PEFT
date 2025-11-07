@@ -356,7 +356,7 @@ def load_model_with_problora(config, verbose=False):
     return model, tokenizer
 
 
-def create_trainer(model, tokenizer, train_ds, val_ds, config, output_dir, tb_log_dir=None):
+def create_trainer(model, tokenizer, train_ds, val_ds, config, output_dir, tb_log_dir=None, predictions_dir=None):
     """Create enhanced ARD-LoRA trainer with uncertainty evaluation and callbacks"""
     
     # Get ARD prior samples directly from config
@@ -380,7 +380,8 @@ def create_trainer(model, tokenizer, train_ds, val_ds, config, output_dir, tb_lo
         output_dir=output_dir,
         ard_prior_samples=ard_prior_samples,  # Pass absolute sample count directly
         enable_callbacks=config["enable_callbacks"],  # Enable ARD callbacks
-        tb_log_dir=tb_log_dir  # Pass TensorBoard log directory
+        tb_log_dir=tb_log_dir,  # Pass TensorBoard log directory
+        predictions_dir=predictions_dir  # Pass predictions directory from get_output_dirs()
     )
     
     # Post-creation validation - ensure trainer uses the same tokenizer
@@ -496,7 +497,7 @@ def main():
     os.makedirs(base_output_dir, exist_ok=True)
     
     # Get run-specific directories
-    output_dir, model_ckpt_dir, tb_log_dir = get_output_dirs(
+    output_dir, model_ckpt_dir, tb_log_dir, predictions_dir = get_output_dirs(
         config["runId"],
         base_output_dir
     )
@@ -506,8 +507,9 @@ def main():
     print(f"       Latent images: {output_dir}")
     print(f"       Model checkpoints: {model_ckpt_dir}")
     print(f"       TensorBoard logs: {tb_log_dir}")
+    print(f"       Predictions: {predictions_dir}")
     
-    trainer = create_trainer(model, tokenizer, train_ds, val_ds, config, model_ckpt_dir, tb_log_dir)
+    trainer = create_trainer(model, tokenizer, train_ds, val_ds, config, model_ckpt_dir, tb_log_dir, predictions_dir)
     
     # Final tokenizer consistency validation before training
     print(f"\n[TOKENIZER] Final Pre-Training Validation:")

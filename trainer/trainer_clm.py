@@ -18,6 +18,7 @@ from utils.dataset_debug import (
     apply_dataset_filtering_fixes,
     run_complete_dataset_analysis
 )
+from evaluate.prediction_tracker import PredictionTracker
 
 
 class ARDCLMTrainer(Trainer):
@@ -606,6 +607,60 @@ class EvalLossComponentsCallback(TrainerCallback):
             print(f"🔍 [DEBUG] This means the evaluation output you see is from HuggingFace's automatic evaluation")
 
 
+class PredictionTrackerCallback(TrainerCallback):
+    """Callback to track predictions on fixed examples across epochs for interpretability."""
+    
+    def __init__(self, train_dataset, eval_dataset, output_dir, predictions_dir, tokenizer, 
+                 n_examples=10, dataset_name="arc_easy"):
+        super().__init__()
+        # Use the provided predictions directory directly
+        self.prediction_tracker = PredictionTracker(
+            output_dir=predictions_dir,  # Use standardized predictions directory
+            tokenizer=tokenizer,
+            n_examples=n_examples,
+            dataset_name=dataset_name
+        )
+        self.train_dataset = train_dataset
+        self.eval_dataset = eval_dataset
+        self.examples_selected = False
+    
+    def on_train_begin(self, args, state, control, **kwargs):
+        """Select fixed examples at the start of training."""
+        if not self.examples_selected and self.train_dataset is not None:
+            print(f"\n📝 [PredictionTracker] Selecting {self.prediction_tracker.n_examples} examples for tracking...")
+            
+            # Select examples from training and validation sets
+            if self.eval_dataset is not None:
+                self.prediction_tracker.select_examples(self.train_dataset, self.eval_dataset)
+            else:
+                # If no eval dataset, just use training set
+                self.prediction_tracker.select_examples(self.train_dataset, None)
+            
+            self.examples_selected = True
+            print(f"📝 [PredictionTracker] Examples selected and will be tracked every epoch")
+    
+    def on_epoch_end(self, args, state, control, **kwargs):
+        """Track predictions at the end of each epoch."""
+        if not self.examples_selected:
+            print(f"[PredictionTracker] No examples selected, skipping prediction tracking")
+            return
+        
+        model = kwargs.get("model")
+        if model is None:
+            print(f"[PredictionTracker] No model found, skipping prediction tracking")
+            return
+        
+        epoch = int(state.epoch)
+        print(f"\n📝 [PredictionTracker] Saving predictions for epoch {epoch}...")
+        
+        try:
+            # Generate and save predictions for this epoch
+            self.prediction_tracker.save_predictions(model, epoch)
+            print(f"📝 [PredictionTracker] Predictions saved for epoch {epoch}")
+        except Exception as e:
+            print(f"[PredictionTracker] Failed to save predictions for epoch {epoch}: {e}")
+
+
 class LatentPlotCallback(TrainerCallback):
     """Callback to plot latent encodings following DeBERTa pattern."""
     
@@ -1056,8 +1111,9 @@ def emergency_memory_cleanup():
 
 def create_ard_callbacks(device, output_dir, train_ds=None, val_ds=None, 
                         ard_prior_samples=1000, batch_size=4, tokenizer=None, data_collator=None,
-                        enable_plotting=True, enable_resampling=True,
-                        plot_start_epoch=2, plot_interval=2, plot_batch_size=16):
+                        enable_plotting=True, enable_resampling=True, enable_prediction_tracking=True,
+                        plot_start_epoch=2, plot_interval=2, plot_batch_size=16,
+                        prediction_n_examples=10, dataset_name="arc_easy", predictions_dir=None):
     """Create standard ARD training callbacks for NEW 3-way data architecture.
     
     NEW DATA ARCHITECTURE:
@@ -1076,8 +1132,11 @@ def create_ard_callbacks(device, output_dir, train_ds=None, val_ds=None,
         data_collator: Data collator for dynamic ARD DataLoader creation
         enable_plotting: Whether to enable latent plotting
         enable_resampling: Whether to enable held-out resampling from training data
+        enable_prediction_tracking: Whether to enable prediction tracking on fixed examples
         plot_start_epoch: Epoch to start plotting
         plot_interval: Interval between plots
+        prediction_n_examples: Number of examples to track for predictions
+        dataset_name: Name of dataset for prediction formatting
     
     Returns:
         List of callback instances configured for new data architecture
@@ -1108,6 +1167,24 @@ def create_ard_callbacks(device, output_dir, train_ds=None, val_ds=None,
     # Always add prior estimation callback
     callbacks.append(PriorEstimationCallback(device))
     
+    # Add prediction tracking callback if enabled and datasets available
+    if enable_prediction_tracking and train_ds is not None and tokenizer is not None:
+        # Use predictions_dir if provided, otherwise create subdirectory under output_dir
+        pred_dir = predictions_dir if predictions_dir is not None else str(Path(output_dir) / "predictions")
+        
+        callbacks.append(PredictionTrackerCallback(
+            train_dataset=train_ds,
+            eval_dataset=val_ds,
+            output_dir=output_dir,
+            predictions_dir=pred_dir,  # Pass standardized predictions directory
+            tokenizer=tokenizer,
+            n_examples=prediction_n_examples,
+            dataset_name=dataset_name
+        ))
+        print(f"[INFO] PredictionTrackerCallback configured:")
+        print(f"   • Will track {prediction_n_examples} examples from train/val sets")
+        print(f"   • Predictions saved to: {pred_dir}")
+    
     # Add plotting callback if enabled and utilities available
     if enable_plotting and plot_mean_encodings is not None:
         callbacks.append(LatentPlotCallback(
@@ -1122,7 +1199,7 @@ def create_ard_callbacks(device, output_dir, train_ds=None, val_ds=None,
 
 
 def build_clm_trainer(model, tokenizer, train_dataset, eval_dataset, cfg, output_dir, 
-                     ard_prior_samples, enable_callbacks, tb_log_dir):
+                     ard_prior_samples, enable_callbacks, tb_log_dir, predictions_dir):
     """Build enhanced CLM trainer with uncertainty evaluation, ARD callbacks, and prior estimation.
     
     NEW DATA ARCHITECTURE:
@@ -1401,9 +1478,13 @@ def build_clm_trainer(model, tokenizer, train_dataset, eval_dataset, cfg, output
             data_collator=data_collator,  # Pass data_collator for dynamic ARD DataLoader creation
             enable_plotting=cfg["enable_plotting"],
             enable_resampling=cfg["enable_resampling"],
+            enable_prediction_tracking=cfg.get("enable_prediction_tracking"),  # New parameter
             plot_start_epoch=cfg["plot_start_epoch"],
             plot_interval=cfg["plot_interval"],
-            plot_batch_size=cfg["plot_batch_size"]
+            plot_batch_size=cfg["plot_batch_size"],
+            prediction_n_examples=cfg.get("prediction_n_examples"),  # New parameter
+            dataset_name=cfg.get("dataset_name"),  # New parameter
+            predictions_dir=predictions_dir  # Pass predictions directory from get_output_dirs()
         )
         
         # Add callbacks to trainer
@@ -1419,5 +1500,6 @@ def build_clm_trainer(model, tokenizer, train_dataset, eval_dataset, cfg, output
         print(f"   • UncertaintyEvaluationCallback: Uses {len(validation_dataset) if validation_dataset else 0} fixed validation samples")
         print(f"   • PriorEstimationCallback: Uses dynamic ARD samples from training data")
         print(f"   • LatentPlotCallback: Uses dynamic ARD samples from training data")
+        print(f"   • PredictionTrackerCallback: Tracks {cfg.get('prediction_n_examples')} examples every epoch")
     
     return trainer
