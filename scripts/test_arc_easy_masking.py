@@ -93,44 +93,54 @@ def test_arc_easy_masking():
             labels = example["labels"]
             attention_mask = example.get("attention_mask", [1] * len(input_ids))
             
-            # Decode the full sequence
-            full_text = tokenizer.decode(input_ids, skip_special_tokens=True)
+            # Find actual content (non-padding tokens)
+            pad_token_id = tokenizer.pad_token_id
+            actual_content_length = 0
+            for j, token_id in enumerate(input_ids):
+                if token_id != pad_token_id:
+                    actual_content_length = j + 1
+            
+            # Decode the actual content (non-padding)
+            actual_input_ids = input_ids[:actual_content_length]
+            actual_labels = labels[:actual_content_length]
+            
+            full_text = tokenizer.decode(actual_input_ids, skip_special_tokens=True)
             print(f"Full text: {full_text}")
+            print(f"Actual content length: {actual_content_length} / {len(input_ids)} tokens")
             
-            # Analyze masking
-            total_tokens = len(labels)
-            unmasked_positions = [j for j, label in enumerate(labels) if label != -100]
-            masked_positions = [j for j, label in enumerate(labels) if label == -100]
+            # Analyze masking on actual content only
+            total_actual_tokens = len(actual_labels)
+            unmasked_positions = [j for j, label in enumerate(actual_labels) if label != -100]
+            masked_positions = [j for j, label in enumerate(actual_labels) if label == -100]
             
-            print(f"Total tokens: {total_tokens}")
+            print(f"Actual tokens: {total_actual_tokens}")
             print(f"Masked tokens: {len(masked_positions)}")
             print(f"Unmasked tokens: {len(unmasked_positions)}")
             
             if unmasked_positions:
-                # Show unmasked tokens
-                unmasked_token_ids = [input_ids[j] for j in unmasked_positions]
+                # Show unmasked tokens from actual content
+                unmasked_token_ids = [actual_input_ids[j] for j in unmasked_positions]
                 unmasked_text = tokenizer.decode(unmasked_token_ids, skip_special_tokens=True)
                 print(f"Unmasked text: '{unmasked_text}'")
                 print(f"Unmasked positions: {unmasked_positions}")
                 
-                # Show context around unmasked tokens
-                for pos in unmasked_positions:
-                    token_text = tokenizer.decode([input_ids[pos]])
+                # Show context around unmasked tokens (only first few)
+                for idx, pos in enumerate(unmasked_positions[:5]):  # Only show first 5
+                    token_text = tokenizer.decode([actual_input_ids[pos]])
                     context_start = max(0, pos - 3)
-                    context_end = min(len(input_ids), pos + 4)
-                    context_tokens = input_ids[context_start:context_end]
+                    context_end = min(len(actual_input_ids), pos + 4)
+                    context_tokens = actual_input_ids[context_start:context_end]
                     context_text = tokenizer.decode(context_tokens)
                     print(f"  Position {pos}: '{token_text}' in context: '{context_text}'")
                 
                 # Check if this looks like proper answer masking
                 if len(unmasked_positions) <= 3:  # Should be 1-2 tokens for A/B/C/D
                     last_unmasked = max(unmasked_positions)
-                    total_len = len([t for t in input_ids if t != tokenizer.pad_token_id])
                     
-                    if last_unmasked >= total_len * 0.8:  # Answer should be near the end
-                        print(f"  ✓ GOOD: Answer appears near sequence end (pos {last_unmasked}/{total_len})")
+                    if last_unmasked >= actual_content_length * 0.8:  # Answer should be near the end
+                        print(f"  ✓ GOOD: Answer appears near sequence end (pos {last_unmasked}/{actual_content_length})")
                     else:
-                        print(f"  ⚠ WARNING: Answer not near end (pos {last_unmasked}/{total_len})")
+                        print(f"  ⚠ WARNING: Answer not near end (pos {last_unmasked}/{actual_content_length})")
                         
                     if unmasked_text.strip() in ['A', 'B', 'C', 'D']:
                         print(f"  ✓ GOOD: Unmasked text is a valid answer choice")
@@ -141,15 +151,43 @@ def test_arc_easy_masking():
             else:
                 print(f"  ❌ ERROR: No unmasked tokens found!")
                 
-            # Show detailed token-by-token breakdown for first sample
+            # Show detailed token-by-token breakdown for first sample (actual content only)
             if i == 0:
-                print(f"\nDetailed token breakdown:")
-                for j, (token_id, label) in enumerate(zip(input_ids, labels)):
-                    if token_id == tokenizer.pad_token_id:
-                        continue  # Skip padding tokens
+                print(f"\nDetailed token breakdown (actual content only):")
+                for j, (token_id, label) in enumerate(zip(actual_input_ids, actual_labels)):
                     token_text = tokenizer.decode([token_id])
                     status = "UNMASKED" if label != -100 else "MASKED"
                     print(f"  {j:2d}: {token_id:5d} -> '{token_text:10s}' ({status})")
+            
+            # Debug: Check if we can find A/B/C/D patterns manually
+            if i == 0:
+                print(f"\nDEBUG: Manual search for A/B/C/D patterns:")
+                for choice in ['A', 'B', 'C', 'D']:
+                    patterns = [
+                        tokenizer.encode(choice, add_special_tokens=False),
+                        tokenizer.encode(f" {choice}", add_special_tokens=False),
+                        tokenizer.encode(f"({choice})", add_special_tokens=False),
+                        tokenizer.encode(f" ({choice})", add_special_tokens=False),
+                    ]
+                    
+                    for pattern in patterns:
+                        if pattern:  # Only check non-empty patterns
+                            for start_pos in range(len(actual_input_ids) - len(pattern) + 1):
+                                if actual_input_ids[start_pos:start_pos + len(pattern)] == pattern:
+                                    found_text = tokenizer.decode(pattern)
+                                    print(f"  Found '{choice}' pattern '{found_text}' at position {start_pos}")
+                    
+                # Also try searching from the end
+                print(f"\nDEBUG: Searching from sequence end (last 20 tokens):")
+                search_start = max(0, actual_content_length - 20)
+                end_tokens = actual_input_ids[search_start:]
+                end_text = tokenizer.decode(end_tokens)
+                print(f"  Last 20 tokens: '{end_text}'")
+                
+                for j, token_id in enumerate(end_tokens):
+                    token_text = tokenizer.decode([token_id])
+                    actual_pos = search_start + j
+                    print(f"    {actual_pos:2d}: {token_id:5d} -> '{token_text}'")
         
         # Summary
         print(f"\n" + "=" * 80)
