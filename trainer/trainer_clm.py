@@ -655,7 +655,7 @@ class PredictionTrackerCallback(TrainerCallback):
         
         try:
             # Generate and save predictions for this epoch
-            self.prediction_tracker.save_predictions(model, epoch)
+            self.prediction_tracker.track_predictions(model, epoch)
             print(f"📝 [PredictionTracker] Predictions saved for epoch {epoch}")
         except Exception as e:
             print(f"[PredictionTracker] Failed to save predictions for epoch {epoch}: {e}")
