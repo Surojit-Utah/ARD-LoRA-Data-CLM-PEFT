@@ -331,18 +331,25 @@ class ARDLoRADatasetWrapper:
         return train_ds, val_ds
     
     def _process_dataset(self, dataset: HFDataset) -> HFDataset:
-        """Process dataset for causal LM with prompt masking"""
+        """Process dataset for causal LM with dataset-specific masking"""
         max_len = self.config.get("max_len", 2048)
+        
+        # ARC-Easy specific: Pre-compute answer choice token patterns
+        arc_easy_patterns = None
+        if self.dataset_name.lower() == "arc_easy":
+            arc_easy_patterns = self._get_answer_choice_patterns()
         
         def tokenize_and_mask(batch):
             # Handle different input formats
             if "full_text" in batch:
                 full_texts = batch["full_text"]
                 prompt_texts = batch.get("prompt_text", [""] * len(full_texts))
+                labels_meta = batch.get("label", [0] * len(full_texts))
             elif "instruction" in batch and "output" in batch:
                 # Create full texts from instruction/output
                 full_texts = []
                 prompt_texts = []
+                labels_meta = []
                 for i in range(len(batch["instruction"])):
                     instruction = batch["instruction"][i]
                     input_text = batch.get("input", [""] * len(batch["instruction"]))[i]
@@ -355,6 +362,7 @@ class ARDLoRADatasetWrapper:
                     
                     prompt_texts.append(prompt)
                     full_texts.append(full_text)
+                    labels_meta.append(batch.get("label", [0] * len(batch["instruction"]))[i])
             else:
                 raise ValueError("Unsupported dataset format")
             
@@ -373,14 +381,18 @@ class ARDLoRADatasetWrapper:
                 max_length=max_len
             )
             
-            # Create labels with prompt masking
+            # Create labels with dataset-specific masking
             labels = []
-            for i, (full_ids, prompt_ids) in enumerate(zip(full_tok["input_ids"], prompt_tok["input_ids"])):
-                label = full_ids.copy()
-                # Mask prompt tokens
-                prompt_len = len(prompt_ids)
-                for j in range(min(prompt_len, len(label))):
-                    label[j] = -100
+            for i, (full_ids, prompt_ids, label_idx) in enumerate(zip(full_tok["input_ids"], prompt_tok["input_ids"], labels_meta)):
+                if self.dataset_name.lower() == "arc_easy" and arc_easy_patterns:
+                    # ARC-Easy: Apply answer-focused masking
+                    label = self._create_arc_easy_labels(full_ids, label_idx, arc_easy_patterns)
+                else:
+                    # Default: Apply prompt masking
+                    label = full_ids.copy()
+                    prompt_len = len(prompt_ids)
+                    for j in range(min(prompt_len, len(label))):
+                        label[j] = -100
                 labels.append(label)
             
             full_tok["labels"] = labels
@@ -391,6 +403,87 @@ class ARDLoRADatasetWrapper:
             batched=True,
             remove_columns=dataset.column_names
         )
+    
+    def _get_answer_choice_patterns(self):
+        """Pre-compute token patterns for ARC-Easy answer choices A, B, C, D"""
+        patterns = {}
+        choices = ["A", "B", "C", "D"]
+        
+        for choice in choices:
+            choice_patterns = []
+            # Common answer formats in ARC-Easy
+            formats = [
+                choice,           # "A"
+                f" {choice}",     # " A" (with leading space)
+                f"({choice})",    # "(A)"
+                f" ({choice})",   # " (A)"
+                f"{choice}.",     # "A."
+                f" {choice}.",    # " A."
+                f"{choice})",     # "A)"
+                f" {choice})",    # " A)"
+            ]
+            
+            for fmt in formats:
+                tokens = self.tokenizer.encode(fmt, add_special_tokens=False)
+                if tokens:  # Only add non-empty tokenizations
+                    choice_patterns.append(tokens)
+            
+            patterns[choice] = choice_patterns
+        
+        return patterns
+    
+    def _find_answer_span_backward(self, input_ids, choice_patterns, window=64):
+        """Search for answer tokens from the end of sequence (backward search)"""
+        N = len(input_ids)
+        start_search = max(0, N - window)
+        
+        # Search backwards to prefer the final answer occurrence
+        for i in range(N - 1, start_search - 1, -1):
+            for pattern in choice_patterns:
+                pattern_len = len(pattern)
+                if i - pattern_len + 1 >= 0 and input_ids[i - pattern_len + 1 : i + 1] == pattern:
+                    # Return inclusive start, exclusive end
+                    return i - pattern_len + 1, i + 1
+        return None
+    
+    def _create_arc_easy_labels(self, input_ids, label_idx, patterns):
+        """Create labels for ARC-Easy with answer-focused masking"""
+        # Initialize all labels as masked
+        labels = [-100] * len(input_ids)
+        
+        # Map label index to choice letter (0->A, 1->B, 2->C, 3->D)
+        choice_map = {0: "A", 1: "B", 2: "C", 3: "D"}
+        target_choice = choice_map.get(label_idx, "A")  # Default to A if invalid
+        
+        # Search for answer span using backward search
+        choice_patterns = patterns.get(target_choice, [])
+        answer_span = self._find_answer_span_backward(input_ids, choice_patterns, window=64)
+        
+        if answer_span is not None:
+            start_idx, end_idx = answer_span
+            # Unmask only the answer tokens
+            labels[start_idx:end_idx] = input_ids[start_idx:end_idx]
+        else:
+            # Fallback: Use prompt masking if answer not found
+            # This ensures training doesn't break for edge cases
+            # Find prompt length estimate by searching for common prompt end patterns
+            prompt_end_patterns = ["The answer is", "Answer:", "The correct answer is"]
+            prompt_len = len(input_ids) // 2  # Conservative fallback
+            
+            for pattern_text in prompt_end_patterns:
+                pattern_tokens = self.tokenizer.encode(pattern_text, add_special_tokens=False)
+                for i in range(len(input_ids) - len(pattern_tokens)):
+                    if input_ids[i:i+len(pattern_tokens)] == pattern_tokens:
+                        prompt_len = i + len(pattern_tokens)
+                        break
+            
+            # Apply prompt masking as fallback
+            label_fallback = input_ids.copy()
+            for j in range(min(prompt_len, len(label_fallback))):
+                label_fallback[j] = -100
+            labels = label_fallback
+        
+        return labels
 
 
 def load_bayesian_peft_with_caching(dataset_name: str, tokenizer_name: str, config: Dict[str, Any], cache_root: str = "/content/drive/MyDrive/ARD_LoRA_Data_Cache"):
