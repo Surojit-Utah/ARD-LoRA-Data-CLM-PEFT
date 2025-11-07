@@ -49,18 +49,35 @@ def test_arc_easy_masking():
     print(f"[CONFIG] Cache root: {cache_root}")
     
     try:
-        # Load tokenizer from config with fallback
+        # Load tokenizer from config with fallback to public tokenizers
         tokenizer_name = (
             config.get("tokenizer_name") or 
             config.get("model_name_or_path") or
             config.get("model_name") or
-            "meta-llama/Llama-2-7b-hf"  # Default fallback
+            "gpt2"  # Default to public tokenizer for testing
         )
         
-        print(f"[INFO] Using tokenizer: {tokenizer_name}")
+        print(f"[INFO] Attempting to use tokenizer: {tokenizer_name}")
         
-        if not tokenizer_name:
-            print("[ERROR] No tokenizer name found in config")
+        # Try the configured tokenizer first, then fallback to public ones
+        from transformers import AutoTokenizer
+        tokenizer = None
+        tokenizer_attempts = [tokenizer_name, "gpt2", "microsoft/DialoGPT-medium", "distilgpt2"]
+        
+        for attempt_name in tokenizer_attempts:
+            try:
+                tokenizer = AutoTokenizer.from_pretrained(attempt_name)
+                if tokenizer.pad_token is None:
+                    tokenizer.pad_token = tokenizer.eos_token
+                print(f"[SUCCESS] Loaded tokenizer: {attempt_name}")
+                tokenizer_name = attempt_name  # Update for dataset loading
+                break
+            except Exception as e:
+                print(f"[FAILED] {attempt_name}: {str(e)[:100]}...")
+                continue
+        
+        if tokenizer is None:
+            print("[ERROR] Could not load any tokenizer")
             return
         
         print(f"[INFO] Loading datasets with tokenizer: {tokenizer_name}")
