@@ -205,20 +205,45 @@ class BayesianPEFTDataManager:
                         # Handle MRPC-style dual sentence format
                         text = f"{example['sentence1']} {example['sentence2']}"
                     elif "question" in example:
-                        text = example["question"]
+                        # Special handling for ARC-Easy and similar multiple choice datasets
+                        if dataset_name.lower() in ["arc_easy", "arc_challenge"] and "choices" in example and "answerKey" in example:
+                            question = example["question"]
+                            choices = example["choices"]["text"]
+                            choice_labels = example["choices"]["label"] 
+                            answer_key = example["answerKey"]
+                            
+                            # Format as multiple choice prompt: Question + choices + answer
+                            choices_text = ""
+                            for i, (label, choice_text) in enumerate(zip(choice_labels, choices)):
+                                choices_text += f" {label}) {choice_text}"
+                            
+                            # Create full prompt with answer
+                            full_text = f"{question}{choices_text} The answer is {answer_key}"
+                            # Just the question part for prompt masking
+                            prompt_text = f"{question}{choices_text} The answer is"
+                            
+                            return {
+                                "text": full_text,
+                                "label": ord(answer_key) - ord('A'),  # Convert A->0, B->1, C->2, D->3
+                                "full_text": full_text,
+                                "prompt_text": prompt_text,
+                                "answer_key": answer_key
+                            }
+                        else:
+                            # Regular question processing
+                            text = example["question"]
                     elif "premise" in example:
                         text = f"{example['premise']} {example.get('hypothesis', '')}"
                     else:
                         text = str(example)
                     
+                    # For non-ARC datasets, return regular format
                     return {
                         "text": text,
                         "label": example.get("label", 0),
                         "full_text": text,
                         "prompt_text": text
-                    }
-                
-                # Get train and validation splits
+                    }                # Get train and validation splits
                 train_split = "train" if "train" in raw_dataset else list(raw_dataset.keys())[0]
                 
                 # ALWAYS create validation from training data only (ignore natural validation splits)
