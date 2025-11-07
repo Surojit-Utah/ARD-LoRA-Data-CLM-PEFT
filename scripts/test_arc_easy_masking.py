@@ -32,7 +32,12 @@ def test_arc_easy_masking():
     # Use configuration from existing setup
     config = CONFIG or {}
     
-    # Ensure we're testing ARC-Easy
+    # Merge config properly (like in run_training_cached.py)
+    if "datasets" in config and "arc_easy" in config["datasets"]:
+        dataset_config = config["datasets"]["arc_easy"]
+        config.update(dataset_config)
+    
+    # Set defaults for testing
     config["dataset_name_specific"] = "arc_easy"
     config["max_len"] = config.get("max_len", 512)  # Shorter for testing
     
@@ -44,8 +49,16 @@ def test_arc_easy_masking():
     print(f"[CONFIG] Cache root: {cache_root}")
     
     try:
-        # Load tokenizer from config
-        tokenizer_name = config.get("tokenizer_name") or config.get("model_name_or_path")
+        # Load tokenizer from config with fallback
+        tokenizer_name = (
+            config.get("tokenizer_name") or 
+            config.get("model_name_or_path") or
+            config.get("model_name") or
+            "meta-llama/Llama-2-7b-hf"  # Default fallback
+        )
+        
+        print(f"[INFO] Using tokenizer: {tokenizer_name}")
+        
         if not tokenizer_name:
             print("[ERROR] No tokenizer name found in config")
             return
