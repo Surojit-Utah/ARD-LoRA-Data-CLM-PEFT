@@ -355,6 +355,122 @@ class ARDClassificationTrainer(Trainer):
         
         return metrics
     
+    def evaluate_uncertainty(self) -> Optional[Dict[str, float]]:
+        """
+        Evaluate model uncertainty using ACC, ECE, and NLL metrics.
+        Classification-specific version using last-token prediction.
+        """
+        if self.uncertainty_evaluator is None:
+            print("[WARNING] Uncertainty evaluator not available")
+            return None
+            
+        if self.eval_dataset is None:
+            print("[WARNING] No evaluation dataset available for uncertainty evaluation")
+            return None
+        
+        eval_dataset = self.eval_dataset
+        dataset_size = len(eval_dataset)
+        
+        print(f"\n🔄 Starting uncertainty evaluation on full dataset ({dataset_size} samples)...")
+        
+        # Create evaluation dataloader
+        eval_dataloader = self.get_eval_dataloader(eval_dataset)
+        
+        self.model.eval()
+        all_labels = []
+        all_probs = []
+        
+        with torch.no_grad():
+            sample_count = 0
+            
+            for batch_idx, batch in enumerate(eval_dataloader):
+                if sample_count >= dataset_size:
+                    break
+                
+                # Move batch to device
+                inputs = self._prepare_inputs(batch)
+                
+                # Extract classes
+                if "classes" in inputs:
+                    classes = inputs.pop("classes")
+                elif "labels" in inputs:
+                    classes = inputs.pop("labels")
+                else:
+                    continue
+                
+                # Forward pass
+                outputs = self.model(**inputs, output_hidden_states=False, use_cache=False)
+                logits = outputs.logits
+                
+                # Extract last token logits and filter to answer tokens (classification-specific)
+                attn = inputs["attention_mask"]
+                last_idx = attn.long().sum(dim=1) - 1
+                batch_indices = torch.arange(logits.size(0), device=logits.device)
+                last_token_logits = logits[batch_indices, last_idx, :]
+                
+                # Filter to answer tokens only
+                target_ids_device = self.target_ids.to(last_token_logits.device)
+                filtered_logits = last_token_logits[:, target_ids_device.squeeze()]
+                
+                # Convert logits to probabilities
+                probs = torch.softmax(filtered_logits, dim=-1)
+                
+                # Collect predictions
+                all_labels.extend(classes.cpu().numpy())
+                all_probs.extend(probs.cpu().numpy())
+                
+                sample_count += len(classes)
+                
+                if batch_idx % 10 == 0:
+                    print(f"   Processed {batch_idx + 1} batches, {sample_count} samples")
+        
+        if len(all_labels) == 0:
+            print("[WARNING] No valid predictions found for uncertainty evaluation")
+            return None
+            
+        print(f"✅ Uncertainty evaluation completed on {len(all_labels)} samples")
+        
+        # Convert to numpy arrays
+        y_true = np.array(all_labels)
+        y_probs = np.array(all_probs)
+        
+        # Compute uncertainty metrics
+        metrics = self.uncertainty_evaluator.evaluate_predictions(y_true, y_probs)
+        
+        return metrics
+    
+    def _save_uncertainty_results(self):
+        """Save uncertainty evaluation results to JSON file."""
+        import json
+        
+        if not self.uncertainty_results:
+            return
+            
+        results_path = Path(self.output_dir) / "uncertainty_results.json"
+        results_path.parent.mkdir(parents=True, exist_ok=True)
+        
+        # Convert numpy types to Python native types for JSON serialization
+        def convert_numpy_types(obj):
+            """Recursively convert numpy types to Python native types."""
+            if isinstance(obj, dict):
+                return {key: convert_numpy_types(value) for key, value in obj.items()}
+            elif isinstance(obj, list):
+                return [convert_numpy_types(item) for item in obj]
+            elif isinstance(obj, (np.integer, np.floating)):
+                return obj.item()
+            elif isinstance(obj, np.ndarray):
+                return obj.tolist()
+            else:
+                return obj
+        
+        # Convert the results to JSON-serializable format
+        json_safe_results = convert_numpy_types(self.uncertainty_results)
+        
+        with open(results_path, 'w') as f:
+            json.dump(json_safe_results, f, indent=2)
+        
+        print(f"💾 Saved uncertainty results to {results_path}")
+    
     def _compute_eval_loss_components(self, model):
         """
         Compute evaluation loss components (CE and KL) on eval dataset.
