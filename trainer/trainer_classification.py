@@ -233,7 +233,10 @@ class ARDClassificationTrainer(Trainer):
                 kl = torch.tensor(0.0, device=ce_loss.device, requires_grad=True)
         
         # Combine losses
-        total_loss = ce_loss + (self.beta * kl if self.use_kl else 0.0)
+        if self.use_kl:
+            total_loss = ce_loss + self.beta * kl
+        else:
+            total_loss = ce_loss  # Keep tensor, don't add scalar 0.0
         
         # Store for logging
         self.last_ce_loss = ce_loss.item()
