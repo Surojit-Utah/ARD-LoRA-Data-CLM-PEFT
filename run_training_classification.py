@@ -483,11 +483,17 @@ def main():
         # Get target_ids for answer tokens (A, B, C, D)
         # For ARC-Easy: map_dict = {"A": 0, "B": 1, "C": 2, "D": 3}
         # We need the token IDs for " A", " B", " C", " D"
+        # CRITICAL: Use [-1] to get LAST token (the letter), not [0] (the space)
+        def last_token_id(tok, s: str) -> int:
+            """Extract last token ID from a string (safe for multi-piece tokens)."""
+            ids = tok.encode(s, add_special_tokens=False)
+            return ids[-1]  # safe even if multi-piece
+        
         target_ids = torch.tensor([
-            tokenizer.encode(" A", add_special_tokens=False)[0],
-            tokenizer.encode(" B", add_special_tokens=False)[0],
-            tokenizer.encode(" C", add_special_tokens=False)[0],
-            tokenizer.encode(" D", add_special_tokens=False)[0],
+            last_token_id(tokenizer, " A"),
+            last_token_id(tokenizer, " B"),
+            last_token_id(tokenizer, " C"),
+            last_token_id(tokenizer, " D"),
         ])
         
         # Validate tokenizer consistency after dataset loading
@@ -502,6 +508,12 @@ def main():
         print(f"[INFO] Training samples: {len(train_ds)}")
         print(f"[INFO] Validation samples: {len(val_ds)}")
         print(f"[INFO] Target IDs for answer tokens: {target_ids.tolist()}")
+        
+        # Sanity check: print label mappings with token representations
+        print(f"[TOKENIZER] Label token mappings:")
+        for label, tid in zip([" A", " B", " C", " D"], target_ids.tolist()):
+            token_str = tokenizer.convert_ids_to_tokens(tid)
+            print(f"[TOKENIZER]   {repr(label)} -> id={tid}, tok={repr(token_str)}")
         
         # Check validation dataset size for ARD prior estimation
         val_size = len(val_ds)
