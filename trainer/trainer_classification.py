@@ -242,12 +242,17 @@ class ARDClassificationTrainer(Trainer):
         
         return (total_loss, outputs) if return_outputs else total_loss
     
-    def training_step(self, model, inputs):
+    def training_step(self, model, inputs, num_items_in_batch=None):
         """
         Override training_step to add gradient sanity check after first backward.
+        
+        Args:
+            model: The model being trained
+            inputs: The inputs and targets for the model
+            num_items_in_batch: Number of items in the batch (for gradient accumulation)
         """
         # Call parent training_step (this does forward, backward, optimizer step)
-        loss = super().training_step(model, inputs)
+        loss = super().training_step(model, inputs, num_items_in_batch)
         
         # Gradient sanity check: run once after first backward pass
         if not hasattr(self, '_gradient_sanity_checked'):
