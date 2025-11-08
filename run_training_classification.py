@@ -17,7 +17,7 @@ from pathlib import Path
 import torch
 from config import CONFIG
 from model.model_llama import ProbLoRALayer, inject_problora_llama
-from trainer.trainer_classification import ARDClassificationTrainer
+from trainer.trainer_classification import ARDClassificationTrainer, build_classification_trainer
 from dataset.S2ClassDataset import S2ClassDataset
 from transformers import AutoModelForCausalLM, AutoTokenizer, TrainingArguments
 from utils.io import get_output_dirs, free_memory
@@ -369,14 +369,33 @@ def create_trainer(model, tokenizer, train_ds, val_ds, config, output_dir, targe
     # Use target_ids passed from main function
     print(f"[TRAINER] Target token IDs: {target_ids.tolist()}")
     
-    trainer = ARDClassificationTrainer(
+    # Check if callbacks are enabled in config
+    enable_uncertainty = config.get("enable_callbacks", False)
+    enable_pred_tracker = config.get("enable_prediction_tracking", False)
+    
+    # Prepare prediction tracker parameters
+    pred_tracker_params = None
+    if enable_pred_tracker and predictions_dir:
+        pred_tracker_params = {
+            'predictions_dir': predictions_dir,
+            'n_examples': config.get('prediction_n_examples', 10),
+            'dataset_name': config.get('dataset_name', 'arc_easy')
+        }
+    
+    # Use build_classification_trainer for proper callback integration
+    trainer = build_classification_trainer(
         model=model,
         args=training_args,
         train_dataset=train_ds,
         eval_dataset=val_ds,
+        data_collator=None,  # Will use default
         tokenizer=tokenizer,
         config=config,
         target_ids=target_ids,
+        num_classes=config.get('num_classes', 4),
+        enable_uncertainty_eval=enable_uncertainty,
+        enable_prediction_tracker=enable_pred_tracker,
+        prediction_tracker_params=pred_tracker_params,
     )
     
     # Post-creation validation - ensure trainer uses the same tokenizer
