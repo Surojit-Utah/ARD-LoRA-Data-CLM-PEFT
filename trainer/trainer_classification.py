@@ -17,8 +17,11 @@ import torch
 from torch import nn
 from typing import Dict, Any, Optional
 from transformers import Trainer
+from transformers.trainer_callback import TrainerCallback
 from evaluate.uncertainty_metrics import UncertaintyEvaluator
+from evaluate.prediction_tracker import PredictionTracker
 import numpy as np
+from pathlib import Path
 
 
 class ARDClassificationTrainer(Trainer):
@@ -351,6 +354,289 @@ class ARDClassificationTrainer(Trainer):
         # (accuracy, F1, etc. can be added here)
         
         return metrics
+    
+    def _compute_eval_loss_components(self, model):
+        """
+        Compute evaluation loss components (CE and KL) on eval dataset.
+        Similar to training loss computation but in eval mode.
+        """
+        if self.eval_dataset is None:
+            return 0.0, 0.0
+        
+        was_training = model.training
+        model.eval()
+        
+        try:
+            # Get a batch from eval dataset
+            eval_dataloader = self.get_eval_dataloader(self.eval_dataset)
+            batch = next(iter(eval_dataloader))
+            
+            # Move batch to device
+            batch = {k: v.to(self.args.device) if isinstance(v, torch.Tensor) else v 
+                    for k, v in batch.items()}
+            
+            with torch.no_grad():
+                # Extract classes
+                if "classes" in batch:
+                    classes = batch.pop("classes")
+                elif "labels" in batch:
+                    classes = batch.pop("labels")
+                else:
+                    return 0.0, 0.0
+                
+                # Forward pass
+                outputs = model(
+                    **batch,
+                    output_hidden_states=True,
+                    use_cache=False
+                )
+                logits = outputs.logits
+                hidden_states = outputs.hidden_states
+                
+                # Extract last token logits
+                attn = batch["attention_mask"]
+                last_idx = attn.long().sum(dim=1) - 1
+                batch_indices = torch.arange(logits.size(0), device=logits.device)
+                last_token_logits = logits[batch_indices, last_idx, :]
+                
+                # Filter to answer tokens
+                target_ids_device = self.target_ids.to(last_token_logits.device)
+                filtered_logits = last_token_logits[:, target_ids_device.squeeze()]
+                
+                # Compute CE loss
+                loss_fct = nn.CrossEntropyLoss()
+                ce_loss = loss_fct(filtered_logits, classes)
+                
+                # Compute KL loss (if enabled)
+                kl = 0.0
+                if self.use_kl:
+                    if hidden_states is not None and hasattr(model, 'model') and hasattr(model.model, 'layers'):
+                        for layer_idx, layer in enumerate(model.model.layers):
+                            layer_input = hidden_states[layer_idx] if layer_idx < len(hidden_states) else None
+                            if layer_input is not None:
+                                if hasattr(layer, 'self_attn') and self.target_attention_layers:
+                                    attn_layer = layer.self_attn
+                                    for proj_name in self.target_attention_layers:
+                                        if hasattr(attn_layer, proj_name):
+                                            proj = getattr(attn_layer, proj_name)
+                                            if hasattr(proj, 'kl_divergence_latent'):
+                                                try:
+                                                    kl_val = proj.kl_divergence_latent(layer_input)
+                                                    if torch.is_tensor(kl_val):
+                                                        kl = kl + kl_val
+                                                except Exception:
+                                                    pass
+                
+                if not torch.is_tensor(kl):
+                    kl = torch.tensor(0.0, device=ce_loss.device)
+                
+                ce_loss_val = ce_loss.item()
+                kl_loss_val = kl.item() if torch.is_tensor(kl) else 0.0
+                
+                return ce_loss_val, kl_loss_val
+        
+        except Exception as e:
+            print(f"⚠️ Failed to compute eval loss components: {e}")
+            return 0.0, 0.0
+        finally:
+            if was_training:
+                model.train()
+            else:
+                model.eval()
+
+
+class EvalLossComponentsCallback(TrainerCallback):
+    """Callback to compute and log evaluation loss components at the end of each epoch."""
+    
+    def __init__(self):
+        super().__init__()
+    
+    def on_epoch_end(self, args, state, control, **kwargs):
+        """Compute and log evaluation loss components at the end of each epoch."""
+        model = kwargs["model"]
+        trainer = getattr(model, 'trainer', None)
+        
+        if trainer is None:
+            print("[EvalLossComponentsCallback] No trainer reference found")
+            return
+        
+        print(f"\n📊 [EVAL] Logging metrics for epoch {state.epoch}")
+        
+        # Log training loss components to TensorBoard
+        if trainer.args.report_to and 'tensorboard' in trainer.args.report_to:
+            training_metrics = {
+                'train/ce_loss': trainer.last_ce_loss,
+                'train/total_loss': trainer.last_total_loss,
+            }
+            
+            # Only log KL loss if use_kl is enabled
+            if trainer.use_kl:
+                training_metrics['train/kl_loss'] = trainer.last_kl_loss
+                training_metrics['train/kl_beta'] = trainer.beta
+            
+            trainer.log(training_metrics)
+            print(f"📊 Training Loss Components (Epoch {state.epoch}):")
+            print(f"   CE Loss: {trainer.last_ce_loss:.4f}")
+            if trainer.use_kl:
+                print(f"   KL Loss: {trainer.last_kl_loss:.4f}")
+                print(f"   Total Loss: {trainer.last_total_loss:.4f}")
+                print(f"   KL Beta: {trainer.beta:.4f}")
+            else:
+                print(f"   Total Loss: {trainer.last_total_loss:.4f}")
+                print(f"   (KL loss disabled)")
+        
+        # Run evaluation and log eval losses
+        if trainer.eval_dataset is not None:
+            print(f"\n📊 Running evaluation after epoch {state.epoch}...")
+            
+            # Get evaluation metrics including loss
+            eval_results = trainer.evaluate()
+            
+            # Extract eval loss components if available
+            eval_loss = eval_results.get('eval_loss', 0.0)
+            
+            # Run one forward pass on eval set to get loss components
+            eval_ce_loss, eval_kl_loss = trainer._compute_eval_loss_components(model)
+            
+            # Log evaluation loss components to TensorBoard
+            if trainer.args.report_to and 'tensorboard' in trainer.args.report_to:
+                eval_metrics = {
+                    'eval/ce_loss': eval_ce_loss,
+                    'eval/total_loss': eval_loss
+                }
+                
+                # Only log KL loss if use_kl is enabled
+                if trainer.use_kl:
+                    eval_metrics['eval/kl_loss'] = eval_kl_loss
+                
+                trainer.log(eval_metrics)
+                
+            print(f"📊 Evaluation Loss Components (Epoch {state.epoch}):")
+            print(f"   CE Loss: {eval_ce_loss:.4f}")
+            if trainer.use_kl:
+                print(f"   KL Loss: {eval_kl_loss:.4f}")
+                print(f"   Total Loss: {eval_loss:.4f}")
+            else:
+                print(f"   Total Loss: {eval_loss:.4f}")
+                print(f"   (KL loss disabled)")
+            
+            # Also log accuracy if available
+            if 'eval_accuracy' in eval_results:
+                print(f"   Accuracy: {eval_results['eval_accuracy']:.4f}")
+
+
+class UncertaintyEvaluationCallback(TrainerCallback):
+    """Callback to run uncertainty evaluation at the beginning of each epoch."""
+    
+    def __init__(self):
+        super().__init__()
+    
+    def on_epoch_begin(self, args, state, control, **kwargs):
+        """Run uncertainty evaluation at the beginning of each epoch."""
+        model = kwargs["model"]
+        trainer = getattr(model, 'trainer', None)
+        
+        if trainer is None:
+            print("[UncertaintyEvaluationCallback] No trainer reference found")
+            return
+        
+        # Run uncertainty evaluation at the beginning of each epoch
+        if trainer.eval_dataset is not None:
+            print(f"\n📊 Running uncertainty evaluation at beginning of epoch {state.epoch}...")
+            metrics = trainer.evaluate_uncertainty()
+            
+            if metrics is not None:
+                # Add epoch information
+                metrics['epoch'] = state.epoch
+                metrics['global_step'] = state.global_step
+                
+                # Store results
+                trainer.uncertainty_results.append(metrics)
+                
+                # Print formatted results
+                print(f"\n📈 Epoch {state.epoch} Uncertainty Results (Pre-Training):")
+                print(f"   Accuracy (ACC): {metrics['accuracy']:.4f}")
+                print(f"   Expected Calibration Error (ECE): {metrics['ece']:.4f}")
+                print(f"   Negative Log-Likelihood (NLL): {metrics['nll']:.4f}")
+                
+                # Log uncertainty metrics to tensorboard
+                if trainer.args.report_to and 'tensorboard' in trainer.args.report_to:
+                    uncertainty_metrics = {}
+                    for key, value in metrics.items():
+                        if isinstance(value, (int, float)):
+                            uncertainty_metrics[f"uncertainty_pre_epoch/{key}"] = value
+                    trainer.log(uncertainty_metrics)
+                
+                # Save results to file
+                trainer._save_uncertainty_results()
+            else:
+                print(f"[WARNING] No uncertainty metrics available for epoch {state.epoch}")
+        else:
+            print(f"[INFO] No evaluation dataset available for uncertainty evaluation at epoch {state.epoch}")
+
+
+class PredictionTrackerCallback(TrainerCallback):
+    """Callback to track predictions on fixed examples across epochs for interpretability."""
+    
+    def __init__(self, train_dataset, eval_dataset, output_dir, predictions_dir, tokenizer, 
+                 n_examples=10, dataset_name="arc_easy"):
+        super().__init__()
+        # Use the provided predictions directory directly
+        self.prediction_tracker = PredictionTracker(
+            output_dir=predictions_dir,  # Use standardized predictions directory
+            tokenizer=tokenizer,
+            n_examples=n_examples,
+            dataset_name=dataset_name
+        )
+        self.train_dataset = train_dataset
+        self.eval_dataset = eval_dataset
+        self.examples_selected = False
+    
+    def on_train_begin(self, args, state, control, **kwargs):
+        """Select fixed examples at the start of training."""
+        print(f"\n📝 [PredictionTracker] on_train_begin called - examples_selected: {self.examples_selected}")
+        print(f"📝 [PredictionTracker] train_dataset is not None: {self.train_dataset is not None}")
+        
+        if not self.examples_selected and self.train_dataset is not None:
+            print(f"\n📝 [PredictionTracker] Selecting {self.prediction_tracker.n_examples} examples for tracking...")
+            
+            # Select examples from training and validation sets
+            if self.eval_dataset is not None:
+                print(f"📝 [PredictionTracker] Using both train and eval datasets for example selection")
+                self.prediction_tracker.select_examples(self.train_dataset, self.eval_dataset)
+            else:
+                # If no eval dataset, just use training set
+                print(f"📝 [PredictionTracker] Using only train dataset for example selection")
+                self.prediction_tracker.select_examples(self.train_dataset, None)
+            
+            self.examples_selected = True
+            print(f"📝 [PredictionTracker] Examples selected and will be tracked every epoch")
+        else:
+            if self.examples_selected:
+                print(f"📝 [PredictionTracker] Examples already selected, skipping selection")
+            if self.train_dataset is None:
+                print(f"📝 [PredictionTracker] WARNING: train_dataset is None, cannot select examples")
+    
+    def on_epoch_end(self, args, state, control, **kwargs):
+        """Track predictions at the end of each epoch."""
+        if not self.examples_selected:
+            print(f"[PredictionTracker] No examples selected, skipping prediction tracking")
+            return
+        
+        model = kwargs.get("model")
+        if model is None:
+            print(f"[PredictionTracker] No model found, skipping prediction tracking")
+            return
+        
+        epoch = int(state.epoch)
+        print(f"\n📝 [PredictionTracker] Saving predictions for epoch {epoch}...")
+        
+        try:
+            # Generate and save predictions for this epoch
+            self.prediction_tracker.track_predictions(model, epoch)
+            print(f"📝 [PredictionTracker] Predictions saved for epoch {epoch}")
+        except Exception as e:
+            print(f"[PredictionTracker] Failed to save predictions for epoch {epoch}: {e}")
 
 
 def build_classification_trainer(
@@ -364,6 +650,9 @@ def build_classification_trainer(
     ard_heldout_loader=None,
     target_ids=None,
     num_classes=None,
+    enable_uncertainty_eval=False,
+    enable_prediction_tracker=False,
+    prediction_tracker_params=None,
     **kwargs
 ):
     """
@@ -380,6 +669,12 @@ def build_classification_trainer(
         ard_heldout_loader: DataLoader for ARD prior estimation
         target_ids: Tensor of target token IDs for answer classes
         num_classes: Number of classes (K)
+        enable_uncertainty_eval: Whether to enable UncertaintyEvaluationCallback
+        enable_prediction_tracker: Whether to enable PredictionTrackerCallback
+        prediction_tracker_params: Dict with params for PredictionTrackerCallback
+            - predictions_dir: Directory to save predictions
+            - n_examples: Number of examples to track (default: 10)
+            - dataset_name: Name of dataset (default: "arc_easy")
         **kwargs: Additional trainer arguments
     
     Returns:
@@ -402,5 +697,35 @@ def build_classification_trainer(
         num_classes=num_classes,
         **kwargs
     )
+    
+    # Add evaluation callback to track metrics after each epoch
+    trainer.add_callback(EvalLossComponentsCallback())
+    print("[CLASSIFICATION] Added EvalLossComponentsCallback for epoch-end metric tracking")
+    
+    # Add uncertainty evaluation callback if requested
+    if enable_uncertainty_eval:
+        trainer.add_callback(UncertaintyEvaluationCallback())
+        print("[CLASSIFICATION] Added UncertaintyEvaluationCallback for uncertainty metrics")
+    
+    # Add prediction tracker callback if requested
+    if enable_prediction_tracker:
+        if prediction_tracker_params is None:
+            prediction_tracker_params = {}
+        
+        predictions_dir = prediction_tracker_params.get('predictions_dir', 
+                                                        Path(args.output_dir) / 'predictions')
+        n_examples = prediction_tracker_params.get('n_examples', 10)
+        dataset_name = prediction_tracker_params.get('dataset_name', 'arc_easy')
+        
+        trainer.add_callback(PredictionTrackerCallback(
+            train_dataset=train_dataset,
+            eval_dataset=eval_dataset,
+            output_dir=args.output_dir,
+            predictions_dir=predictions_dir,
+            tokenizer=tokenizer,
+            n_examples=n_examples,
+            dataset_name=dataset_name
+        ))
+        print(f"[CLASSIFICATION] Added PredictionTrackerCallback (tracking {n_examples} examples)")
     
     return trainer
