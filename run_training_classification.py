@@ -84,8 +84,8 @@ def _validate_config_types(config):
     
     if "num_classes" not in config or config["num_classes"] <= 0:
         print(f"[WARNING] Classification training requires num_classes > 0, got {config.get('num_classes')}")
-        print(f"[WARNING] Setting default num_classes=5 for ARC-Easy")
-        config["num_classes"] = 5
+        print(f"[WARNING] Setting default num_classes=4 for ARC-Easy (A, B, C, D)")
+        config["num_classes"] = 4
     
     # Validate memory optimization settings for A100
     if not config["use_cache"]:
@@ -102,7 +102,7 @@ def _validate_tokenizer_alignment(tokenizer):
     print(f"[TOKENIZER]   Model: {tokenizer.name_or_path}")
     print(f"[TOKENIZER]   Vocab size: {tokenizer.vocab_size}")
     print(f"[TOKENIZER]   BOS token: {repr(tokenizer.bos_token)} (id: {tokenizer.bos_token_id})")
-    print(f"[TOKENIZER]   EOS token: {repr(tokenizer.eos_token)} (id: {tokenizer.eos_token_id}")
+    print(f"[TOKENIZER]   EOS token: {repr(tokenizer.eos_token)} (id: {tokenizer.eos_token_id})")
     print(f"[TOKENIZER]   PAD token: {repr(tokenizer.pad_token)} (id: {tokenizer.pad_token_id})")
     print(f"[TOKENIZER]   UNK token: {repr(tokenizer.unk_token)} (id: {tokenizer.unk_token_id})")
     
@@ -407,7 +407,7 @@ def main():
     print(f"[CONFIG] Dataset: {config.get('dataset_name')}")
     print(f"[CONFIG] Dataset Name: {config['dataset_name_specific']}")
     print(f"[CONFIG] Task Mode: {config.get('task_mode', 'classification')}")
-    print(f"[CONFIG] Num Classes: {config.get('num_classes', 5)}")
+    print(f"[CONFIG] Num Classes: {config.get('num_classes', 4)}")
     print(f"[CONFIG] KL Beta: {config.get('kl_loss_beta')}")
     print(f"[CONFIG] Rank: {config.get('rank')}")
     print(f"[CONFIG] Train Epochs: {config.get('train_epochs')}")

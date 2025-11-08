@@ -12,7 +12,7 @@ defaults:
   
   # Classification-specific configuration (NEW for ARC-Easy)
   task_mode: "classification"  # Enable classification mode (last-token prediction)
-  num_classes: 5  # Number of answer choices for ARC-Easy (A, B, C, D, E)
+  num_classes: 4  # Number of answer choices for ARC-Easy (A, B, C, D) - filtered to 4-choice questions
   add_space_to_answers: true  # Add leading space to answer tokens (CRITICAL for tokenization!)
   few_shot_prompting: false  # Use zero-shot prompting (following BayesianPEFT)
   
@@ -101,7 +101,7 @@ defaults:
   
   # Dataset Configuration - Global Settings
   max_len: 512  # BayesianPEFT uses 512 for ARC-Easy
-  num_labels: 5  # Changed to 5 for classification (A, B, C, D, E)
+  num_labels: 4  # 4 for classification (A, B, C, D) - filtered dataset
   validation_split_ratio: 0.1  # Use 10% of training data for validation (for ARD and tracking)
   random_seed: 42
   max_validation_samples: null  # No cap, use full validation set
@@ -173,7 +173,7 @@ datasets:
       dataset_name: "arc_easy"
       dataset_class: "ARCEasyDataset"  # Use new classification dataset class
       max_len: 512  # BayesianPEFT uses 512 for ARC
-      num_labels: 5  # A, B, C, D, E (max 5 choices)
+      num_labels: 4  # A, B, C, D (filtered to 4-choice questions only)
       validation_split_ratio: 0.1  # Split 10% of training data for validation/ARD
       max_ard_ratio: 0.8  # Use 80% of validation split for ARD prior estimation
       random_seed: 42

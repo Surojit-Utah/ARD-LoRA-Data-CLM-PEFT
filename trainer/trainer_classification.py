@@ -1,3 +1,4 @@
+
 """
 ARD-LoRA Classification Trainer for Multiple Choice QA
 ======================================================
@@ -44,6 +45,9 @@ class ARDClassificationTrainer(Trainer):
     ):
         super().__init__(*args, **kwargs)
         
+        # Instance variable to control KL loss computation
+        self.use_kl = False  # Set to True to enable KL divergence loss
+        
         # Load parameters from config with fallbacks
         if config is not None:
             self.beta = beta if beta is not None else config.get('kl_loss_beta')
@@ -59,7 +63,7 @@ class ARDClassificationTrainer(Trainer):
             self.beta = beta if beta is not None else 0.01
             self.n_bins = n_bins if n_bins is not None else 15
             self.ard_prior_samples = ard_prior_samples if ard_prior_samples is not None else 100
-            self.num_classes = num_classes if num_classes is not None else 5
+            self.num_classes = num_classes if num_classes is not None else 4  # Default to 4 (A, B, C, D)
             self.verbose = verbose
             
             if target_attention_layers is None:
@@ -90,6 +94,7 @@ class ARDClassificationTrainer(Trainer):
         print(f"[CLASSIFICATION]   Num classes: {self.num_classes}")
         print(f"[CLASSIFICATION]   Target IDs: {self.target_ids.tolist()}")
         print(f"[CLASSIFICATION]   KL beta: {self.beta}")
+        print(f"[CLASSIFICATION]   Use KL loss: {self.use_kl}")
     
     def compute_loss(
         self,
@@ -139,7 +144,11 @@ class ARDClassificationTrainer(Trainer):
         # ===== CLASSIFICATION-SPECIFIC LOGIC =====
         
         # Step 1: Extract ONLY the last token logits
-        last_token_logits = logits[:, -1, :]  # [batch_size, vocab_size]
+        # CRITICAL FIX: Use attention mask to find last non-pad token per example
+        attn = inputs["attention_mask"]  # [batch_size, seq_len]
+        last_idx = attn.long().sum(dim=1) - 1  # [batch_size]
+        batch_indices = torch.arange(logits.size(0), device=logits.device)  # [batch_size]
+        last_token_logits = logits[batch_indices, last_idx, :]  # [batch_size, vocab_size]
         
         # Step 2: Filter to ONLY valid answer tokens
         # target_ids shape: [num_classes] (e.g., [319, 350, 315, 360, 382] for A,B,C,D,E)
@@ -165,81 +174,117 @@ class ARDClassificationTrainer(Trainer):
         # ===== KL DIVERGENCE COMPUTATION (SAME AS CLM) =====
         
         kl = 0.0
-        kl_debug_info = {}
-        total_kl_layers = 0
         
-        # Track current epoch for debug printing
-        current_epoch = int(getattr(self.state, 'epoch', 0)) if hasattr(self, 'state') else 0
-        
-        # Initialize or check if we need to print debug for this epoch
-        if not hasattr(self, '_last_gradient_debug_epoch'):
-            self._last_gradient_debug_epoch = -1
-        
-        # Only print once per epoch when epoch changes
-        if current_epoch > self._last_gradient_debug_epoch:
-            self._last_gradient_debug_epoch = current_epoch
-            if hidden_states is not None:
-                print(f"\n[GRADIENT DEBUG] Epoch {current_epoch} - Hidden States Analysis:")
-                print(f"[GRADIENT DEBUG]   Number of hidden state layers: {len(hidden_states)}")
-                print(f"[GRADIENT DEBUG]   Hidden states[0] requires_grad: {hidden_states[0].requires_grad}")
-                print(f"[GRADIENT DEBUG]   Hidden states[0] has grad_fn: {hidden_states[0].grad_fn is not None}")
-        
-        # Compute KL divergence over ProbLoRA layers
-        if hidden_states is not None and hasattr(model, 'model') and hasattr(model.model, 'layers'):
-            for layer_idx, layer in enumerate(model.model.layers):
-                layer_input = hidden_states[layer_idx] if layer_idx < len(hidden_states) else None
-                
-                if layer_input is not None:
-                    if hasattr(layer, 'self_attn') and self.target_attention_layers:
-                        attn = layer.self_attn
-                        layer_kl_total = 0.0
-                        layer_proj_count = 0
-                        
-                        for proj_name in self.target_attention_layers:
-                            if hasattr(attn, proj_name):
-                                proj = getattr(attn, proj_name)
-                                if hasattr(proj, 'kl_divergence_latent'):
-                                    try:
-                                        proj_kl = proj.kl_divergence_latent(layer_input)
-                                        kl += proj_kl
-                                        layer_kl_total += proj_kl.item() if torch.is_tensor(proj_kl) else float(proj_kl)
-                                        layer_proj_count += 1
-                                    except Exception:
-                                        continue
-                        
-                        if layer_proj_count > 0:
-                            kl_debug_info[f"layer_{layer_idx}"] = {
-                                "projections_processed": layer_proj_count,
-                                "target_projections": list(self.target_attention_layers),
-                                "layer_kl_total": layer_kl_total
-                            }
-                            total_kl_layers += 1
-        
-        # If no KL components found, create zero tensor with gradient connection
-        if not torch.is_tensor(kl) or kl == 0.0:
-            kl = torch.tensor(0.0, device=ce_loss.device, requires_grad=True)
-        
-        # Debug: Log KL computation details once per epoch
-        if current_epoch > getattr(self, '_last_kl_debug_epoch', -1):
-            self._last_kl_debug_epoch = current_epoch
-            print(f"\n[KL COMPUTATION] Epoch {current_epoch}:")
-            print(f"[KL COMPUTATION]   Total layers with KL: {total_kl_layers}")
-            print(f"[KL COMPUTATION]   Total KL value: {kl.item() if torch.is_tensor(kl) else kl:.6f}")
-            print(f"[KL COMPUTATION]   Target attention layers: {self.target_attention_layers}")
-            if self.verbose and kl_debug_info:
-                print(f"[KL COMPUTATION]   Layer-wise KL details:")
-                for layer_name, info in list(kl_debug_info.items())[:3]:  # Show first 3 layers
-                    print(f"[KL COMPUTATION]     {layer_name}: {info}")
+        if self.use_kl:
+            # KL computation only when enabled
+            kl_debug_info = {}
+            total_kl_layers = 0
+            
+            # Track current epoch for debug printing
+            current_epoch = int(getattr(self.state, 'epoch', 0)) if hasattr(self, 'state') else 0
+            
+            # Initialize or check if we need to print debug for this epoch
+            if not hasattr(self, '_last_gradient_debug_epoch'):
+                self._last_gradient_debug_epoch = -1
+            
+            # Only print once per epoch when epoch changes
+            if current_epoch > self._last_gradient_debug_epoch:
+                self._last_gradient_debug_epoch = current_epoch
+                if hidden_states is not None:
+                    print(f"\n[GRADIENT DEBUG] Epoch {current_epoch} - Hidden States Analysis:")
+                    print(f"[GRADIENT DEBUG]   Number of hidden state layers: {len(hidden_states)}")
+                    print(f"[GRADIENT DEBUG]   Hidden states[0] requires_grad: {hidden_states[0].requires_grad}")
+                    print(f"[GRADIENT DEBUG]   Hidden states[0] has grad_fn: {hidden_states[0].grad_fn is not None}")
+            
+            # Compute KL divergence over ProbLoRA layers
+            if hidden_states is not None and hasattr(model, 'model') and hasattr(model.model, 'layers'):
+                for layer_idx, layer in enumerate(model.model.layers):
+                    layer_input = hidden_states[layer_idx] if layer_idx < len(hidden_states) else None
+                    
+                    if layer_input is not None:
+                        if hasattr(layer, 'self_attn') and self.target_attention_layers:
+                            attn = layer.self_attn
+                            layer_kl_total = 0.0
+                            layer_proj_count = 0
+                            
+                            for proj_name in self.target_attention_layers:
+                                if hasattr(attn, proj_name):
+                                    proj = getattr(attn, proj_name)
+                                    if hasattr(proj, 'kl_divergence_latent'):
+                                        try:
+                                            proj_kl = proj.kl_divergence_latent(layer_input)
+                                            kl += proj_kl
+                                            layer_kl_total += proj_kl.item() if torch.is_tensor(proj_kl) else float(proj_kl)
+                                            layer_proj_count += 1
+                                        except Exception:
+                                            continue
+                            
+                            if layer_proj_count > 0:
+                                kl_debug_info[f"layer_{layer_idx}"] = {
+                                    "projections_processed": layer_proj_count,
+                                    "target_projections": list(self.target_attention_layers),
+                                    "layer_kl_total": layer_kl_total
+                                }
+                                total_kl_layers += 1
+            
+            # If no KL components found, create zero tensor with gradient connection
+            # Safe check to avoid "Boolean value of Tensor is ambiguous" error
+            if not torch.is_tensor(kl) or (torch.is_tensor(kl) and float(kl.detach().item()) == 0.0):
+                kl = torch.tensor(0.0, device=ce_loss.device, requires_grad=True)
         
         # Combine losses
-        total_loss = ce_loss + self.beta * kl
+        total_loss = ce_loss + (self.beta * kl if self.use_kl else 0.0)
         
         # Store for logging
         self.last_ce_loss = ce_loss.item()
-        self.last_kl_loss = kl.item() if torch.is_tensor(kl) else float(kl)
+        self.last_kl_loss = kl.item() if torch.is_tensor(kl) else float(kl) if self.use_kl else 0.0
         self.last_total_loss = total_loss.item()
         
         return (total_loss, outputs) if return_outputs else total_loss
+    
+    def training_step(self, model, inputs):
+        """
+        Override training_step to add gradient sanity check after first backward.
+        """
+        # Call parent training_step (this does forward, backward, optimizer step)
+        loss = super().training_step(model, inputs)
+        
+        # Gradient sanity check: run once after first backward pass
+        if not hasattr(self, '_gradient_sanity_checked'):
+            self._gradient_sanity_checked = True
+            print("\n" + "="*60)
+            print("[GRAD SANITY CHECK] After first backward pass")
+            print("="*60)
+            
+            nz, tot = 0, 0
+            for n, p in model.named_parameters():
+                if p.requires_grad:
+                    tot += 1
+                    if p.grad is not None and torch.count_nonzero(p.grad).item() > 0:
+                        nz += 1
+            
+            print(f"[GRAD] Trainable parameters with nonzero gradients: {nz}/{tot}")
+            
+            if nz == 0:
+                print("[GRAD] ⚠️  WARNING: NO gradients computed! Check loss computation.")
+            elif nz < tot:
+                print(f"[GRAD] ⚠️  WARNING: Only {nz}/{tot} parameters have gradients!")
+            else:
+                print(f"[GRAD] ✅ All trainable parameters have gradients.")
+            
+            # Optional: Show a few gradient samples
+            print(f"[GRAD] Sample gradients (first 3 LoRA parameters):")
+            count = 0
+            for n, p in model.named_parameters():
+                if p.requires_grad and 'lora' in n.lower() and p.grad is not None:
+                    grad_norm = p.grad.norm().item()
+                    print(f"[GRAD]   {n}: grad_norm={grad_norm:.6f}")
+                    count += 1
+                    if count >= 3:
+                        break
+            print("="*60 + "\n")
+        
+        return loss
     
     def prediction_step(self, model, inputs, prediction_loss_only, ignore_keys=None):
         """
@@ -259,7 +304,11 @@ class ARDClassificationTrainer(Trainer):
             logits = outputs.logits
             
             # Extract last token and filter to answer tokens
-            last_token_logits = logits[:, -1, :]
+            # CRITICAL FIX: Use attention mask to find last non-pad token per example
+            attn = inputs["attention_mask"]  # [batch_size, seq_len]
+            last_idx = attn.long().sum(dim=1) - 1  # [batch_size]
+            batch_indices = torch.arange(logits.size(0), device=logits.device)  # [batch_size]
+            last_token_logits = logits[batch_indices, last_idx, :]  # [batch_size, vocab_size]
             target_ids_device = self.target_ids.to(last_token_logits.device)
             filtered_logits = last_token_logits[:, target_ids_device.squeeze()]
             

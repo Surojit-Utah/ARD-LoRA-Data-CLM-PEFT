@@ -63,7 +63,7 @@ class ARCEasyDataset:
         self.dset = load_dataset("allenai/ai2_arc", "ARC-Easy")
         
         self.tokenizer = tokenizer
-        self.n_labels = 5  # A, B, C, D, E (max 5 choices)
+        self.n_labels = 4  # A, B, C, D (filtered to 4-choice questions, matching BayesianPEFT)
         
         # Set padding side to left for causal LM (important!)
         self.tokenizer.padding_side = "left"
@@ -72,13 +72,16 @@ class ARCEasyDataset:
         # Choose prompt template
         self.preamble = self.few_shot_preamble if self.few_shot else self.zero_shot_preamble
         
+        # Filter to only 4-choice questions (matching BayesianPEFT)
+        self._filter_to_4_choices()
+        
         # Compute target token IDs for answer labels
         self._compute_target_ids()
         
-        print(f"[ARC-EASY] Dataset loaded:")
-        print(f"[ARC-EASY]   Train: {len(self.dset['train'])} examples")
-        print(f"[ARC-EASY]   Validation: {len(self.dset['validation'])} examples")
-        print(f"[ARC-EASY]   Test: {len(self.dset['test'])} examples")
+        print(f"[ARC-EASY] Dataset loaded and filtered:")
+        print(f"[ARC-EASY]   Train: {len(self.dset['train'])} examples (4-choice only)")
+        print(f"[ARC-EASY]   Validation: {len(self.dset['validation'])} examples (4-choice only)")
+        print(f"[ARC-EASY]   Test: {len(self.dset['test'])} examples (4-choice only)")
         print(f"[ARC-EASY]   Target IDs: {self.target_ids.tolist()}")
     
     # Prompt templates (from BayesianPEFT)
@@ -104,26 +107,56 @@ Choices:
 {choices}
 Answer:"""
     
+    def _filter_to_4_choices(self):
+        """
+        Filter dataset to only include questions with exactly 4 choices.
+        This matches BayesianPEFT's approach and ensures consistency.
+        """
+        # Count before filtering
+        count_3_train = sum(1 for ex in self.dset["train"] if len(ex["choices"]["label"]) == 3)
+        count_4_train = sum(1 for ex in self.dset["train"] if len(ex["choices"]["label"]) == 4)
+        count_5_train = sum(1 for ex in self.dset["train"] if len(ex["choices"]["label"]) == 5)
+        
+        count_3_valid = sum(1 for ex in self.dset["validation"] if len(ex["choices"]["label"]) == 3)
+        count_4_valid = sum(1 for ex in self.dset["validation"] if len(ex["choices"]["label"]) == 4)
+        count_5_valid = sum(1 for ex in self.dset["validation"] if len(ex["choices"]["label"]) == 5)
+        
+        print(f"[ARC-EASY] Dataset filtering statistics:")
+        print(f"[ARC-EASY]   Train - 3-choice: {count_3_train}, 4-choice: {count_4_train}, 5-choice: {count_5_train}")
+        print(f"[ARC-EASY]   Valid - 3-choice: {count_3_valid}, 4-choice: {count_4_valid}, 5-choice: {count_5_valid}")
+        
+        # Filter to only 4-choice questions
+        self.dset["train"] = self.dset["train"].filter(
+            lambda example: len(example["choices"]["label"]) == 4
+        )
+        self.dset["validation"] = self.dset["validation"].filter(
+            lambda example: len(example["choices"]["label"]) == 4
+        )
+        self.dset["test"] = self.dset["test"].filter(
+            lambda example: len(example["choices"]["label"]) == 4
+        )
+    
     def _compute_target_ids(self):
         """
-        Compute token IDs for valid answer labels (A, B, C, D, E).
+        Compute token IDs for valid answer labels (A, B, C, D).
         
-        CRITICAL: This assumes each answer tokenizes to a single token!
-        The add_space parameter controls whether we use " A" or "A".
+        ROBUST: Uses last token ID to handle multi-piece tokenization safely.
+        For SentencePiece tokenizers (like LLaMA), leading space is critical.
         """
+        def last_token_id(tok, s: str) -> int:
+            """Extract last token ID from a string (safe for multi-piece tokens)."""
+            ids = tok.encode(s, add_special_tokens=False)
+            return ids[-1]  # safe even if multi-piece
+        
+        # Define label texts with leading space (critical for SentencePiece)
         spc = " " if self.add_space else ""
-        labels = [f"{spc}{chr(ord('A') + i)}" for i in range(self.n_labels)]
-        # labels = [" A", " B", " C", " D", " E"] if add_space=True
+        label_texts = [f"{spc}{chr(ord('A') + i)}" for i in range(self.n_labels)]
+        # label_texts = [" A", " B", " C", " D"] if add_space=True
         
-        # Tokenize labels
-        tokenized = self.tokenizer(
-            labels,
-            return_tensors="pt",
-            add_special_tokens=False
-        )
-        
-        # Extract last token (assumes single-token encoding!)
-        self.target_ids = tokenized.input_ids[:, -1:]
+        # Robustly extract last token ID for each label
+        label_ids = [last_token_id(self.tokenizer, s) for s in label_texts]
+        self.target_ids = torch.tensor(label_ids, dtype=torch.long).unsqueeze(1)
+        # Shape: [num_labels, 1] for compatibility with existing code
         
         # Create label<->target mappings
         self.label2target = OrderedDict(
@@ -133,9 +166,11 @@ Answer:"""
             [(self.target_ids[i].item(), i) for i in range(self.n_labels)]
         )
         
-        print(f"[ARC-EASY] Target token IDs computed:")
-        for i, label in enumerate(labels):
-            print(f"[ARC-EASY]   {repr(label)} -> token_id={self.target_ids[i].item()}")
+        # Sanity check: print label mappings with token names
+        print(f"[ARC-EASY] Target token IDs computed (robust last-token method):")
+        for s, i in zip(label_texts, self.target_ids.squeeze().tolist()):
+            token_str = self.tokenizer.convert_ids_to_tokens(i)
+            print(f"[ARC-EASY]   {repr(s)} -> id={i}, tok={repr(token_str)}")
     
     def _format_prompts(self, batch: List[Dict]) -> List[str]:
         """
