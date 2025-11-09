@@ -212,15 +212,46 @@ class PredictionTracker:
                 # Get the processed example from the dataset
                 example = dataset[idx]
                 
+                # Decode text for human readability (processed prompt)
+                input_ids = example.get('input_ids', [])
+                text = self.tokenizer.decode(input_ids, skip_special_tokens=True) if input_ids else ""
+                
                 # Access raw dataset for original question/choices/answerKey
+                # CRITICAL: Match by question text, not index, because datasets are filtered differently
                 raw_example = None
                 if self.raw_arc_dataset is not None:
                     # Determine split name
                     split = 'train' if split_name == 'train' else 'validation'
+                    
+                    # Extract question text from the formatted prompt to match with raw dataset
+                    question_from_prompt = None
                     try:
-                        raw_example = self.raw_arc_dataset[split][idx]
-                    except:
-                        print(f"[PredictionTracker] Could not access raw dataset at {split}[{idx}]")
+                        # Parse the formatted prompt to extract the actual question
+                        # Format is usually: "Select one... question: <QUESTION> Choices: ..."
+                        if 'question:' in text.lower():
+                            parts = text.split('Choices:')[0]  # Get part before choices
+                            # Find the question after "question:"
+                            question_start = parts.lower().rfind('question:')
+                            if question_start != -1:
+                                question_from_prompt = parts[question_start + len('question:'):].strip()
+                        
+                        # Search raw dataset for matching question by text
+                        if question_from_prompt and len(question_from_prompt) > 20:
+                            for raw_item in self.raw_arc_dataset[split]:
+                                if raw_item['question'].strip() == question_from_prompt:
+                                    raw_example = raw_item
+                                    print(f"[PredictionTracker] Matched example {idx} to raw dataset by question text")
+                                    break
+                        
+                        # If still no match, fallback to index (may be wrong due to filtering)
+                        if raw_example is None:
+                            try:
+                                raw_example = self.raw_arc_dataset[split][idx]
+                                print(f"[PredictionTracker] WARNING: Using index-based match for {split}[{idx}] - may be incorrect!")
+                            except:
+                                print(f"[PredictionTracker] Could not access raw dataset at {split}[{idx}]")
+                    except Exception as e:
+                        print(f"[PredictionTracker] Error matching raw example: {e}")
                 
                 # Compute the class index from answerKey
                 class_idx = -1
@@ -234,10 +265,6 @@ class PredictionTracker:
                     class_idx = example['classes']
                 elif 'label' in example:
                     class_idx = example['label']
-                
-                # Decode text for human readability (processed prompt)
-                input_ids = example.get('input_ids', [])
-                text = self.tokenizer.decode(input_ids, skip_special_tokens=True) if input_ids else ""
                 
                 # Store both raw and processed information
                 example_dict = {
