@@ -68,6 +68,17 @@ class PredictionTracker:
             'val': []
         }
         
+        # Load raw ARC-Easy dataset for accessing original questions/answers
+        self.raw_arc_dataset = None
+        if self.dataset_name == "arc_easy":
+            try:
+                from datasets import load_dataset
+                print(f"[PredictionTracker] Loading raw ARC-Easy dataset for original question access...")
+                self.raw_arc_dataset = load_dataset("allenai/ai2_arc", "ARC-Easy")
+                print(f"[PredictionTracker] Raw ARC-Easy dataset loaded successfully")
+            except Exception as e:
+                print(f"[PredictionTracker] WARNING: Could not load raw dataset: {e}")
+        
         print(f"[PredictionTracker] Initialized with output_dir: {self.output_dir}")
     
     def select_examples(self, train_dataset, val_dataset):
@@ -198,10 +209,31 @@ class PredictionTracker:
         examples = []
         for idx in selected_indices:
             try:
-                # Access the raw dataset to get original question/choices
-                raw_example = dataset.dataset.dset[dataset.split][idx] if hasattr(dataset, 'dataset') and hasattr(dataset.dataset, 'dset') else None
-                
+                # Get the processed example from the dataset
                 example = dataset[idx]
+                
+                # Access raw dataset for original question/choices/answerKey
+                raw_example = None
+                if self.raw_arc_dataset is not None:
+                    # Determine split name
+                    split = 'train' if split_name == 'train' else 'validation'
+                    try:
+                        raw_example = self.raw_arc_dataset[split][idx]
+                    except:
+                        print(f"[PredictionTracker] Could not access raw dataset at {split}[{idx}]")
+                
+                # Compute the class index from answerKey
+                class_idx = -1
+                if raw_example is not None and 'answerKey' in raw_example:
+                    answer_key = raw_example['answerKey']
+                    if answer_key.isalpha():
+                        class_idx = ord(answer_key) - ord("A")  # A->0, B->1, C->2, D->3
+                    else:
+                        class_idx = int(answer_key) - 1  # 1->0, 2->1, 3->2, 4->3
+                elif 'classes' in example:
+                    class_idx = example['classes']
+                elif 'label' in example:
+                    class_idx = example['label']
                 
                 # Decode text for human readability (processed prompt)
                 input_ids = example.get('input_ids', [])
@@ -212,10 +244,10 @@ class PredictionTracker:
                     'index': idx,
                     'input_ids': input_ids,
                     'labels': example.get('labels', []),
-                    'classes': example.get('classes', example.get('label', -1)),  # Store the actual class label
+                    'classes': class_idx,  # Use computed class index
                     'attention_mask': example.get('attention_mask', []),
                     'text': text,  # Processed prompt fed to model
-                    'answer_choice': self._extract_answer_choice_from_example(example)
+                    'answer_choice': chr(ord('A') + class_idx) if 0 <= class_idx <= 3 else 'Unknown'
                 }
                 
                 # Add raw dataset information if available
@@ -228,6 +260,8 @@ class PredictionTracker:
                 examples.append(example_dict)
             except Exception as e:
                 print(f"[PredictionTracker] Error processing {split_name}[{idx}]: {e}")
+                import traceback
+                traceback.print_exc()
                 continue
         
         return selected_indices, examples
