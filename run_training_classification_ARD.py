@@ -27,13 +27,17 @@ def _merge_config(defaults: dict):
     """Merge configuration with hierarchy: defaults -> top-level -> model -> dataset"""
     cfg = CONFIG or {}
     merged = dict(defaults)
-    
+
     # Apply top-level defaults
     if cfg.get("defaults"):
         merged.update(cfg.get("defaults"))
     
     # Apply model-specific defaults
     model_name = merged.get("model_name")
+    print(merged['model_name'])
+    print(merged['prediction_n_examples'])
+    print(merged)
+    input()
     if model_name and "models" in cfg and model_name in cfg["models"]:
         model_cfg = cfg["models"][model_name]
         if model_cfg.get("defaults"):
