@@ -1027,7 +1027,8 @@ def build_classification_trainer(
     print("[CLASSIFICATION] Added EvalLossComponentsCallback for epoch-end metric tracking")
 
     # Add HeldoutResampleCallback for dynamic ARD/SGD splits
-    if train_dataset is not None and hasattr(config, 'ard_prior_samples') and hasattr(config, 'batch_size'):
+    # FIXED: Use dict membership check instead of hasattr() for dict objects
+    if train_dataset is not None and 'ard_prior_samples' in config and 'batch_size' in config:
         trainer.add_callback(HeldoutResampleCallback(
                 train_ds=train_dataset,
                 val_ds=eval_dataset,
@@ -1037,11 +1038,18 @@ def build_classification_trainer(
                 data_collator=data_collator
             ))
         print("[CLASSIFICATION] Added HeldoutResampleCallback for dynamic ARD/SGD splits")
+    else:
+        print(f"[CLASSIFICATION] ⚠️ HeldoutResampleCallback NOT added:")
+        print(f"   train_dataset is not None: {train_dataset is not None}")
+        print(f"   'ard_prior_samples' in config: {'ard_prior_samples' in config if config else 'config is None'}")
+        print(f"   'batch_size' in config: {'batch_size' in config if config else 'config is None'}")
 
     # Add PriorEstimationCallback for ARD prior estimation
     if hasattr(args, 'device'):
         trainer.add_callback(PriorEstimationCallback(device=args.device))
         print("[CLASSIFICATION] Added PriorEstimationCallback for ARD prior estimation")
+    else:
+        print("[CLASSIFICATION] ⚠️ PriorEstimationCallback NOT added - args.device not found")
     
     # Add uncertainty evaluation callback if requested
     if enable_uncertainty_eval:
