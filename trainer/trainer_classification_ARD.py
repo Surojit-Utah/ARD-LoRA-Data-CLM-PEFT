@@ -109,7 +109,6 @@ class ARDClassificationTrainer(Trainer):
         print(f"[CLASSIFICATION]   Use KL loss: {self.use_kl}")
         print(f"[CLASSIFICATION]   Data collator type: {type(self.data_collator).__name__ if self.data_collator else 'None'}")
         print(f"[CLASSIFICATION]   Data collator: {self.data_collator}")
-        input()
 
     def compute_loss(
         self,
