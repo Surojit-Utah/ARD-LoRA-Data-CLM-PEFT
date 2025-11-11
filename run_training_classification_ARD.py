@@ -554,11 +554,14 @@ def main():
     # Setup training
     print(f"\n[STEP 3] Setting up ARD-LoRA training...")
     
-    # Create run-specific base directory
-    base_output_dir = os.path.join(
-        f"{config.get('model_name').replace('/', '_')}_ARD_LoRA_Classification_{dataset_name}"
-    )
+    # Create run-specific base directory with deterministic/probabilistic mode
+    model_mode = "deterministic" if config.get('deterministic_lora', True) else "probabilistic"
+    model_name_clean = config.get('model_name').replace('/', '_')
+    base_output_dir = f"{model_name_clean}_ARD_LoRA_Classification_{dataset_name}_{model_mode}"
     os.makedirs(base_output_dir, exist_ok=True)
+    
+    print(f"[INFO] Training mode: {model_mode.upper()}")
+    print(f"[INFO] Base output directory: {base_output_dir}")
     
     # Get run-specific directories
     output_dir, model_ckpt_dir, tb_log_dir, predictions_dir = get_output_dirs(
