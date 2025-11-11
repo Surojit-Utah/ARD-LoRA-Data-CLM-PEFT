@@ -36,12 +36,14 @@ def _merge_config(defaults: dict):
     model_name = merged.get("model_name")
     print(merged['model_name'])
     print(merged['prediction_n_examples'])
-    print(merged)
     input()
     if model_name and "models" in cfg and model_name in cfg["models"]:
         model_cfg = cfg["models"][model_name]
         if model_cfg.get("defaults"):
             merged.update(model_cfg.get("defaults"))
+    print(merged['model_name'])
+    print(merged['prediction_n_examples'])
+    input()
     
     # Apply dataset-specific config
     dataset_name = merged.get("dataset_name")
@@ -49,6 +51,9 @@ def _merge_config(defaults: dict):
         dataset_cfg = cfg["datasets"][dataset_name]
         if dataset_cfg:
             merged.update(dataset_cfg)
+    print(merged['model_name'])
+    print(merged['prediction_n_examples'])
+    input()
     
     # Validate and fix data types for critical parameters
     _validate_config_types(merged)
