@@ -44,9 +44,18 @@ def _merge_config(defaults: dict):
     # Apply dataset-specific config (safely handle None)
     # Only update with non-None values to preserve defaults
     dataset_name = merged.get("dataset_name")
-    if dataset_name and "datasets" in cfg and dataset_name in cfg["datasets"]:
-        dataset_cfg = cfg["datasets"][dataset_name]
-        if dataset_cfg:
+    if dataset_name and "datasets" in cfg:
+        # Try direct lookup first (datasets.arc_easy)
+        dataset_cfg = cfg["datasets"].get(dataset_name)
+        
+        # If not found, try nested lookup (datasets.BayesianPEFT.arc_easy)
+        if not dataset_cfg:
+            for group_name, group_config in cfg["datasets"].items():
+                if isinstance(group_config, dict) and dataset_name in group_config:
+                    dataset_cfg = group_config[dataset_name]
+                    break
+        
+        if dataset_cfg and isinstance(dataset_cfg, dict):
             # Only update with non-None values from dataset config
             for key, value in dataset_cfg.items():
                 if value is not None:
@@ -54,6 +63,11 @@ def _merge_config(defaults: dict):
     
     # Validate and fix data types for critical parameters
     _validate_config_types(merged)
+    
+    # Debug: Print critical config values
+    print(f"[CONFIG DEBUG] prediction_n_examples: {merged.get('prediction_n_examples')}")
+    print(f"[CONFIG DEBUG] enable_prediction_tracking: {merged.get('enable_prediction_tracking')}")
+    print(f"[CONFIG DEBUG] dataset_name: {merged.get('dataset_name')}")
     
     return merged
 
