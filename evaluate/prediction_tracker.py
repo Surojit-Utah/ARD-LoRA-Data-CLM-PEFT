@@ -162,6 +162,21 @@ class PredictionTracker:
         Returns:
             (indices, examples): Selected indices and example data
         """
+        # Validate n_examples
+        if n_examples <= 0:
+            print(f"[PredictionTracker] WARNING: n_examples={n_examples} is invalid, using default of 10")
+            n_examples = 10
+        
+        total_size = len(dataset)
+        if total_size == 0:
+            print(f"[PredictionTracker] WARNING: {split_name} dataset is empty")
+            return [], []
+        
+        # Adjust n_examples if it exceeds dataset size
+        if n_examples > total_size:
+            print(f"[PredictionTracker] WARNING: n_examples={n_examples} > dataset size={total_size}, using {total_size}")
+            n_examples = total_size
+        
         # Group examples by answer choice
         answer_groups = {'A': [], 'B': [], 'C': [], 'D': []}
         
