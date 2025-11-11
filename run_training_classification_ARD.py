@@ -17,7 +17,7 @@ from pathlib import Path
 import torch
 from config import CONFIG
 from model.model_llama import ProbLoRALayer, inject_problora_llama
-from trainer.trainer_classification import ARDClassificationTrainer, build_classification_trainer
+from trainer.trainer_classification_ARD import ARDClassificationTrainer, build_classification_trainer
 from dataset.S2ClassDataset import S2ClassDataset
 from transformers import AutoModelForCausalLM, AutoTokenizer, TrainingArguments
 from utils.io import get_output_dirs, free_memory

@@ -15,13 +15,17 @@ Key Differences from Standard CLM:
 
 import torch
 from torch import nn
+from torch.utils.data import Subset, DataLoader
 from typing import Dict, Any, Optional
 from transformers import Trainer
 from transformers.trainer_callback import TrainerCallback
 from evaluate.uncertainty_metrics import UncertaintyEvaluator
 from evaluate.prediction_tracker import PredictionTracker
+from model.model_llama import ProbLoRALayer
 import numpy as np
 from pathlib import Path
+import traceback
+import gc
 
 
 class ARDClassificationTrainer(Trainer):
@@ -49,8 +53,12 @@ class ARDClassificationTrainer(Trainer):
         super().__init__(*args, **kwargs)
         
         # Instance variable to control KL loss computation
-        self.use_kl = False  # Set to True to enable KL divergence loss
-        
+        # KL loss should be enabled for probabilistic mode, disabled for deterministic mode
+        # Determine from config: if deterministic_lora is False, use KL loss
+        self.use_kl = not config.get('deterministic_lora') if config is not None else False
+        self.verbose = verbose
+        self._deterministic = config.get('deterministic_lora') if config is not None else False
+
         # Load parameters from config with fallbacks
         if config is not None:
             self.beta = beta if beta is not None else config.get('kl_loss_beta')
@@ -284,15 +292,23 @@ class ARDClassificationTrainer(Trainer):
                 print(f"[GRAD] ✅ All trainable parameters have gradients.")
             
             # Optional: Show a few gradient samples
-            print(f"[GRAD] Sample gradients (first 3 LoRA parameters):")
+            print(f"[GRAD] Sample gradients (first 3 ProbLoRA modules):")
             count = 0
-            for n, p in model.named_parameters():
-                if p.requires_grad and 'lora' in n.lower() and p.grad is not None:
-                    grad_norm = p.grad.norm().item()
-                    print(f"[GRAD]   {n}: grad_norm={grad_norm:.6f}")
+            for mod_name, mod in model.named_modules():
+                if not isinstance(mod, ProbLoRALayer):
+                    continue
+                # Check gradients for mu_A and logvar_A parameters
+                if self._deterministic and hasattr(mod, 'mu_A') and mod.mu_A.grad is not None:
+                    grad_norm = mod.mu_A.grad.norm().item()
+                    print(f"[GRAD]   {mod_name}.mu_A: grad_norm={grad_norm:.6f}")
                     count += 1
-                    if count >= 3:
-                        break
+                # Only check logvar_A gradients if not deterministic (i.e., if KL loss is used)
+                if (not self._deterministic) and hasattr(mod, 'logvar_A') and mod.logvar_A is not None and mod.logvar_A.grad is not None:
+                    grad_norm = mod.logvar_A.grad.norm().item()
+                    print(f"[GRAD]   {mod_name}.logvar_A: grad_norm={grad_norm:.6f}")
+                    count += 1
+                if count >= 6:  # Show 3 modules (mu_A + logvar_A each)
+                    break
             print("="*60 + "\n")
         
         return loss
@@ -343,17 +359,25 @@ class ARDClassificationTrainer(Trainer):
         """
         Enhanced evaluation with classification metrics.
         """
-        # Call parent evaluate
-        metrics = super().evaluate(
-            eval_dataset=eval_dataset,
-            ignore_keys=ignore_keys,
-            metric_key_prefix=metric_key_prefix
-        )
+        # Temporarily disable progress bar for evaluation
+        original_disable_tqdm = self.args.disable_tqdm
+        self.args.disable_tqdm = True
         
-        # Add classification-specific metrics if needed
-        # (accuracy, F1, etc. can be added here)
-        
-        return metrics
+        try:
+            # Call parent evaluate
+            metrics = super().evaluate(
+                eval_dataset=eval_dataset,
+                ignore_keys=ignore_keys,
+                metric_key_prefix=metric_key_prefix
+            )
+            
+            # Add classification-specific metrics if needed
+            # (accuracy, F1, etc. can be added here)
+            
+            return metrics
+        finally:
+            # Restore original setting
+            self.args.disable_tqdm = original_disable_tqdm
     
     def evaluate_uncertainty(self) -> Optional[Dict[str, float]]:
         """
@@ -421,7 +445,7 @@ class ARDClassificationTrainer(Trainer):
                 
                 sample_count += len(classes)
                 
-                if batch_idx % 10 == 0:
+                if batch_idx % 100 == 0:
                     print(f"   Processed {batch_idx + 1} batches, {sample_count} samples")
         
         if len(all_labels) == 0:
@@ -755,6 +779,166 @@ class PredictionTrackerCallback(TrainerCallback):
             print(f"[PredictionTracker] Failed to save predictions for epoch {epoch}: {e}")
 
 
+class HeldoutResampleCallback(TrainerCallback):
+    """Callback to resample ARD samples from training data each epoch for dynamic prior estimation.
+    
+    CRITICAL: Creates MUTUALLY EXCLUSIVE splits:
+    - SGD samples: Used for gradient updates
+    - ARD samples: Used ONLY for ARD prior estimation (NOT in SGD)
+    """
+    
+    def __init__(self, train_ds, val_ds, ard_prior_samples, batch_size, tokenizer=None, data_collator=None):
+        super().__init__()
+        self.train_ds = train_ds  # FULL training data
+        self.val_ds = val_ds
+        self.ard_prior_samples = ard_prior_samples
+        self.batch_size = batch_size
+        self.tokenizer = tokenizer
+        self.data_collator = data_collator
+        
+        # Validate split feasibility
+        if self.train_ds is not None:
+            total_train = len(self.train_ds)
+            min_sgd_samples = total_train - self.ard_prior_samples
+            
+            if min_sgd_samples < self.ard_prior_samples:
+                print(f"[HeldoutResampleCallback] WARNING: Training dataset has only {total_train} samples.")
+                print(f"[HeldoutResampleCallback] Adjusting ARD samples to {total_train // 2} to ensure equal SGD/ARD split")
+                self.ard_prior_samples = total_train // 2
+            
+            if min_sgd_samples < 100:
+                raise ValueError(f"Insufficient SGD samples ({min_sgd_samples}). Need more training data!")
+    
+    def _create_mutually_exclusive_splits(self):
+        """Create mutually exclusive SGD and ARD splits from training data.
+        
+        Returns:
+            sgd_dataset: Dataset for SGD training (no overlap with ARD)
+            ard_dataset: Dataset for ARD estimation (no overlap with SGD)
+        """
+        if self.train_ds is None or len(self.train_ds) == 0:
+            print("[HeldoutResampleCallback] No training data available")
+            return None, None
+        
+        total_train = len(self.train_ds)
+        ard_samples = min(self.ard_prior_samples, total_train // 2)  # At most 50%
+        sgd_samples = total_train - ard_samples
+        
+        # Randomly shuffle ALL training indices
+        perm = np.random.permutation(total_train)
+        
+        # MUTUALLY EXCLUSIVE SPLIT
+        ard_indices = [int(idx) for idx in perm[:ard_samples]]          # First N for ARD
+        sgd_indices = [int(idx) for idx in perm[ard_samples:]]          # Remaining for SGD
+        
+        # Verify no overlap (sanity check)
+        assert set(ard_indices).isdisjoint(set(sgd_indices)), "ARD and SGD indices overlap!"
+        
+        # Create datasets
+        if hasattr(self.train_ds, 'select'):
+            # HuggingFace dataset
+            sgd_dataset = self.train_ds.select(sgd_indices)
+            ard_dataset = self.train_ds.select(ard_indices)
+        else:
+            # PyTorch dataset
+            sgd_dataset = Subset(self.train_ds, sgd_indices)
+            ard_dataset = Subset(self.train_ds, ard_indices)
+        
+        return sgd_dataset, ard_dataset
+    
+    def on_epoch_begin(self, args, state, control, **kwargs):
+        """Resample MUTUALLY EXCLUSIVE SGD and ARD splits at the beginning of each epoch."""
+        model = kwargs["model"]
+        trainer = getattr(model, 'trainer', None)
+        
+        if trainer is None:
+            print("[HeldoutResampleCallback] No trainer reference found")
+            return
+        
+        if self.train_ds is None:
+            print("[HeldoutResampleCallback] No training dataset available")
+            return
+        
+        try:
+            # Create mutually exclusive splits
+            sgd_dataset, ard_dataset = self._create_mutually_exclusive_splits()
+            
+            if sgd_dataset is not None and ard_dataset is not None:
+                # ✅ UPDATE TRAINER'S TRAINING DATASET (for SGD)
+                trainer.train_dataset = sgd_dataset
+                
+                # ✅ CREATE ARD DATALOADER (for ARD estimation only)
+                if self.data_collator is not None:
+                    trainer.ard_heldout_loader = DataLoader(
+                        ard_dataset,
+                        batch_size=self.batch_size,
+                        collate_fn=self.data_collator,
+                        shuffle=False
+                    )
+                    
+                    print(f"[HeldoutResampleCallback] ✅ Epoch {int(state.epoch)} - Mutually Exclusive Split:")
+                    print(f"   SGD samples: {len(sgd_dataset)} (for gradient updates)")
+                    print(f"   ARD samples: {len(ard_dataset)} (for prior estimation ONLY)")
+                    print(f"   Total: {len(sgd_dataset) + len(ard_dataset)} from {len(self.train_ds)} training samples")
+                    print(f"   Overlap: 0 samples ✅")
+                    print(f"   Eval (fixed): {len(self.val_ds) if self.val_ds else 0} samples")
+                else:
+                    print(f"[HeldoutResampleCallback] ⚠️ No data_collator provided")
+            
+        except Exception as e:
+            print(f"[HeldoutResampleCallback] Failed to create splits: {e}")
+            traceback.print_exc()
+
+
+class PriorEstimationCallback(TrainerCallback):
+    """Callback to estimate ARD priors following DeBERTa pattern."""
+    
+    def __init__(self, device):
+        super().__init__()
+        self.device = device
+    
+    def on_epoch_begin(self, args, state, control, **kwargs):
+        """Estimate ARD priors using held-out data at the beginning of each epoch."""
+        model = kwargs["model"]
+        trainer = getattr(model, 'trainer', None)
+        
+        if trainer is None:
+            print("[PriorEstimationCallback] No trainer reference found on model")
+            return
+            
+        # Use ard_heldout_loader for ARD prior estimation - fail if not configured
+        if not hasattr(trainer, 'ard_heldout_loader'):
+            raise AttributeError("[PriorEstimationCallback] trainer.ard_heldout_loader is required but not found. Check trainer configuration.")
+        
+        eval_data = trainer.ard_heldout_loader
+        if eval_data is None:
+            raise ValueError("[PriorEstimationCallback] trainer.ard_heldout_loader is None. ARD prior estimation requires a configured DataLoader.")
+        
+        print(f"[PriorEstimationCallback] Estimating ARD priors at epoch {int(state.epoch)}...")
+        
+        try:
+            # Get relevance thresholds from trainer
+            high_threshold = getattr(trainer, 'high_relevance_threshold', 0.1)
+            medium_threshold = getattr(trainer, 'medium_relevance_threshold', 0.01)
+            # Get layer configuration from trainer
+            target_attention_layers = getattr(trainer, 'target_attention_layers', None)
+            if target_attention_layers is None:
+                raise ValueError("target_attention_layers must be configured in trainer")
+            estimate_ard_priors_clm(model, eval_data, self.device, 
+                                  high_relevance_threshold=high_threshold,
+                                  medium_relevance_threshold=medium_threshold,
+                                  target_attention_layers=target_attention_layers,
+                                  verbose=False)
+            print("[PriorEstimationCallback] ARD prior estimation completed")
+        except Exception as e:
+            print(f"[PriorEstimationCallback] ARD prior estimation failed: {e}")
+        
+        # Clean up memory
+        gc.collect()
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+
+
 def build_classification_trainer(
     model,
     args,
@@ -817,6 +1001,23 @@ def build_classification_trainer(
     # Add evaluation callback to track metrics after each epoch
     trainer.add_callback(EvalLossComponentsCallback())
     print("[CLASSIFICATION] Added EvalLossComponentsCallback for epoch-end metric tracking")
+
+    # Add HeldoutResampleCallback for dynamic ARD/SGD splits
+    if train_dataset is not None and hasattr(config, 'ard_prior_samples') and hasattr(config, 'batch_size'):
+        trainer.add_callback(HeldoutResampleCallback(
+                train_ds=train_dataset,
+                val_ds=eval_dataset,
+                ard_prior_samples=config['ard_prior_samples'],
+                batch_size=config['batch_size'],
+                tokenizer=tokenizer,
+                data_collator=data_collator
+            ))
+        print("[CLASSIFICATION] Added HeldoutResampleCallback for dynamic ARD/SGD splits")
+
+    # Add PriorEstimationCallback for ARD prior estimation
+    if hasattr(args, 'device'):
+        trainer.add_callback(PriorEstimationCallback(device=args.device))
+        print("[CLASSIFICATION] Added PriorEstimationCallback for ARD prior estimation")
     
     # Add uncertainty evaluation callback if requested
     if enable_uncertainty_eval:
@@ -845,3 +1046,195 @@ def build_classification_trainer(
         print(f"[CLASSIFICATION] Added PredictionTrackerCallback (tracking {n_examples} examples)")
     
     return trainer
+
+@torch.no_grad()
+def estimate_ard_priors_clm(model, ard_heldout_loader, device, 
+                            high_relevance_threshold, medium_relevance_threshold,
+                            target_attention_layers, verbose=False):
+    """
+    Estimate ARD priors following DeBERTa pattern, adapted for LLaMA architecture.
+    
+    Args:
+        model: ARD-LoRA model with ProbLoRA layers
+        ard_heldout_loader: Pre-configured DataLoader for ARD prior estimation
+        device: Device to run computation on
+        high_relevance_threshold: Threshold for high relevance classification (REQUIRED)
+        medium_relevance_threshold: Threshold for medium relevance classification (REQUIRED)
+        target_attention_layers: List of attention projection names to target (from YAML config - REQUIRED)
+    """
+    # Calculate total samples from DataLoader
+    total_samples = len(ard_heldout_loader.dataset) if hasattr(ard_heldout_loader, 'dataset') else 0
+    print(f"[ARD] Estimating priors using all {total_samples} samples from DataLoader...")
+    
+    # Validate required parameters
+    if target_attention_layers is None:
+        raise ValueError("target_attention_layers must be provided from YAML configuration")
+    
+    # Set model to eval mode for prior estimation
+    was_training = model.training
+    model.eval()
+    
+    # Use the pre-configured DataLoader directly
+    eval_dataloader = ard_heldout_loader
+    
+    # Collect ProbLoRA layers and initialize beta accumulators (following DeBERTa pattern)
+    prob_lora_layers = {}
+    
+    # Find all ProbLoRA layers in the model (adapted from DeBERTa approach)
+    if hasattr(model, 'model') and hasattr(model.model, 'layers'):
+        for layer_idx, layer in enumerate(model.model.layers):
+            layer_projections = {}
+            
+            # Check attention projections (configurable from YAML)
+            if hasattr(layer, 'self_attn') and target_attention_layers:
+                attn = layer.self_attn
+                for proj_name in target_attention_layers:
+                    if hasattr(attn, proj_name):
+                        proj = getattr(attn, proj_name)
+                        # Check if this is a ProbLoRA layer (has beta_get_sample method)
+                        if hasattr(proj, 'beta_get_sample') and hasattr(proj, 'rank'):
+                            layer_projections[f'attn_{proj_name}'] = proj
+            
+            if layer_projections:
+                prob_lora_layers[layer_idx] = layer_projections
+    
+    if not prob_lora_layers:
+        print("[ARD] No ProbLoRA layers found for prior estimation")
+        # Restore original training mode
+        if was_training:
+            model.train()
+        return []
+    
+    # Initialize beta accumulators for each layer (following DeBERTa pattern)
+    beta_accumulators = {}
+    for layer_idx, projections in prob_lora_layers.items():
+        beta_accumulators[layer_idx] = {}
+        for proj_name, proj in projections.items():
+            beta_accumulators[layer_idx][proj_name] = np.zeros(proj.rank, dtype=np.float32)
+    
+    sample_count = 0
+    
+    for batch_idx, batch in enumerate(eval_dataloader):
+        
+        # Move to device
+        inputs = {k: v.to(device) if torch.is_tensor(v) else v for k, v in batch.items()}
+        
+        # Get hidden states for each layer (following DeBERTa approach)
+        input_ids = inputs["input_ids"]
+        attention_mask = inputs.get("attention_mask")
+        
+        # Get hidden states from model forward pass (similar to DeBERTa encoder outputs)
+        if hasattr(model, 'model'):
+            hidden_states_outputs = model.model(
+                input_ids=input_ids,
+                attention_mask=attention_mask,
+                output_hidden_states=True,
+                use_cache=False
+            )
+            hidden_states = hidden_states_outputs.hidden_states
+            
+            # Process each layer that has ProbLoRA projections (following DeBERTa pattern)
+            for layer_idx, projections in prob_lora_layers.items():
+                if layer_idx < len(hidden_states):
+                    layer_input = hidden_states[layer_idx]
+                    
+                    # Accumulate beta samples for each projection (following DeBERTa pattern)
+                    for proj_name, proj in projections.items():
+                        try:
+                            beta_sample = proj.beta_get_sample(layer_input)
+                            
+                            # NUMERICAL STABILITY: Check for inf/nan before accumulation
+                            if np.isnan(beta_sample).any() or np.isinf(beta_sample).any():
+                                print(f"[ARD] Warning: NaN/Inf in beta sample for layer {layer_idx} {proj_name}, skipping")
+                                continue
+                            
+                            # Safely compute squared samples
+                            try:
+                                beta_squared = beta_sample ** 2
+                                # Check for overflow after squaring
+                                if np.isnan(beta_squared).any() or np.isinf(beta_squared).any():
+                                    print(f"[ARD] Warning: Overflow in beta^2 for layer {layer_idx} {proj_name}, skipping")
+                                    continue
+                                
+                                beta_accumulators[layer_idx][proj_name] += np.sum(beta_squared, axis=0) / 2.0
+                            except (FloatingPointError, OverflowError):
+                                print(f"[ARD] Warning: Numerical overflow for layer {layer_idx} {proj_name}, using fallback")
+                                # Fallback: use much smaller values to maintain numerical stability
+                                beta_accumulators[layer_idx][proj_name] += np.ones(proj.rank, dtype=np.float32) * 0.1
+                                
+                        except Exception as e:
+                            print(f"[ARD] Warning: Failed to get beta sample for layer {layer_idx} {proj_name}: {e}")
+                            continue
+        
+        sample_count += inputs['input_ids'].size(0)
+        
+        if batch_idx % 10 == 0:
+            print(f"   Processed {batch_idx + 1} batches, ~{sample_count} samples")
+    
+    # Update est_var for each layer (following DeBERTa pattern: est_var = beta / alpha + 1e-6)
+    if verbose:
+        print(f"\n[ARD] Updating estimated variances for {len(prob_lora_layers)} layers:")
+    
+    for layer_idx, projections in prob_lora_layers.items():
+        for proj_name, proj in projections.items():
+            beta_accumulated = beta_accumulators[layer_idx][proj_name]
+            
+            # NUMERICAL STABILITY: Check beta_accumulated for inf/nan values
+            if np.isnan(beta_accumulated).any() or np.isinf(beta_accumulated).any():
+                print(f"[ARD] Warning: Invalid beta_accumulated for layer {layer_idx} {proj_name}, using fallback")
+                beta_accumulated = np.ones(proj.rank, dtype=np.float32) * 0.1  # Small positive values
+            
+            # Calculate est_var: beta / alpha + 1e-6 (same as DeBERTa)
+            # NUMERICAL STABILITY: Ensure alpha is reasonable and prevent division by zero
+            alpha_safe = max(proj.alpha, 1e-6)
+            est_var_values = beta_accumulated / alpha_safe + 1e-6
+            
+            # Check final values before creating tensor
+            if np.isnan(est_var_values).any() or np.isinf(est_var_values).any():
+                print(f"[ARD] Warning: Invalid est_var for layer {layer_idx} {proj_name}, using default")
+                est_var_values = np.ones(proj.rank, dtype=np.float32)  # Default to 1.0
+            
+            # Create a float32 tensor on the target device for est_var
+            est_var_tensor = torch.tensor(est_var_values, dtype=torch.float32, device=device)
+
+            # If the module already has an est_var tensor buffer, try to update it in-place
+            try:
+                if hasattr(proj, 'est_var') and isinstance(proj.est_var, torch.Tensor):
+                    # Attempt an in-place copy while respecting existing dtype/device
+                    try:
+                        proj.est_var.data = est_var_tensor.to(proj.est_var.device, dtype=proj.est_var.dtype).data
+                    except Exception:
+                        # Fallback to re-registering the buffer if in-place update fails
+                        try:
+                            proj.register_buffer('est_var', est_var_tensor)
+                        except Exception:
+                            # As a last resort, set attribute (works but won't move with .to())
+                            setattr(proj, 'est_var', est_var_tensor)
+                else:
+                    # Register as a buffer so it moves with the module's device/state_dict
+                    proj.register_buffer('est_var', est_var_tensor)
+            except Exception:
+                # Be defensive: ensure there's at least an attribute even if register_buffer fails
+                try:
+                    proj.est_var = est_var_tensor
+                except Exception:
+                    # Give up quietly but report
+                    print(f"[ARD] Warning: Could not set est_var for projection {proj_name} in layer {layer_idx}")
+            
+            # Print statistics (only if verbose)
+            if verbose:
+                avg_est_var = np.mean(est_var_values)
+                print(f"   Layer {layer_idx} {proj_name}: avg_est_var={avg_est_var:.6f}")
+                
+                # ARD relevance determination (using est_var)
+                relevance = "High" if avg_est_var > high_relevance_threshold else "Medium" if avg_est_var > medium_relevance_threshold else "Low"
+                print(f"     → Estimated relevance: {relevance}")
+    
+    # Restore original training mode
+    if was_training:
+        model.train()
+    else:
+        model.eval()
+    
+    print(f"[ARD] ✅ Prior estimation completed - updated est_var for all ProbLoRA layers")
+    return list(prob_lora_layers.keys())

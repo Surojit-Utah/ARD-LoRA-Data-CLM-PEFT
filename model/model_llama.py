@@ -254,7 +254,7 @@ class ProbLoRALayer(nn.Module):
             #     idx = torch.where(mv.to(x32.device) > 0)[0]
             #     mu, logvar, var, tvar = mu[:, idx], logvar[:, idx], var[:, idx], tvar[:, idx]
 
-            kld = 0.5 * (torch.log(tvar) - logvar + (var + mu.pow(2)) / tvar - 1.0)
+            kld = 0.5 * (torch.log(tvar) - logvar + ((var + mu.pow(2)) / tvar) - 1.0)
             out = kld.mean()
 
         # return in model dtype to avoid dtype mismatches upstream
