@@ -848,6 +848,8 @@ class HeldoutResampleCallback(TrainerCallback):
     
     def on_epoch_begin(self, args, state, control, **kwargs):
         """Resample MUTUALLY EXCLUSIVE SGD and ARD splits at the beginning of each epoch."""
+        print(f"\n[HeldoutResampleCallback] on_epoch_begin called for epoch {int(state.epoch)}")
+        
         model = kwargs["model"]
         trainer = getattr(model, 'trainer', None)
         
@@ -859,9 +861,15 @@ class HeldoutResampleCallback(TrainerCallback):
             print("[HeldoutResampleCallback] No training dataset available")
             return
         
+        print(f"[HeldoutResampleCallback] train_ds size: {len(self.train_ds)}")
+        print(f"[HeldoutResampleCallback] data_collator is None: {self.data_collator is None}")
+        
         try:
             # Create mutually exclusive splits
+            print(f"[HeldoutResampleCallback] Creating mutually exclusive splits...")
             sgd_dataset, ard_dataset = self._create_mutually_exclusive_splits()
+            
+            print(f"[HeldoutResampleCallback] Splits created - sgd_dataset: {sgd_dataset is not None}, ard_dataset: {ard_dataset is not None}")
             
             if sgd_dataset is not None and ard_dataset is not None:
                 # ✅ UPDATE TRAINER'S TRAINING DATASET (for SGD)
