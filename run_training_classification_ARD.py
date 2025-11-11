@@ -42,11 +42,15 @@ def _merge_config(defaults: dict):
             merged.update(model_defaults)
     
     # Apply dataset-specific config (safely handle None)
+    # Only update with non-None values to preserve defaults
     dataset_name = merged.get("dataset_name")
     if dataset_name and "datasets" in cfg and dataset_name in cfg["datasets"]:
         dataset_cfg = cfg["datasets"][dataset_name]
         if dataset_cfg:
-            merged.update(dataset_cfg)
+            # Only update with non-None values from dataset config
+            for key, value in dataset_cfg.items():
+                if value is not None:
+                    merged[key] = value
     
     # Validate and fix data types for critical parameters
     _validate_config_types(merged)
