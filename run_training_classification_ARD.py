@@ -28,46 +28,26 @@ def _merge_config(defaults: dict):
     cfg = CONFIG or {}
     merged = dict(defaults)
     
-    # Apply top-level defaults (safely handle None)
-    top_level_defaults = cfg.get("defaults")
-    if top_level_defaults:
-        merged.update(top_level_defaults)
+    # Apply top-level defaults
+    if cfg.get("defaults"):
+        merged.update(cfg.get("defaults"))
     
-    # Apply model-specific defaults (safely handle None)
+    # Apply model-specific defaults
     model_name = merged.get("model_name")
     if model_name and "models" in cfg and model_name in cfg["models"]:
         model_cfg = cfg["models"][model_name]
-        model_defaults = model_cfg.get("defaults")
-        if model_defaults:
-            merged.update(model_defaults)
+        if model_cfg.get("defaults"):
+            merged.update(model_cfg.get("defaults"))
     
-    # Apply dataset-specific config (safely handle None)
-    # Only update with non-None values to preserve defaults
+    # Apply dataset-specific config
     dataset_name = merged.get("dataset_name")
-    if dataset_name and "datasets" in cfg:
-        # Try direct lookup first (datasets.arc_easy)
-        dataset_cfg = cfg["datasets"].get(dataset_name)
-        
-        # If not found, try nested lookup (datasets.BayesianPEFT.arc_easy)
-        if not dataset_cfg:
-            for group_name, group_config in cfg["datasets"].items():
-                if isinstance(group_config, dict) and dataset_name in group_config:
-                    dataset_cfg = group_config[dataset_name]
-                    break
-        
-        if dataset_cfg and isinstance(dataset_cfg, dict):
-            # Only update with non-None values from dataset config
-            for key, value in dataset_cfg.items():
-                if value is not None:
-                    merged[key] = value
+    if dataset_name and "datasets" in cfg and dataset_name in cfg["datasets"]:
+        dataset_cfg = cfg["datasets"][dataset_name]
+        if dataset_cfg:
+            merged.update(dataset_cfg)
     
     # Validate and fix data types for critical parameters
     _validate_config_types(merged)
-    
-    # Debug: Print critical config values
-    print(f"[CONFIG DEBUG] prediction_n_examples: {merged.get('prediction_n_examples')}")
-    print(f"[CONFIG DEBUG] enable_prediction_tracking: {merged.get('enable_prediction_tracking')}")
-    print(f"[CONFIG DEBUG] dataset_name: {merged.get('dataset_name')}")
     
     return merged
 
