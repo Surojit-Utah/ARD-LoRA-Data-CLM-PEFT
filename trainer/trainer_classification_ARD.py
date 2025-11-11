@@ -891,30 +891,45 @@ class HeldoutResampleCallback(TrainerCallback):
 
 
 class PriorEstimationCallback(TrainerCallback):
-    """Callback to estimate ARD priors following DeBERTa pattern."""
+    """Callback to estimate ARD priors following DeBERTa pattern.
+    
+    Uses on_step_begin to run AFTER HeldoutResampleCallback.on_epoch_begin
+    completes, ensuring ard_heldout_loader is ready.
+    """
     
     def __init__(self, device):
         super().__init__()
         self.device = device
+        self._last_estimated_epoch = -1  # Track which epoch we last estimated for
     
-    def on_epoch_begin(self, args, state, control, **kwargs):
-        """Estimate ARD priors using held-out data at the beginning of each epoch."""
+    def on_step_begin(self, args, state, control, **kwargs):
+        """Estimate ARD priors at the first step of each epoch (after resampling completes)."""
         model = kwargs["model"]
         trainer = getattr(model, 'trainer', None)
         
         if trainer is None:
-            print("[PriorEstimationCallback] No trainer reference found on model")
             return
-            
-        # Use ard_heldout_loader for ARD prior estimation - fail if not configured
+        
+        # Only run once per epoch (at the first step)
+        current_epoch = int(state.epoch)
+        if current_epoch == self._last_estimated_epoch:
+            return  # Already estimated for this epoch
+        
+        self._last_estimated_epoch = current_epoch
+        
+        # Use ard_heldout_loader for ARD prior estimation
         if not hasattr(trainer, 'ard_heldout_loader'):
-            raise AttributeError("[PriorEstimationCallback] trainer.ard_heldout_loader is required but not found. Check trainer configuration.")
+            print("[PriorEstimationCallback] trainer.ard_heldout_loader not found, skipping ARD estimation")
+            return
         
         eval_data = trainer.ard_heldout_loader
-        # if eval_data is None:
-        #     raise ValueError("[PriorEstimationCallback] trainer.ard_heldout_loader is None. ARD prior estimation requires a configured DataLoader.")
         
-        print(f"[PriorEstimationCallback] Estimating ARD priors at epoch {int(state.epoch)}...")
+        # Skip ARD estimation if loader hasn't been created yet by HeldoutResampleCallback
+        if eval_data is None:
+            print(f"[PriorEstimationCallback] Skipping ARD estimation at epoch {current_epoch} - DataLoader not yet created")
+            return
+        
+        print(f"[PriorEstimationCallback] Estimating ARD priors at beginning of epoch {current_epoch}...")
         
         try:
             # Get relevance thresholds from trainer
@@ -932,6 +947,7 @@ class PriorEstimationCallback(TrainerCallback):
             print("[PriorEstimationCallback] ARD prior estimation completed")
         except Exception as e:
             print(f"[PriorEstimationCallback] ARD prior estimation failed: {e}")
+            traceback.print_exc()
         
         # Clean up memory
         gc.collect()
