@@ -19,6 +19,7 @@ from torch.utils.data import Subset, DataLoader
 from typing import Dict, Any, Optional
 from transformers import Trainer
 from transformers.trainer_callback import TrainerCallback
+from transformers.data.data_collator import default_data_collator
 from evaluate.uncertainty_metrics import UncertaintyEvaluator
 from evaluate.prediction_tracker import PredictionTracker
 from model.model_llama import ProbLoRALayer
@@ -106,7 +107,10 @@ class ARDClassificationTrainer(Trainer):
         print(f"[CLASSIFICATION]   Target IDs: {self.target_ids.tolist()}")
         print(f"[CLASSIFICATION]   KL beta: {self.beta}")
         print(f"[CLASSIFICATION]   Use KL loss: {self.use_kl}")
-    
+        print(f"[CLASSIFICATION]   Data collator type: {type(self.data_collator).__name__ if self.data_collator else 'None'}")
+        print(f"[CLASSIFICATION]   Data collator: {self.data_collator}")
+        input()
+
     def compute_loss(
         self,
         model,
@@ -876,11 +880,15 @@ class HeldoutResampleCallback(TrainerCallback):
                 trainer.train_dataset = sgd_dataset
                 
                 # ✅ CREATE ARD DATALOADER (for ARD estimation only)
-                if self.data_collator is not None:
+                # Use provided data_collator or fallback to trainer's data_collator
+                # (HF Trainer defaults to default_data_collator if none provided)
+                collator = self.data_collator if self.data_collator is not None else trainer.data_collator
+                
+                if collator is not None:
                     trainer.ard_heldout_loader = DataLoader(
                         ard_dataset,
                         batch_size=self.batch_size,
-                        collate_fn=self.data_collator,
+                        collate_fn=collator,
                         shuffle=False
                     )
                     
@@ -890,8 +898,9 @@ class HeldoutResampleCallback(TrainerCallback):
                     print(f"   Total: {len(sgd_dataset) + len(ard_dataset)} from {len(self.train_ds)} training samples")
                     print(f"   Overlap: 0 samples ✅")
                     print(f"   Eval (fixed): {len(self.val_ds) if self.val_ds else 0} samples")
+                    print(f"   Data collator: {type(collator).__name__}")
                 else:
-                    print(f"[HeldoutResampleCallback] ⚠️ No data_collator provided")
+                    print(f"[HeldoutResampleCallback] ⚠️ No data_collator available (callback: {self.data_collator is None}, trainer: {trainer.data_collator is None})")
             
         except Exception as e:
             print(f"[HeldoutResampleCallback] Failed to create splits: {e}")
@@ -1008,6 +1017,12 @@ def build_classification_trainer(
     if num_classes is None:
         num_classes = config.get('num_classes')
     
+    # Debug: Show data_collator details before creating trainer
+    print(f"\n[BUILD_TRAINER] Creating ARDClassificationTrainer:")
+    print(f"[BUILD_TRAINER]   data_collator provided: {data_collator is not None}")
+    print(f"[BUILD_TRAINER]   data_collator type: {type(data_collator).__name__ if data_collator else 'None'}")
+    print(f"[BUILD_TRAINER]   data_collator object: {data_collator}")
+    
     trainer = ARDClassificationTrainer(
         model=model,
         args=args,
@@ -1022,6 +1037,12 @@ def build_classification_trainer(
         **kwargs
     )
     
+    # AFTER trainer creation, extract the actual data_collator used by HF Trainer
+    print(f"\n[BUILD_TRAINER] After trainer initialization:")
+    print(f"[BUILD_TRAINER]   Trainer's data_collator type: {type(trainer.data_collator).__name__ if trainer.data_collator else 'None'}")
+    print(f"[BUILD_TRAINER]   Trainer's data_collator object: {trainer.data_collator}")
+    print(f"[BUILD_TRAINER]   Trainer's data_collator is default_data_collator: {trainer.data_collator is default_data_collator if trainer.data_collator else False}")
+    
     # Add evaluation callback to track metrics after each epoch
     trainer.add_callback(EvalLossComponentsCallback())
     print("[CLASSIFICATION] Added EvalLossComponentsCallback for epoch-end metric tracking")
@@ -1029,15 +1050,20 @@ def build_classification_trainer(
     # Add HeldoutResampleCallback for dynamic ARD/SGD splits
     # FIXED: Use dict membership check instead of hasattr() for dict objects
     if train_dataset is not None and 'ard_prior_samples' in config and 'batch_size' in config:
+        # Verify data_collator consistency
+        print(f"[CLASSIFICATION] data_collator type: {type(data_collator).__name__ if data_collator else 'None'}")
+        print(f"[CLASSIFICATION] Trainer's data_collator is same instance: {trainer.data_collator is data_collator}")
+        
         trainer.add_callback(HeldoutResampleCallback(
                 train_ds=train_dataset,
                 val_ds=eval_dataset,
                 ard_prior_samples=config['ard_prior_samples'],
                 batch_size=config['batch_size'],
                 tokenizer=tokenizer,
-                data_collator=data_collator
+                data_collator=trainer.data_collator  # CRITICAL: Same instance as trainer
             ))
         print("[CLASSIFICATION] Added HeldoutResampleCallback for dynamic ARD/SGD splits")
+        print("[CLASSIFICATION] ✅ All dataloaders (train/eval/ARD) use the same data_collator instance")
     else:
         print(f"[CLASSIFICATION] ⚠️ HeldoutResampleCallback NOT added:")
         print(f"   train_dataset is not None: {train_dataset is not None}")
