@@ -911,8 +911,8 @@ class PriorEstimationCallback(TrainerCallback):
             raise AttributeError("[PriorEstimationCallback] trainer.ard_heldout_loader is required but not found. Check trainer configuration.")
         
         eval_data = trainer.ard_heldout_loader
-        if eval_data is None:
-            raise ValueError("[PriorEstimationCallback] trainer.ard_heldout_loader is None. ARD prior estimation requires a configured DataLoader.")
+        # if eval_data is None:
+        #     raise ValueError("[PriorEstimationCallback] trainer.ard_heldout_loader is None. ARD prior estimation requires a configured DataLoader.")
         
         print(f"[PriorEstimationCallback] Estimating ARD priors at epoch {int(state.epoch)}...")
         
