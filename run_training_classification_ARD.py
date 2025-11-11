@@ -28,20 +28,25 @@ def _merge_config(defaults: dict):
     cfg = CONFIG or {}
     merged = dict(defaults)
     
-    # Apply top-level defaults
-    merged.update(cfg.get("defaults"))
+    # Apply top-level defaults (safely handle None)
+    top_level_defaults = cfg.get("defaults")
+    if top_level_defaults:
+        merged.update(top_level_defaults)
     
-    # Apply model-specific defaults
-    model_name = merged["model_name"]
-    if "models" in cfg and model_name in cfg["models"]:
+    # Apply model-specific defaults (safely handle None)
+    model_name = merged.get("model_name")
+    if model_name and "models" in cfg and model_name in cfg["models"]:
         model_cfg = cfg["models"][model_name]
-        merged.update(model_cfg.get("defaults"))
+        model_defaults = model_cfg.get("defaults")
+        if model_defaults:
+            merged.update(model_defaults)
     
-    # Apply dataset-specific config
-    dataset_name = merged["dataset_name"]
-    if "datasets" in cfg and dataset_name in cfg["datasets"]:
+    # Apply dataset-specific config (safely handle None)
+    dataset_name = merged.get("dataset_name")
+    if dataset_name and "datasets" in cfg and dataset_name in cfg["datasets"]:
         dataset_cfg = cfg["datasets"][dataset_name]
-        merged.update(dataset_cfg)
+        if dataset_cfg:
+            merged.update(dataset_cfg)
     
     # Validate and fix data types for critical parameters
     _validate_config_types(merged)
