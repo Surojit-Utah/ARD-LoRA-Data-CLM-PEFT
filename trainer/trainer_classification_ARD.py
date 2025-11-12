@@ -28,8 +28,53 @@ from pathlib import Path
 import traceback
 import gc
 
+from transformers import Trainer
+from torch.utils.data import DataLoader
 
-class ARDClassificationTrainer(Trainer):
+
+class ResamplingTrainer(Trainer):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Flag the callback can flip
+        self._force_dataloader_rebuild = False
+        # Track identity of the dataset used to build the current train dataloader
+        self._last_train_dataset_id = None
+        # Optional cache to avoid repeated rebuilds within an epoch
+        self._cached_train_dataloader = None
+
+    def request_train_dataloader_rebuild(self):
+        self._force_dataloader_rebuild = True
+
+    def get_train_dataloader(self) -> DataLoader:
+        # Rebuild if:
+        #  - a callback asked for it, or
+        #  - the dataset object identity changed (new split)
+        dataset_id = id(self.train_dataset)
+        need_rebuild = (
+            self._force_dataloader_rebuild
+            or (self._last_train_dataset_id is None)
+            or (dataset_id != self._last_train_dataset_id)
+        )
+
+        if need_rebuild:
+            dl = super().get_train_dataloader()  # this sets up sampler, collator, etc.
+            self._cached_train_dataloader = dl
+            self._last_train_dataset_id = dataset_id
+            self._force_dataloader_rebuild = False
+            return dl
+
+        # Return the cached one for the rest of the epoch
+        if self._cached_train_dataloader is not None:
+            return self._cached_train_dataloader
+
+        # Fallback (shouldn’t happen often)
+        dl = super().get_train_dataloader()
+        self._cached_train_dataloader = dl
+        self._last_train_dataset_id = dataset_id
+        return dl
+
+
+class ARDClassificationTrainer(ResamplingTrainer):
     """
     Enhanced ARD Trainer for classification tasks with last-token prediction.
     
@@ -187,7 +232,7 @@ class ARDClassificationTrainer(Trainer):
         
         # ===== KL DIVERGENCE COMPUTATION (SAME AS CLM) =====
         
-        kl = 0.0
+        # kl = 0.0
         
         if self.use_kl:
             # KL computation only when enabled
@@ -207,9 +252,27 @@ class ARDClassificationTrainer(Trainer):
                 if hidden_states is not None:
                     print(f"\n[GRADIENT DEBUG] Epoch {current_epoch} - Hidden States Analysis:")
                     print(f"[GRADIENT DEBUG]   Number of hidden state layers: {len(hidden_states)}")
-                    print(f"[GRADIENT DEBUG]   Hidden states[0] requires_grad: {hidden_states[0].requires_grad}")
-                    print(f"[GRADIENT DEBUG]   Hidden states[0] has grad_fn: {hidden_states[0].grad_fn is not None}")
+                    print(f"[GRADIENT DEBUG]   Hidden states[0] (embeddings) requires_grad: {hidden_states[0].requires_grad}")
+                    print(f"[GRADIENT DEBUG]   Hidden states[0] (embeddings) has grad_fn: {hidden_states[0].grad_fn is not None}")
+                    
+                    # Check middle and last hidden states (these SHOULD have gradients if LoRA is working)
+                    if len(hidden_states) > 1:
+                        mid_idx = len(hidden_states) // 2
+                        print(f"[GRADIENT DEBUG]   Hidden states[{mid_idx}] (mid-layer) requires_grad: {hidden_states[mid_idx].requires_grad}")
+                        print(f"[GRADIENT DEBUG]   Hidden states[{mid_idx}] (mid-layer) has grad_fn: {hidden_states[mid_idx].grad_fn is not None}")
+                        print(f"[GRADIENT DEBUG]   Hidden states[-1] (final) requires_grad: {hidden_states[-1].requires_grad}")
+                        print(f"[GRADIENT DEBUG]   Hidden states[-1] (final) has grad_fn: {hidden_states[-1].grad_fn is not None}")
+                        
+                    # Most important: Check if logits have grad_fn (proves gradient path from loss to model)
+                    print(f"[GRADIENT DEBUG]   Logits requires_grad: {logits.requires_grad}")
+                    print(f"[GRADIENT DEBUG]   Logits has grad_fn: {logits.grad_fn is not None}")
+                    print(f"[GRADIENT DEBUG]   CE Loss requires_grad: {ce_loss.requires_grad}")
+                    print(f"[GRADIENT DEBUG]   CE Loss has grad_fn: {ce_loss.grad_fn is not None}")
             
+
+            # ---- NEW: collect KL terms instead of += on a Python float
+            kl_terms = []
+
             # Compute KL divergence over ProbLoRA layers
             if hidden_states is not None and hasattr(model, 'model') and hasattr(model.model, 'layers'):
                 for layer_idx, layer in enumerate(model.model.layers):
@@ -227,7 +290,12 @@ class ARDClassificationTrainer(Trainer):
                                     if hasattr(proj, 'kl_divergence_latent'):
                                         try:
                                             proj_kl = proj.kl_divergence_latent(layer_input)
-                                            kl += proj_kl
+
+                                            # ---- NEW: append the *Tensor* (no .item(), no .detach())
+                                            kl_terms.append(proj_kl)
+
+                                            # kl += proj_kl
+
                                             layer_kl_total += proj_kl.item() if torch.is_tensor(proj_kl) else float(proj_kl)
                                             layer_proj_count += 1
                                         except Exception:
@@ -241,11 +309,58 @@ class ARDClassificationTrainer(Trainer):
                                 }
                                 total_kl_layers += 1
             
-            # If no KL components found, create zero tensor with gradient connection
-            # Safe check to avoid "Boolean value of Tensor is ambiguous" error
-            if not torch.is_tensor(kl) or (torch.is_tensor(kl) and float(kl.detach().item()) == 0.0):
-                kl = torch.tensor(0.0, device=ce_loss.device, requires_grad=True)
+            # ---- NEW: build the final KL tensor once
+            if kl_terms:
+                kl = torch.stack(kl_terms).sum()             # tensor with grad_fn
+            else:
+                kl = ce_loss.new_zeros(())                   # scalar 0.0 tensor (no grad_fn)
+
+            # # If no KL components found, create zero tensor with gradient connection
+            # # Safe check to avoid "Boolean value of Tensor is ambiguous" error
+            # if not torch.is_tensor(kl) or (torch.is_tensor(kl) and float(kl.detach().item()) == 0.0):
+            #     kl = torch.tensor(0.0, device=ce_loss.device, requires_grad=True)
         
+        # 🔎 DEBUG: print batch KL once it's finalized, before combining losses
+        if self.use_kl and isinstance(kl, torch.Tensor) and kl.requires_grad:
+            # (optional) only print on main rank to avoid DDP spam
+            if getattr(self.args, "local_rank", -1) in (-1, 0):
+                print(f"[KL] batch KL={kl.detach().item():.6f} (beta={self.beta})")
+
+        # Prove CE vs KL gradients separately (one-time probes)
+        if getattr(self, "_grad_probe_done", False) is False:
+            self._grad_probe_done = True  # only once per process
+
+            # pick a couple of representative ProbLoRA params
+            probe_params = []
+            for mod in model.modules():
+                if isinstance(mod, ProbLoRALayer):
+                    if hasattr(mod, "mu_A"): probe_params.append(mod.mu_A)
+                    if hasattr(mod, "logvar_A") and (not self._deterministic) and mod.logvar_A is not None:
+                        probe_params.append(mod.logvar_A)
+                    break  # just first module for brevity
+
+            # ---- CE-only grads
+            model.zero_grad(set_to_none=True)
+            ce_loss.backward(retain_graph=True)
+            ce_grads = []
+            for p in probe_params:
+                g = (None if p.grad is None else p.grad.detach().norm().item())
+                ce_grads.append(g)
+            print(f"[GRAD-PROBE] CE-only grad norms: {ce_grads}")
+
+            # ---- KL-only grads (skip if KL disabled or no terms)
+            if self.use_kl and (isinstance(kl, torch.Tensor)) and (kl.requires_grad):
+                model.zero_grad(set_to_none=True)
+                (self.beta * kl).backward(retain_graph=True)
+                kl_grads = []
+                for p in probe_params:
+                    g = (None if p.grad is None else p.grad.detach().norm().item())
+                    kl_grads.append(g)
+                print(f"[GRAD-PROBE] KL-only grad norms (beta={self.beta}): {kl_grads}")
+
+            # cleanup but keep graph for the Trainer's backward
+            model.zero_grad(set_to_none=True)
+
         # Combine losses
         if self.use_kl:
             total_loss = ce_loss + self.beta * kl
@@ -300,8 +415,8 @@ class ARDClassificationTrainer(Trainer):
             for mod_name, mod in model.named_modules():
                 if not isinstance(mod, ProbLoRALayer):
                     continue
-                # Check gradients for mu_A and logvar_A parameters
-                if self._deterministic and hasattr(mod, 'mu_A') and mod.mu_A.grad is not None:
+                # Check gradients for mu_A (always trainable in both modes)
+                if hasattr(mod, 'mu_A') and mod.mu_A.grad is not None:
                     grad_norm = mod.mu_A.grad.norm().item()
                     print(f"[GRAD]   {mod_name}.mu_A: grad_norm={grad_norm:.6f}")
                     count += 1
@@ -878,6 +993,16 @@ class HeldoutResampleCallback(TrainerCallback):
                 # ✅ UPDATE TRAINER'S TRAINING DATASET (for SGD)
                 trainer.train_dataset = sgd_dataset
                 
+                # Ask the trainer to rebuild
+                if hasattr(trainer, "request_train_dataloader_rebuild"):
+                    trainer.request_train_dataloader_rebuild()
+                else:
+                    trainer._force_dataloader_rebuild = True  # your existing flag
+
+                # For newer transformers versions, also hint the core loop:
+                if "control" in locals() and hasattr(control, "should_recompute_train_dataloader"):
+                    control.should_recompute_train_dataloader = True
+
                 # ✅ CREATE ARD DATALOADER (for ARD estimation only)
                 # Use provided data_collator or fallback to trainer's data_collator
                 # (HF Trainer defaults to default_data_collator if none provided)
@@ -890,7 +1015,18 @@ class HeldoutResampleCallback(TrainerCallback):
                         collate_fn=collator,
                         shuffle=False
                     )
-                    
+
+                    # 🔎 SANITY PRINT — add here
+                    train_dl = trainer.get_train_dataloader()  # rebuilds now because of the flag
+                    try:
+                        num_batches = len(train_dl)
+                    except TypeError:
+                        num_batches = "unknown (iterable dataset)"
+                    bs = getattr(train_dl, "batch_size")
+                    num_samples = len(trainer.train_dataset)  # size of *SGD split*
+                    print(f"[HeldoutResample] epoch {int(state.epoch)} "
+                        f"SGD batches={num_batches}, batch_size={bs}, SGD samples≈{num_samples}")
+
                     print(f"[HeldoutResampleCallback] ✅ Epoch {int(state.epoch)} - Mutually Exclusive Split:")
                     print(f"   SGD samples: {len(sgd_dataset)} (for gradient updates)")
                     print(f"   ARD samples: {len(ard_dataset)} (for prior estimation ONLY)")
@@ -900,7 +1036,7 @@ class HeldoutResampleCallback(TrainerCallback):
                     print(f"   Data collator: {type(collator).__name__}")
                 else:
                     print(f"[HeldoutResampleCallback] ⚠️ No data_collator available (callback: {self.data_collator is None}, trainer: {trainer.data_collator is None})")
-            
+
         except Exception as e:
             print(f"[HeldoutResampleCallback] Failed to create splits: {e}")
             traceback.print_exc()
