@@ -326,40 +326,36 @@ class ARDClassificationTrainer(ResamplingTrainer):
             if getattr(self.args, "local_rank", -1) in (-1, 0):
                 print(f"[KL] batch KL={kl.detach().item():.6f} (beta={self.beta})")
 
-        # Prove CE vs KL gradients separately (one-time probes)
+        # Prove CE vs KL gradients separately (one-time probes to check gradient flow)
         if getattr(self, "_grad_probe_done", False) is False:
-            self._grad_probe_done = True  # only once per process
+            self._grad_probe_done = True  # run once
 
-            # pick a couple of representative ProbLoRA params
+            # Collect a small stable set of adapter params (works for both modes)
             probe_params = []
-            for mod in model.modules():
-                if isinstance(mod, ProbLoRALayer):
-                    if hasattr(mod, "mu_A"): probe_params.append(mod.mu_A)
-                    if hasattr(mod, "logvar_A") and (not self._deterministic) and mod.logvar_A is not None:
-                        probe_params.append(mod.logvar_A)
-                    break  # just first module for brevity
+            for n, p in model.named_parameters():
+                if not p.requires_grad:
+                    continue
+                # ProbLoRA/LoRA adapters to monitor
+                if n.endswith(".A") or n.endswith(".mu_A") or n.endswith(".B"):
+                    probe_params.append(p)
+                if len(probe_params) >= 12:
+                    break
+            print(f"[GRAD-PROBE] monitoring {len(probe_params)} adapter params")
 
-            # ---- CE-only grads
+            # CE-only
             model.zero_grad(set_to_none=True)
             ce_loss.backward(retain_graph=True)
-            ce_grads = []
-            for p in probe_params:
-                g = (None if p.grad is None else p.grad.detach().norm().item())
-                ce_grads.append(g)
-            print(f"[GRAD-PROBE] CE-only grad norms: {ce_grads}")
+            ce_g = [(None if p.grad is None else p.grad.detach().norm().item()) for p in probe_params]
+            print(f"[GRAD-PROBE] CE-only grad norms: {ce_g}")
 
-            # ---- KL-only grads (skip if KL disabled or no terms)
-            if self.use_kl and (isinstance(kl, torch.Tensor)) and (kl.requires_grad):
+            # KL-only (only if KL is enabled and has grad path)
+            if self.use_kl and isinstance(kl, torch.Tensor) and kl.requires_grad:
                 model.zero_grad(set_to_none=True)
                 (self.beta * kl).backward(retain_graph=True)
-                kl_grads = []
-                for p in probe_params:
-                    g = (None if p.grad is None else p.grad.detach().norm().item())
-                    kl_grads.append(g)
-                print(f"[GRAD-PROBE] KL-only grad norms (beta={self.beta}): {kl_grads}")
+                kl_g = [(None if p.grad is None else p.grad.detach().norm().item()) for p in probe_params]
+                print(f"[GRAD-PROBE] KL-only grad norms (beta={self.beta}): {kl_g}")
 
-            # cleanup but keep graph for the Trainer's backward
-            model.zero_grad(set_to_none=True)
+            model.zero_grad(set_to_none=True)  # clean for Trainer's backward
 
         # Combine losses
         if self.use_kl:
