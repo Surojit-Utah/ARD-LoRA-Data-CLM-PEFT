@@ -331,7 +331,7 @@ def load_model_with_problora(config, verbose=False):
     return model, tokenizer
 
 
-def create_trainer(model, tokenizer, train_ds, val_ds, config, output_dir, target_ids, tb_log_dir=None, predictions_dir=None):
+def create_trainer(model, tokenizer, train_ds, val_ds, config, output_dir, target_ids, tb_log_dir=None, predictions_dir=None, latent_plot_dir=None):
     """Create enhanced ARD-LoRA trainer with uncertainty evaluation and callbacks"""
     
     # Get ARD prior samples directly from config
@@ -385,6 +385,15 @@ def create_trainer(model, tokenizer, train_ds, val_ds, config, output_dir, targe
             'dataset_name': config.get('dataset_name')
         }
     
+    # Prepare plotting parameters from config
+    enable_plotting = config.get('enable_plotting', False)
+    plot_params = {
+        'start_epoch': config.get('plot_start_epoch'),
+        'interval': config.get('plot_interval'),
+        'plot_batch_size': config.get('plot_batch_size'),
+        'latent_plot_dir': latent_plot_dir  # Pass the latent plot directory
+    } if enable_plotting else None
+    
     # Use build_classification_trainer for proper callback integration
     trainer = build_classification_trainer(
         model=model,
@@ -399,6 +408,8 @@ def create_trainer(model, tokenizer, train_ds, val_ds, config, output_dir, targe
         enable_uncertainty_eval=enable_uncertainty,
         enable_prediction_tracker=enable_pred_tracker,
         prediction_tracker_params=pred_tracker_params,
+        enable_plotting=enable_plotting,
+        plot_params=plot_params,
     )
     
     # Post-creation validation - ensure trainer uses the same tokenizer
@@ -579,8 +590,8 @@ def main():
     print(f"       TensorBoard logs: {tb_log_dir}")
     print(f"       Predictions: {predictions_dir}")
     
-    trainer = create_trainer(model, tokenizer, train_ds, val_ds, config, output_dir, target_ids, tb_log_dir, predictions_dir)
-    
+    trainer = create_trainer(model, tokenizer, train_ds, val_ds, config, model_ckpt_dir, target_ids, tb_log_dir, predictions_dir, output_dir)
+
     # Final tokenizer consistency validation before training
     print(f"\n[TOKENIZER] Final Pre-Training Validation:")
     print(f"[TOKENIZER]   Model tokenizer available: {hasattr(model, 'config') and hasattr(model.config, 'vocab_size')}")

@@ -167,19 +167,19 @@ def plot_mean_encodings(model, heldout_loader, device, output_dir, epoch=0):
             plt.savefig(os.path.join(output_dir, f"spec_var_layer{idx}_v_epoch{epoch}.jpg"))
             plt.close()
 
-            if out_layer is not None and hasattr(out_layer, "est_var") and all_mean_out:
-                arr_out = np.concatenate(all_mean_out, axis=0)
-                diag_cov_out = np.diag(np.cov(arr_out.T))
-                sorted_diag_cov_out = np.sort(diag_cov_out)[::-1]
-                arg_sorted_out = np.argsort(diag_cov_out)[::-1]
-                x_axis_out = np.arange(1, len(sorted_diag_cov_out) + 1)
+            # if out_layer is not None and hasattr(out_layer, "est_var") and all_mean_out:
+            #     arr_out = np.concatenate(all_mean_out, axis=0)
+            #     diag_cov_out = np.diag(np.cov(arr_out.T))
+            #     sorted_diag_cov_out = np.sort(diag_cov_out)[::-1]
+            #     arg_sorted_out = np.argsort(diag_cov_out)[::-1]
+            #     x_axis_out = np.arange(1, len(sorted_diag_cov_out) + 1)
 
-                plt.plot(x_axis_out, sorted_diag_cov_out, "r", label="Mean Var")
-                est_var_out = out_layer.est_var.cpu().detach().numpy()
-                plt.plot(x_axis_out, est_var_out[arg_sorted_out], "g", label="Est Var")
-                plt.legend()
-                plt.savefig(os.path.join(output_dir, f"spec_var_layer{idx}_out_epoch{epoch}.jpg"))
-                plt.close()
+            #     plt.plot(x_axis_out, sorted_diag_cov_out, "r", label="Mean Var")
+            #     est_var_out = out_layer.est_var.cpu().detach().numpy()
+            #     plt.plot(x_axis_out, est_var_out[arg_sorted_out], "g", label="Est Var")
+            #     plt.legend()
+            #     plt.savefig(os.path.join(output_dir, f"spec_var_layer{idx}_out_epoch{epoch}.jpg"))
+            #     plt.close()
         gc.collect()
         torch.cuda.empty_cache()
 

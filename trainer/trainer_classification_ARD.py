@@ -19,10 +19,10 @@ from torch.utils.data import Subset, DataLoader
 from typing import Dict, Any, Optional
 from transformers import Trainer
 from transformers.trainer_callback import TrainerCallback
-from transformers.data.data_collator import default_data_collator
 from evaluate.uncertainty_metrics import UncertaintyEvaluator
 from evaluate.prediction_tracker import PredictionTracker
 from model.model_llama import ProbLoRALayer
+from utils.plot import plot_mean_encodings
 import numpy as np
 from pathlib import Path
 import traceback
@@ -832,7 +832,7 @@ class UncertaintyEvaluationCallback(TrainerCallback):
 class PredictionTrackerCallback(TrainerCallback):
     """Callback to track predictions on fixed examples across epochs for interpretability."""
     
-    def __init__(self, train_dataset, eval_dataset, output_dir, predictions_dir, tokenizer, 
+    def __init__(self, train_dataset, eval_dataset, predictions_dir, tokenizer, 
                  n_examples=10, dataset_name="arc_easy"):
         super().__init__()
         # Use the provided predictions directory directly
@@ -1001,7 +1001,6 @@ class HeldoutResampleCallback(TrainerCallback):
 
                 # ✅ CREATE ARD DATALOADER (for ARD estimation only)
                 # Use provided data_collator or fallback to trainer's data_collator
-                # (HF Trainer defaults to default_data_collator if none provided)
                 collator = self.data_collator if self.data_collator is not None else trainer.data_collator
                 
                 if collator is not None:
@@ -1117,6 +1116,8 @@ def build_classification_trainer(
     enable_uncertainty_eval=False,
     enable_prediction_tracker=False,
     prediction_tracker_params=None,
+    enable_plotting=False,
+    plot_params=None,
     **kwargs
 ):
     """
@@ -1139,6 +1140,13 @@ def build_classification_trainer(
             - predictions_dir: Directory to save predictions
             - n_examples: Number of examples to track (default: 10)
             - dataset_name: Name of dataset (default: "arc_easy")
+        enable_plotting: Whether to enable LatentPlotCallback
+        plot_params: Dict with params for LatentPlotCallback
+            - start_epoch: Epoch to start plotting from (default: 0)
+            - interval: Interval between plots (default: 1)
+            - plot_batch_size: Batch size for plotting (default: 8)
+            - latent_plot_dir: Directory to save latent plots
+            Note: device is automatically extracted from args.device
         **kwargs: Additional trainer arguments
     
     Returns:
@@ -1172,7 +1180,6 @@ def build_classification_trainer(
     print(f"\n[BUILD_TRAINER] After trainer initialization:")
     print(f"[BUILD_TRAINER]   Trainer's data_collator type: {type(trainer.data_collator).__name__ if trainer.data_collator else 'None'}")
     print(f"[BUILD_TRAINER]   Trainer's data_collator object: {trainer.data_collator}")
-    print(f"[BUILD_TRAINER]   Trainer's data_collator is default_data_collator: {trainer.data_collator is default_data_collator if trainer.data_collator else False}")
     
     # Add evaluation callback to track metrics after each epoch
     trainer.add_callback(EvalLossComponentsCallback())
@@ -1226,7 +1233,6 @@ def build_classification_trainer(
         trainer.add_callback(PredictionTrackerCallback(
             train_dataset=train_dataset,
             eval_dataset=eval_dataset,
-            output_dir=args.output_dir,
             predictions_dir=predictions_dir,
             tokenizer=tokenizer,
             n_examples=n_examples,
@@ -1234,6 +1240,30 @@ def build_classification_trainer(
         ))
         print(f"[CLASSIFICATION] Added PredictionTrackerCallback (tracking {n_examples} examples)")
     
+    # Add plotting callback if enabled and utilities available
+    if enable_plotting:
+        # Extract plot parameters with defaults
+        start_epoch = plot_params.get('start_epoch')
+        interval = plot_params.get('interval')
+        plot_batch_size = plot_params.get('plot_batch_size')
+        latent_plot_dir = plot_params.get('latent_plot_dir')
+        
+        # Check if plot utilities are available
+        if plot_mean_encodings is not None:
+            # Use latent_plot_dir if provided, otherwise fallback to args.output_dir
+            plot_output_dir = latent_plot_dir
+            trainer.add_callback(LatentPlotCallback(
+                device=args.device,
+                output_dir=plot_output_dir,
+                start_epoch=start_epoch,
+                interval=interval,
+                plot_batch_size=plot_batch_size
+            ))
+            print(f"[CLASSIFICATION] Added LatentPlotCallback (start_epoch={start_epoch}, interval={interval})")
+            print(f"[CLASSIFICATION]   Plot output directory: {plot_output_dir}")
+        else:
+            print("[CLASSIFICATION] ⚠️ LatentPlotCallback NOT added - plot_mean_encodings utility not available")
+
     return trainer
 
 @torch.no_grad()
@@ -1427,3 +1457,64 @@ def estimate_ard_priors_clm(model, ard_heldout_loader, device,
     
     print(f"[ARD] ✅ Prior estimation completed - updated est_var for all ProbLoRA layers")
     return list(prob_lora_layers.keys())
+
+
+class LatentPlotCallback(TrainerCallback):
+    """Callback to plot latent encodings following DeBERTa pattern."""
+    
+    def __init__(self, device, output_dir, start_epoch, interval, plot_batch_size):
+        super().__init__()
+        self.device = device
+        self.output_dir = Path(output_dir)
+        self.start_epoch = start_epoch
+        self.interval = interval
+        self.plot_batch_size = plot_batch_size
+    
+    def on_epoch_end(self, args, state, control, **kwargs):
+        """Plot latent encodings at specified intervals."""
+        current_epoch = int(state.epoch)
+        
+        # Check if we should plot this epoch
+        if current_epoch < self.start_epoch or (current_epoch - self.start_epoch) % self.interval != 0:
+            return
+        
+        model = kwargs["model"]
+        trainer = getattr(model, 'trainer', None)
+        
+        if trainer is None:
+            print("[LatentPlotCallback] No trainer reference found")
+            return
+        
+        # Use ard_heldout_loader for plotting - fail if not configured
+        if not hasattr(trainer, 'ard_heldout_loader'):
+            raise AttributeError("[LatentPlotCallback] trainer.ard_heldout_loader is required but not found. Check trainer configuration.")
+        
+        eval_data = trainer.ard_heldout_loader
+        if eval_data is None:
+            raise ValueError("[LatentPlotCallback] trainer.ard_heldout_loader is None. Plotting requires a configured DataLoader.")
+        
+        if plot_mean_encodings is None:
+            print("[LatentPlotCallback] Plotting utilities not available")
+            return
+        
+        print(f"[LatentPlotCallback] Plotting latent encodings at epoch {current_epoch}...")
+        
+        try:
+            # Create plots directory
+            plot_dir = self.output_dir / "plots"
+            plot_dir.mkdir(parents=True, exist_ok=True)
+            
+            # Use the existing ARD DataLoader directly since it's already properly configured
+            # with the correct batch_size, collate_fn, etc.
+            plot_dataloader = eval_data
+            
+            # Generate plots
+            plot_mean_encodings(model, plot_dataloader, self.device, str(plot_dir), epoch=current_epoch)
+            print(f"[LatentPlotCallback] Plots saved to {plot_dir}")
+        except Exception as e:
+            print(f"[LatentPlotCallback] Failed to generate plots: {e}")
+        
+        # Clean up memory
+        gc.collect()
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
