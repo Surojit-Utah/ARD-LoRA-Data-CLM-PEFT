@@ -55,7 +55,7 @@ def plot_mean_encodings(model, heldout_loader, device, output_dir, epoch=0):
         output_dir: Directory to save plots
         epoch: Current epoch number
     """
-    model.eval()
+    # model.eval() NOT REQUIRED Taken care in the on_epoch_end() in the LatentPlotCallback
     
     if ProbLoRALayer is None:
         print("[WARNING] ProbLoRALayer not available. Skipping plotting.")
