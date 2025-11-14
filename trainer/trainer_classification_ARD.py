@@ -1240,29 +1240,29 @@ def build_classification_trainer(
         ))
         print(f"[CLASSIFICATION] Added PredictionTrackerCallback (tracking {n_examples} examples)")
     
-    # Add plotting callback if enabled and utilities available
-    if enable_plotting:
-        # Extract plot parameters with defaults
-        start_epoch = plot_params.get('start_epoch')
-        interval = plot_params.get('interval')
-        plot_batch_size = plot_params.get('plot_batch_size')
-        latent_plot_dir = plot_params.get('latent_plot_dir')
+    # # Add plotting callback if enabled and utilities available
+    # if enable_plotting:
+    #     # Extract plot parameters with defaults
+    #     start_epoch = plot_params.get('start_epoch')
+    #     interval = plot_params.get('interval')
+    #     plot_batch_size = plot_params.get('plot_batch_size')
+    #     latent_plot_dir = plot_params.get('latent_plot_dir')
         
-        # Check if plot utilities are available
-        if plot_mean_encodings is not None:
-            # Use latent_plot_dir if provided, otherwise fallback to args.output_dir
-            plot_output_dir = latent_plot_dir
-            trainer.add_callback(LatentPlotCallback(
-                device=args.device,
-                output_dir=plot_output_dir,
-                start_epoch=start_epoch,
-                interval=interval,
-                plot_batch_size=plot_batch_size
-            ))
-            print(f"[CLASSIFICATION] Added LatentPlotCallback (start_epoch={start_epoch}, interval={interval})")
-            print(f"[CLASSIFICATION]   Plot output directory: {plot_output_dir}")
-        else:
-            print("[CLASSIFICATION] ⚠️ LatentPlotCallback NOT added - plot_mean_encodings utility not available")
+    #     # Check if plot utilities are available
+    #     if plot_mean_encodings is not None:
+    #         # Use latent_plot_dir if provided, otherwise fallback to args.output_dir
+    #         plot_output_dir = latent_plot_dir
+    #         trainer.add_callback(LatentPlotCallback(
+    #             device=args.device,
+    #             output_dir=plot_output_dir,
+    #             start_epoch=start_epoch,
+    #             interval=interval,
+    #             plot_batch_size=plot_batch_size
+    #         ))
+    #         print(f"[CLASSIFICATION] Added LatentPlotCallback (start_epoch={start_epoch}, interval={interval})")
+    #         print(f"[CLASSIFICATION]   Plot output directory: {plot_output_dir}")
+    #     else:
+    #         print("[CLASSIFICATION] ⚠️ LatentPlotCallback NOT added - plot_mean_encodings utility not available")
 
     return trainer
 
