@@ -327,7 +327,9 @@ class ARDClassificationTrainer(ResamplingTrainer):
         # 🔎 DEBUG: print batch KL once it's finalized, before combining losses
         if self.use_kl and isinstance(kl, torch.Tensor) and kl.requires_grad:
             # (optional) only print on main rank to avoid DDP spam
-            if getattr(self.args, "local_rank", -1) in (-1, 0):
+            # Only log every 100 steps to reduce verbosity
+            current_step = self.state.global_step if hasattr(self, 'state') else 0
+            if getattr(self.args, "local_rank", -1) in (-1, 0) and current_step % 100 == 0:
                 print(f"[KL] batch KL={kl.detach().item():.6f} (beta={self.beta})")
 
         # Prove CE vs KL gradients separately (one-time probes to check gradient flow)
@@ -442,17 +444,22 @@ class ARDClassificationTrainer(ResamplingTrainer):
         return loss
     
     def _log_debug(self, message, console=True):
-        """Log debug message to debug log file and optionally to console."""
+        """Log debug message to debug log file and optionally to console.
+        
+        Creates a separate log file for each epoch: logvar_monitoring_epoch_N.log
+        """
         if console:
             print(message)
         
         if self.debug_log_dir is not None:
-            from datetime import datetime
-            log_file = os.path.join(self.debug_log_dir, "logvar_monitoring.log")
+            # Get current epoch number
+            current_epoch = int(self.state.epoch) if hasattr(self, 'state') else 0
             
-            timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            # Create epoch-specific log file
+            log_file = os.path.join(self.debug_log_dir, f"logvar_monitoring_epoch_{current_epoch}.log")
+            
             with open(log_file, 'a') as f:
-                f.write(f"[{timestamp}] {message}\n")
+                f.write(f"{message}\n")
     
     def _monitor_logvar_stability(self, model):
         """
@@ -474,8 +481,14 @@ class ARDClassificationTrainer(ResamplingTrainer):
         extreme_layers = []
         nan_inf_layers = []
         
+        # Debug: Track what we're finding
+        total_layers = 0
+        prob_lora_layers = 0
+        det_lora_layers = 0
+        
         # Collect log_var statistics from all ProbLoRA layers
         if hasattr(model, 'model') and hasattr(model.model, 'layers'):
+            total_layers = len(model.model.layers)
             for layer_idx, layer in enumerate(model.model.layers):
                 if hasattr(layer, 'self_attn') and self.target_attention_layers:
                     attn = layer.self_attn
@@ -484,23 +497,37 @@ class ARDClassificationTrainer(ResamplingTrainer):
                             proj = getattr(attn, proj_name)
                             # Check if this is a ProbLoRA layer
                             if hasattr(proj, 'A'):  # Probabilistic mode: A contains both mu and logvar
+                                prob_lora_layers += 1
                                 # Extract logvar from A (second half of the tensor)
                                 _, logvar = torch.split(proj.A, proj.rank, dim=0)
                                 logvar = logvar.detach()
                                 
-                                # Compute statistics
-                                min_val = logvar.min().item()
-                                max_val = logvar.max().item()
-                                mean_val = logvar.mean().item()
-                                std_val = logvar.std().item()
+                                # Convert log_var to var using exponential
+                                var = torch.exp(logvar)
                                 
+                                # Compute statistics on variance (not log variance)
+                                min_val = var.min().item()
+                                max_val = var.max().item()
+                                mean_val = var.mean().item()
+                                std_val = var.std().item()
+                                
+                                # Also track log_var statistics for debugging
+                                logvar_min = logvar.min().item()
+                                logvar_max = logvar.max().item()
+                                logvar_mean = logvar.mean().item()
+                                logvar_std = logvar.std().item()                                
+
                                 logvar_stats.append({
                                     'layer': layer_idx,
                                     'proj': proj_name,
-                                    'min': min_val,
-                                    'max': max_val,
-                                    'mean': mean_val,
-                                    'std': std_val
+                                    'var_min': min_val,
+                                    'var_max': max_val,
+                                    'var_mean': mean_val,
+                                    'var_std': std_val,
+                                    'logvar_min': logvar_min,
+                                    'logvar_max': logvar_max,
+                                    'logvar_mean': logvar_mean,
+                                    'logvar_std': logvar_std,
                                 })
                                 
                                 # Check for NaN or Inf first (most critical)
@@ -510,11 +537,21 @@ class ARDClassificationTrainer(ResamplingTrainer):
                                 # Check for extreme values that could cause instability
                                 # log_var > 10 means var > exp(10) ≈ 22000 (too large)
                                 # log_var < -10 means var < exp(-10) ≈ 0.000045 (too small)
-                                elif max_val > 10 or min_val < -10:
+                                elif logvar_max > 10 or logvar_min < -10:
                                     extreme_layers.append(f"L{layer_idx}.{proj_name}")
                             elif hasattr(proj, 'mu_A'):  # Deterministic mode: only has mu_A
+                                det_lora_layers += 1
                                 # Skip monitoring for deterministic layers (no variance to monitor)
                                 pass
+        
+        # Log summary of what was found (only on first run)
+        if not hasattr(self, '_logvar_monitor_initialized'):
+            self._logvar_monitor_initialized = True
+            self._log_debug(f"[INFO] LogVar Monitor initialized:")
+            self._log_debug(f"[INFO]   Total transformer layers: {total_layers}")
+            self._log_debug(f"[INFO]   ProbLoRA layers found: {prob_lora_layers}")
+            self._log_debug(f"[INFO]   Deterministic LoRA layers found: {det_lora_layers}")
+            self._log_debug(f"[INFO]   Target projections: {self.target_attention_layers}")
 
         
         # Print and log summary if we have statistics
@@ -538,39 +575,52 @@ class ARDClassificationTrainer(ResamplingTrainer):
             # Calculate step within current epoch
             step_in_epoch = current_step - getattr(self, '_epoch_start_step', current_step)
             
-            # Compute global statistics
-            all_mins = [s['min'] for s in logvar_stats]
-            all_maxs = [s['max'] for s in logvar_stats]
-            all_means = [s['mean'] for s in logvar_stats]
+            # Compute global statistics (on variance, not log_var)
+            all_var_mins = [s['var_min'] for s in logvar_stats]
+            all_var_maxs = [s['var_max'] for s in logvar_stats]
+            all_var_means = [s['var_mean'] for s in logvar_stats]
             
-            self._log_debug(f"\n[LOGVAR MONITOR] Epoch {current_epoch}, Step {step_in_epoch} (Global Step {current_step})")
-            self._log_debug(f"[LOGVAR MONITOR]   Global range: [{min(all_mins):.3f}, {max(all_maxs):.3f}]")
-            self._log_debug(f"[LOGVAR MONITOR]   Mean across layers: {sum(all_means)/len(all_means):.3f}")
+            # Also compute log_var global stats for reference
+            all_logvar_mins = [s['logvar_min'] for s in logvar_stats]
+            all_logvar_maxs = [s['logvar_max'] for s in logvar_stats]
+            all_logvar_means = [s['logvar_mean'] for s in logvar_stats]
+            all_logvar_stds = [s['logvar_std'] for s in logvar_stats]
+            
+            self._log_debug(f"\nEpoch {current_epoch}, Step {step_in_epoch} (Global Step {current_step})")
+            self._log_debug(f"  Variance (σ²) - Global range: [{min(all_var_mins):.6f}, {max(all_var_maxs):.6f}]")
+            self._log_debug(f"  Variance (σ²) - Mean across layers: {sum(all_var_means)/len(all_var_means):.6f}")
+            self._log_debug(f"  Log Variance - Global range: [{min(all_logvar_mins):.3f}, {max(all_logvar_maxs):.3f}]")
+            self._log_debug(f"  Log Variance - Mean across layers: {sum(all_logvar_means)/len(all_logvar_means):.3f}")
+            self._log_debug(f"  Log Variance - Std across layers: {sum(all_logvar_stds)/len(all_logvar_stds):.3f}")
             
             # Critical warning for NaN/Inf
             if nan_inf_layers:
-                self._log_debug(f"[LOGVAR MONITOR]   CRITICAL: NaN/Inf detected!")
-                self._log_debug(f"[LOGVAR MONITOR]   Affected layers: {', '.join(nan_inf_layers[:10])}")
+                self._log_debug(f"  CRITICAL: NaN/Inf detected!")
+                self._log_debug(f"  Affected layers: {', '.join(nan_inf_layers[:10])}")
                 if len(nan_inf_layers) > 10:
-                    self._log_debug(f"[LOGVAR MONITOR]   ... and {len(nan_inf_layers) - 10} more layers")
-                self._log_debug(f"[LOGVAR MONITOR]   Training may become unstable - consider adding log_var clamping")
+                    self._log_debug(f"  ... and {len(nan_inf_layers) - 10} more layers")
+                self._log_debug(f"  Training may become unstable - consider adding log_var clamping")
             
             # Warning for extreme values
             elif extreme_layers:
-                self._log_debug(f"[LOGVAR MONITOR]   WARNING: Extreme log_var values detected!")
-                self._log_debug(f"[LOGVAR MONITOR]   Affected layers: {', '.join(extreme_layers[:10])}")
+                self._log_debug(f"  WARNING: Extreme log_var values detected!")
+                self._log_debug(f"  Affected layers: {', '.join(extreme_layers[:10])}")
                 if len(extreme_layers) > 10:
-                    self._log_debug(f"[LOGVAR MONITOR]   ... and {len(extreme_layers) - 10} more layers")
-                self._log_debug(f"[LOGVAR MONITOR]   Consider adding log_var clamping: torch.clamp(log_var, min=-10, max=10)")
+                    self._log_debug(f"  ... and {len(extreme_layers) - 10} more layers")
+                self._log_debug(f"  Consider adding log_var clamping: torch.clamp(log_var, min=-10, max=10)")
             
             # Show details for sample layers (always log to file, optionally print)
             if len(logvar_stats) > 0:
-                details_msg = ["[LOGVAR MONITOR]   Sample layer details:"]
+                details_msg = ["  Sample layer details (variance and log_var):"]
                 for stat in logvar_stats[:5]:  # First 5 layers
                     details_msg.append(
-                        f"[LOGVAR MONITOR]     L{stat['layer']}.{stat['proj']}: "
-                        f"mean={stat['mean']:.3f}, std={stat['std']:.3f}, "
-                        f"range=[{stat['min']:.3f}, {stat['max']:.3f}]"
+                        f"    L{stat['layer']}.{stat['proj']}: "
+                        f"var_mean={stat['var_mean']:.6f}, var_std={stat['var_std']:.6f}, "
+                        f"var_range=[{stat['var_min']:.6f}, {stat['var_max']:.6f}]"
+                    )
+                    details_msg.append(
+                        f"      (log_var: mean={stat['logvar_mean']:.3f}, std={stat['logvar_std']:.3f}, "
+                        f"range=[{stat['logvar_min']:.3f}, {stat['logvar_max']:.3f}], var={stat['var_on_logvar']:.6f})"
                     )
                 
                 # Determine if we should print to console
@@ -626,9 +676,11 @@ class ARDClassificationTrainer(ResamplingTrainer):
         """
         Enhanced evaluation with classification metrics.
         """
-        # Temporarily disable progress bar for evaluation
+        # Temporarily disable progress bar and logging for evaluation
         original_disable_tqdm = self.args.disable_tqdm
+        original_logging_steps = self.args.logging_steps
         self.args.disable_tqdm = True
+        self.args.logging_steps = 999999  # Effectively disable logging during eval
         
         try:
             # Call parent evaluate
@@ -643,8 +695,9 @@ class ARDClassificationTrainer(ResamplingTrainer):
             
             return metrics
         finally:
-            # Restore original setting
+            # Restore original settings
             self.args.disable_tqdm = original_disable_tqdm
+            self.args.logging_steps = original_logging_steps
     
     def evaluate_uncertainty(self) -> Optional[Dict[str, float]]:
         """
