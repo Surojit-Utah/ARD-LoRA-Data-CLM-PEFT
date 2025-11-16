@@ -18,13 +18,15 @@ def get_output_dirs(runId=1, base_dir=None):
     model_ckpnt_dir = os.path.join(log_dir, "checkpoint")
     tb_log_dir = os.path.join(log_dir, "tb_logs")
     predictions_dir = os.path.join(log_dir, "predictions")
+    debug_log_dir = os.path.join(log_dir, "debug_logs")
 
     os.makedirs(output_dir, exist_ok=True)
     os.makedirs(model_ckpnt_dir, exist_ok=True)
     os.makedirs(tb_log_dir, exist_ok=True)
     os.makedirs(predictions_dir, exist_ok=True)
+    os.makedirs(debug_log_dir, exist_ok=True)
 
-    return output_dir, model_ckpnt_dir, tb_log_dir, predictions_dir
+    return output_dir, model_ckpnt_dir, tb_log_dir, predictions_dir, debug_log_dir
 
 
 def free_memory():

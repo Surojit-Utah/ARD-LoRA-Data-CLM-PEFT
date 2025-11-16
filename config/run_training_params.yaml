@@ -1,6 +1,6 @@
 # LLaMA-2-7B causal LM experiments with ARD-LoRA and Bayesian-PEFT datasets
 defaults:
-  runId: 6
+  runId: 7
   # Model configuration
   model_name: "LLaMA2-7B"
   model_name_or_path: "meta-llama/Llama-2-7b-hf"
@@ -89,7 +89,13 @@ defaults:
   sample_clamp_max: 3.0   # Very tight sample bounds
   
   # ARD Loss Configuration
-  kl_loss_beta: 0.0001  # Further reduced from 0.001 to 0.0001 to prevent loss explosion
+  # kl_loss_beta: 0.0001  # Further reduced from 0.001 to 0.0001 to prevent loss explosion for RUN ID : 6
+  # Run ID : 6 kl = 0.0001 to understand that Latent Plot Callback was causing loss explosion. The training as smooth and less regularization effect was better.
+  # Run ID: 5 kl = 0.01. There was training instability.
+  # Run ID: 4 kl = 0.0. There was no training instability.
+  # Run ID: 3 kl = 0.01. There was training instability.
+  # Run ID : 7 kl = 0.01 W/ tracking of the logvar features to understand the training instability.
+  kl_loss_beta: 0.01  # Further reduced from 0.001 to 0.0001 to prevent loss explosion
   
   # ARD Relevance Thresholds
   ard_high_relevance_threshold: 0.1

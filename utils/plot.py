@@ -21,7 +21,7 @@ except ImportError:
 
 def diag_axis_splom(array, latent_image_path, max_sigma):
     dimension = array.shape[1]
-    cols = min(dimension, 30)
+    cols = min(dimension, 10)
     rows = (dimension + cols - 1) // cols
 
     fig, axs = plt.subplots(rows, cols, squeeze=False)
@@ -120,20 +120,20 @@ def plot_mean_encodings(model, heldout_loader, device, output_dir, epoch=0):
             if not all_mean_q or not all_mean_v:
                 continue
 
-            # Find output layer in LLaMA architecture
-            out_layer = None
-            all_mean_out = []
-            try:
-                # LLaMA architecture
-                if hasattr(layer, 'self_attn') and hasattr(layer.self_attn, 'o_proj') and isinstance(layer.self_attn.o_proj, ProbLoRALayer):
-                    out_layer = layer.self_attn.o_proj
-            except Exception as e:
-                print(f"[WARNING] Error finding output layer: {e}")
-                out_layer = None
+            # # Find output layer in LLaMA architecture
+            # out_layer = None
+            # all_mean_out = []
+            # try:
+            #     # LLaMA architecture
+            #     if hasattr(layer, 'self_attn') and hasattr(layer.self_attn, 'o_proj') and isinstance(layer.self_attn.o_proj, ProbLoRALayer):
+            #         out_layer = layer.self_attn.o_proj
+            # except Exception as e:
+            #     print(f"[WARNING] Error finding output layer: {e}")
+            #     out_layer = None
 
-            if out_layer is not None and hasattr(out_layer, 'plot_get_sample'):
-                mean_out = out_layer.plot_get_sample(layer_input)
-                all_mean_out = [mean_out]
+            # if out_layer is not None and hasattr(out_layer, 'plot_get_sample'):
+            #     mean_out = out_layer.plot_get_sample(layer_input)
+            #     all_mean_out = [mean_out]
 
             arr_q = np.concatenate(all_mean_q, axis=0)
             arr_v = np.concatenate(all_mean_v, axis=0)

@@ -331,7 +331,7 @@ def load_model_with_problora(config, verbose=False):
     return model, tokenizer
 
 
-def create_trainer(model, tokenizer, train_ds, val_ds, config, output_dir, target_ids, tb_log_dir=None, predictions_dir=None, latent_plot_dir=None):
+def create_trainer(model, tokenizer, train_ds, val_ds, config, output_dir, target_ids, tb_log_dir=None, predictions_dir=None, latent_plot_dir=None, debug_log_dir=None):
     """Create enhanced ARD-LoRA trainer with uncertainty evaluation and callbacks"""
     
     # Get ARD prior samples directly from config
@@ -386,7 +386,7 @@ def create_trainer(model, tokenizer, train_ds, val_ds, config, output_dir, targe
         }
     
     # Prepare plotting parameters from config
-    enable_plotting = config.get('enable_plotting', False)
+    enable_plotting = config.get('enable_plotting')
     plot_params = {
         'start_epoch': config.get('plot_start_epoch'),
         'interval': config.get('plot_interval'),
@@ -410,6 +410,7 @@ def create_trainer(model, tokenizer, train_ds, val_ds, config, output_dir, targe
         prediction_tracker_params=pred_tracker_params,
         enable_plotting=enable_plotting,
         plot_params=plot_params,
+        debug_log_dir=debug_log_dir,
     )
     
     # Post-creation validation - ensure trainer uses the same tokenizer
@@ -578,7 +579,7 @@ def main():
     print(f"[INFO] Base output directory: {base_output_dir}")
     
     # Get run-specific directories
-    output_dir, model_ckpt_dir, tb_log_dir, predictions_dir = get_output_dirs(
+    output_dir, model_ckpt_dir, tb_log_dir, predictions_dir, debug_log_dir = get_output_dirs(
         config["runId"],
         base_output_dir
     )
@@ -590,7 +591,7 @@ def main():
     print(f"       TensorBoard logs: {tb_log_dir}")
     print(f"       Predictions: {predictions_dir}")
     
-    trainer = create_trainer(model, tokenizer, train_ds, val_ds, config, model_ckpt_dir, target_ids, tb_log_dir, predictions_dir, output_dir)
+    trainer = create_trainer(model, tokenizer, train_ds, val_ds, config, model_ckpt_dir, target_ids, tb_log_dir, predictions_dir, output_dir, debug_log_dir)
 
     # Final tokenizer consistency validation before training
     print(f"\n[TOKENIZER] Final Pre-Training Validation:")

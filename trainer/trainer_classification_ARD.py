@@ -27,6 +27,7 @@ import numpy as np
 from pathlib import Path
 import traceback
 import gc
+import os
 
 from transformers import Trainer
 from torch.utils.data import DataLoader
@@ -146,6 +147,9 @@ class ARDClassificationTrainer(ResamplingTrainer):
         self.last_ce_loss = 0.0
         self.last_kl_loss = 0.0
         self.last_total_loss = 0.0
+        
+        # Debug logging directory (will be set by build_classification_trainer)
+        self.debug_log_dir = None
         
         print(f"[CLASSIFICATION] ARDClassificationTrainer initialized:")
         print(f"[CLASSIFICATION]   Num classes: {self.num_classes}")
@@ -382,6 +386,16 @@ class ARDClassificationTrainer(ResamplingTrainer):
         # Call parent training_step (this does forward, backward, optimizer step)
         loss = super().training_step(model, inputs, num_items_in_batch)
         
+        # Monitor log_var values periodically to detect training instability
+        if not hasattr(self, '_logvar_monitor_step'):
+            self._logvar_monitor_step = 0
+        
+        self._logvar_monitor_step += 1
+        
+        # Monitor every 50 steps
+        if self._logvar_monitor_step % 50 == 0:
+            self._monitor_logvar_stability(model)
+        
         # Gradient sanity check: run once after first backward pass
         if not hasattr(self, '_gradient_sanity_checked'):
             self._gradient_sanity_checked = True
@@ -399,9 +413,9 @@ class ARDClassificationTrainer(ResamplingTrainer):
             print(f"[GRAD] Trainable parameters with nonzero gradients: {nz}/{tot}")
             
             if nz == 0:
-                print("[GRAD] ⚠️  WARNING: NO gradients computed! Check loss computation.")
+                print("[GRAD]   WARNING: NO gradients computed! Check loss computation.")
             elif nz < tot:
-                print(f"[GRAD] ⚠️  WARNING: Only {nz}/{tot} parameters have gradients!")
+                print(f"[GRAD]   WARNING: Only {nz}/{tot} parameters have gradients!")
             else:
                 print(f"[GRAD] ✅ All trainable parameters have gradients.")
             
@@ -426,6 +440,131 @@ class ARDClassificationTrainer(ResamplingTrainer):
             print("="*60 + "\n")
         
         return loss
+    
+    def _log_debug(self, message, console=True):
+        """Log debug message to debug log file and optionally to console."""
+        if console:
+            print(message)
+        
+        if self.debug_log_dir is not None:
+            from datetime import datetime
+            log_file = Path(self.debug_log_dir) / "logvar_monitoring.log"
+            
+            timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            with open(log_file, 'a') as f:
+                f.write(f"[{timestamp}] {message}\n")
+    
+    def _monitor_logvar_stability(self, model):
+        """
+        Monitor log_var values across all ProbLoRA layers to detect numerical instability.
+        Saves warnings to debug log file when extreme values are detected.
+        """
+        if not self.use_kl:
+            return  # Only relevant for probabilistic mode
+        
+        logvar_stats = []
+        extreme_layers = []
+        nan_inf_layers = []
+        
+        # Collect log_var statistics from all ProbLoRA layers
+        if hasattr(model, 'model') and hasattr(model.model, 'layers'):
+            for layer_idx, layer in enumerate(model.model.layers):
+                if hasattr(layer, 'self_attn') and self.target_attention_layers:
+                    attn = layer.self_attn
+                    for proj_name in self.target_attention_layers:
+                        if hasattr(attn, proj_name):
+                            proj = getattr(attn, proj_name)
+                            # Check if this is a ProbLoRA layer with logvar_A
+                            if hasattr(proj, 'logvar_A') and proj.logvar_A is not None:
+                                logvar = proj.logvar_A.detach()
+                                
+                                # Compute statistics
+                                min_val = logvar.min().item()
+                                max_val = logvar.max().item()
+                                mean_val = logvar.mean().item()
+                                std_val = logvar.std().item()
+                                
+                                logvar_stats.append({
+                                    'layer': layer_idx,
+                                    'proj': proj_name,
+                                    'min': min_val,
+                                    'max': max_val,
+                                    'mean': mean_val,
+                                    'std': std_val
+                                })
+                                
+                                # Check for NaN or Inf first (most critical)
+                                if torch.isnan(logvar).any() or torch.isinf(logvar).any():
+                                    nan_inf_layers.append(f"L{layer_idx}.{proj_name}")
+                                
+                                # Check for extreme values that could cause instability
+                                # log_var > 10 means var > exp(10) ≈ 22000 (too large)
+                                # log_var < -10 means var < exp(-10) ≈ 0.000045 (too small)
+                                elif max_val > 10 or min_val < -10:
+                                    extreme_layers.append(f"L{layer_idx}.{proj_name}")
+        
+        # Print and log summary if we have statistics
+        if logvar_stats:
+            current_step = self.state.global_step if hasattr(self, 'state') else self._logvar_monitor_step
+            current_epoch = int(self.state.epoch) if hasattr(self, 'state') else 0
+            
+            # Track epoch changes and add separator
+            if not hasattr(self, '_last_logged_epoch'):
+                self._last_logged_epoch = -1
+            
+            if current_epoch > self._last_logged_epoch:
+                self._last_logged_epoch = current_epoch
+                self._epoch_start_step = current_step
+                # Add epoch separator in log file
+                separator = "\n" + "="*80
+                self._log_debug(separator, console=False)
+                self._log_debug(f"EPOCH {current_epoch} - Log Var Monitoring", console=False)
+                self._log_debug("="*80, console=False)
+            
+            # Calculate step within current epoch
+            step_in_epoch = current_step - getattr(self, '_epoch_start_step', current_step)
+            
+            # Compute global statistics
+            all_mins = [s['min'] for s in logvar_stats]
+            all_maxs = [s['max'] for s in logvar_stats]
+            all_means = [s['mean'] for s in logvar_stats]
+            
+            self._log_debug(f"\n[LOGVAR MONITOR] Epoch {current_epoch}, Step {step_in_epoch} (Global Step {current_step})")
+            self._log_debug(f"[LOGVAR MONITOR]   Global range: [{min(all_mins):.3f}, {max(all_maxs):.3f}]")
+            self._log_debug(f"[LOGVAR MONITOR]   Mean across layers: {sum(all_means)/len(all_means):.3f}")
+            
+            # Critical warning for NaN/Inf
+            if nan_inf_layers:
+                self._log_debug(f"[LOGVAR MONITOR]   CRITICAL: NaN/Inf detected!")
+                self._log_debug(f"[LOGVAR MONITOR]   Affected layers: {', '.join(nan_inf_layers[:10])}")
+                if len(nan_inf_layers) > 10:
+                    self._log_debug(f"[LOGVAR MONITOR]   ... and {len(nan_inf_layers) - 10} more layers")
+                self._log_debug(f"[LOGVAR MONITOR]   Training may become unstable - consider adding log_var clamping")
+            
+            # Warning for extreme values
+            elif extreme_layers:
+                self._log_debug(f"[LOGVAR MONITOR]   WARNING: Extreme log_var values detected!")
+                self._log_debug(f"[LOGVAR MONITOR]   Affected layers: {', '.join(extreme_layers[:10])}")
+                if len(extreme_layers) > 10:
+                    self._log_debug(f"[LOGVAR MONITOR]   ... and {len(extreme_layers) - 10} more layers")
+                self._log_debug(f"[LOGVAR MONITOR]   Consider adding log_var clamping: torch.clamp(log_var, min=-10, max=10)")
+            
+            # Show details for sample layers (always log to file, optionally print)
+            if len(logvar_stats) > 0:
+                details_msg = ["[LOGVAR MONITOR]   Sample layer details:"]
+                for stat in logvar_stats[:5]:  # First 5 layers
+                    details_msg.append(
+                        f"[LOGVAR MONITOR]     L{stat['layer']}.{stat['proj']}: "
+                        f"mean={stat['mean']:.3f}, std={stat['std']:.3f}, "
+                        f"range=[{stat['min']:.3f}, {stat['max']:.3f}]"
+                    )
+                
+                # Determine if we should print to console
+                show_console = self.verbose or extreme_layers or nan_inf_layers
+                
+                # Log details (to file always, to console conditionally)
+                for msg in details_msg:
+                    self._log_debug(msg, console=show_console)
     
     def prediction_step(self, model, inputs, prediction_loss_only, ignore_keys=None):
         """
@@ -1118,6 +1257,7 @@ def build_classification_trainer(
     prediction_tracker_params=None,
     enable_plotting=False,
     plot_params=None,
+    debug_log_dir=None,
     **kwargs
 ):
     """
@@ -1175,6 +1315,11 @@ def build_classification_trainer(
         num_classes=num_classes,
         **kwargs
     )
+    
+    # Set debug_log_dir for log_var monitoring
+    if debug_log_dir is not None:
+        trainer.debug_log_dir = debug_log_dir
+        print(f"[CLASSIFICATION] Debug logging enabled: {debug_log_dir}")
     
     # AFTER trainer creation, extract the actual data_collator used by HF Trainer
     print(f"\n[BUILD_TRAINER] After trainer initialization:")
@@ -1503,8 +1648,9 @@ class LatentPlotCallback(TrainerCallback):
         try:
             model.eval()  # <--- enter eval explicitly
             with torch.no_grad():
-                # Create plots directory
-                plot_dir = self.output_dir / "plots"
+                # Create plots directory with epoch number
+                plot_dir = os.path.join(self.output_dir, f"epoch_{current_epoch}")
+
                 plot_dir.mkdir(parents=True, exist_ok=True)
 
                 # Use the existing ARD DataLoader directly since it's already properly configured
