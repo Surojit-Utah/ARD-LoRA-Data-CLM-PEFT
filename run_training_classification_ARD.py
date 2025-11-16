@@ -590,7 +590,8 @@ def main():
     print(f"       Model checkpoints: {model_ckpt_dir}")
     print(f"       TensorBoard logs: {tb_log_dir}")
     print(f"       Predictions: {predictions_dir}")
-    
+    print(f"       Debug logs: {debug_log_dir}")
+
     trainer = create_trainer(model, tokenizer, train_ds, val_ds, config, model_ckpt_dir, target_ids, tb_log_dir, predictions_dir, output_dir, debug_log_dir)
 
     # Final tokenizer consistency validation before training

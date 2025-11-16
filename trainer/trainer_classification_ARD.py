@@ -448,7 +448,7 @@ class ARDClassificationTrainer(ResamplingTrainer):
         
         if self.debug_log_dir is not None:
             from datetime import datetime
-            log_file = Path(self.debug_log_dir) / "logvar_monitoring.log"
+            log_file = os.path.join(self.debug_log_dir, "logvar_monitoring.log")
             
             timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             with open(log_file, 'a') as f:
@@ -461,6 +461,14 @@ class ARDClassificationTrainer(ResamplingTrainer):
         """
         if not self.use_kl:
             return  # Only relevant for probabilistic mode
+        
+        # INFO: Indicate monitoring is running
+        current_step = self.state.global_step if hasattr(self, 'state') else self._logvar_monitor_step
+        current_epoch = int(self.state.epoch) if hasattr(self, 'state') else 0
+        step_in_epoch = current_step - getattr(self, '_epoch_start_step', current_step)
+        
+        log_dir_info = f" -> Log: {self.debug_log_dir}" if self.debug_log_dir else " (no log dir set)"
+        self._log_debug(f"[INFO] Monitoring log_var stability - Epoch {current_epoch}, Step {step_in_epoch} (Global: {current_step}){log_dir_info}", console=True)
         
         logvar_stats = []
         extreme_layers = []
