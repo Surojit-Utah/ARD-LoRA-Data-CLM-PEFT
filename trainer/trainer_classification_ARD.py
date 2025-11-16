@@ -482,9 +482,11 @@ class ARDClassificationTrainer(ResamplingTrainer):
                     for proj_name in self.target_attention_layers:
                         if hasattr(attn, proj_name):
                             proj = getattr(attn, proj_name)
-                            # Check if this is a ProbLoRA layer with logvar_A
-                            if hasattr(proj, 'logvar_A') and proj.logvar_A is not None:
-                                logvar = proj.logvar_A.detach()
+                            # Check if this is a ProbLoRA layer
+                            if hasattr(proj, 'A'):  # Probabilistic mode: A contains both mu and logvar
+                                # Extract logvar from A (second half of the tensor)
+                                _, logvar = torch.split(proj.A, proj.rank, dim=0)
+                                logvar = logvar.detach()
                                 
                                 # Compute statistics
                                 min_val = logvar.min().item()
@@ -510,6 +512,10 @@ class ARDClassificationTrainer(ResamplingTrainer):
                                 # log_var < -10 means var < exp(-10) ≈ 0.000045 (too small)
                                 elif max_val > 10 or min_val < -10:
                                     extreme_layers.append(f"L{layer_idx}.{proj_name}")
+                            elif hasattr(proj, 'mu_A'):  # Deterministic mode: only has mu_A
+                                # Skip monitoring for deterministic layers (no variance to monitor)
+                                pass
+
         
         # Print and log summary if we have statistics
         if logvar_stats:
