@@ -676,12 +676,16 @@ class ARDClassificationTrainer(ResamplingTrainer):
     def evaluate(self, eval_dataset=None, ignore_keys=None, metric_key_prefix="eval"):
         """
         Enhanced evaluation with classification metrics.
-        """
+        """        
         # Temporarily disable progress bar and logging for evaluation
         original_disable_tqdm = self.args.disable_tqdm
         original_logging_steps = self.args.logging_steps
+        original_tqdm_env = os.environ.get('TQDM_DISABLE', None)
+        
+        # Aggressively suppress all evaluation output
         self.args.disable_tqdm = True
         self.args.logging_steps = 999999  # Effectively disable logging during eval
+        os.environ['TQDM_DISABLE'] = '1'  # Environment variable to disable tqdm globally
         
         try:
             # Call parent evaluate
@@ -699,6 +703,12 @@ class ARDClassificationTrainer(ResamplingTrainer):
             # Restore original settings
             self.args.disable_tqdm = original_disable_tqdm
             self.args.logging_steps = original_logging_steps
+            
+            # Restore tqdm environment variable
+            if original_tqdm_env is None:
+                os.environ.pop('TQDM_DISABLE', None)
+            else:
+                os.environ['TQDM_DISABLE'] = original_tqdm_env
     
     def evaluate_uncertainty(self) -> Optional[Dict[str, float]]:
         """
