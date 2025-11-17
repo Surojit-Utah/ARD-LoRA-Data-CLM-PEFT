@@ -609,10 +609,11 @@ class ARDClassificationTrainer(ResamplingTrainer):
                     self._log_debug(f"  ... and {len(extreme_layers) - 10} more layers")
                 self._log_debug(f"  Consider adding log_var clamping: torch.clamp(log_var, min=-10, max=10)")
             
-            # Show details for sample layers (always log to file, optionally print)
+            # Show details for all layers (to file, selectively to console)
             if len(logvar_stats) > 0:
-                details_msg = ["  Sample layer details (variance and log_var):"]
-                for stat in logvar_stats[:5]:  # First 5 layers
+                self._log_debug(f"  Total projections monitored: {len(logvar_stats)}")
+                details_msg = ["  Layer-by-layer details (variance and log_var):"]
+                for stat in logvar_stats:  # Show ALL layers
                     details_msg.append(
                         f"    L{stat['layer']}.{stat['proj']}: "
                         f"var_mean={stat['var_mean']:.6f}, var_std={stat['var_std']:.6f}, "
