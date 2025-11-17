@@ -1727,8 +1727,7 @@ class LatentPlotCallback(TrainerCallback):
             model.eval()  # <--- enter eval explicitly
             with torch.no_grad():
                 # Create plots directory with epoch number
-                plot_dir = os.path.join(self.output_dir, f"epoch_{current_epoch}")
-
+                plot_dir = Path(self.output_dir) / f"epoch_{current_epoch}"
                 plot_dir.mkdir(parents=True, exist_ok=True)
 
                 # Use the existing ARD DataLoader directly since it's already properly configured
