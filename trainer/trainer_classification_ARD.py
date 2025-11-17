@@ -620,7 +620,7 @@ class ARDClassificationTrainer(ResamplingTrainer):
                     )
                     details_msg.append(
                         f"      (log_var: mean={stat['logvar_mean']:.3f}, std={stat['logvar_std']:.3f}, "
-                        f"range=[{stat['logvar_min']:.3f}, {stat['logvar_max']:.3f}], var={stat['var_on_logvar']:.6f})"
+                        f"range=[{stat['logvar_min']:.3f}, {stat['logvar_max']:.3f}])"
                     )
                 
                 # Determine if we should print to console
