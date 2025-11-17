@@ -148,6 +148,12 @@ class ARDClassificationTrainer(ResamplingTrainer):
         self.last_kl_loss = 0.0
         self.last_total_loss = 0.0
         
+        # Running averages for epoch-level metrics
+        self.epoch_ce_loss_sum = 0.0
+        self.epoch_kl_loss_sum = 0.0
+        self.epoch_total_loss_sum = 0.0
+        self.epoch_step_count = 0
+        
         # Debug logging directory (will be set by build_classification_trainer)
         self.debug_log_dir = None
         
@@ -370,9 +376,19 @@ class ARDClassificationTrainer(ResamplingTrainer):
             total_loss = ce_loss  # Keep tensor, don't add scalar 0.0
         
         # Store for logging
-        self.last_ce_loss = ce_loss.item()
-        self.last_kl_loss = kl.item() if torch.is_tensor(kl) else float(kl) if self.use_kl else 0.0
-        self.last_total_loss = total_loss.item()
+        ce_loss_val = ce_loss.item()
+        kl_loss_val = kl.item() if torch.is_tensor(kl) else float(kl) if self.use_kl else 0.0
+        total_loss_val = total_loss.item()
+        
+        self.last_ce_loss = ce_loss_val
+        self.last_kl_loss = kl_loss_val
+        self.last_total_loss = total_loss_val
+        
+        # Accumulate for epoch average
+        self.epoch_ce_loss_sum += ce_loss_val
+        self.epoch_kl_loss_sum += kl_loss_val
+        self.epoch_total_loss_sum += total_loss_val
+        self.epoch_step_count += 1
         
         return (total_loss, outputs) if return_outputs else total_loss
     
@@ -921,6 +937,17 @@ class EvalLossComponentsCallback(TrainerCallback):
     def __init__(self):
         super().__init__()
     
+    def on_epoch_begin(self, args, state, control, **kwargs):
+        """Reset epoch-level loss accumulators at the start of each epoch."""
+        model = kwargs["model"]
+        trainer = getattr(model, 'trainer', None)
+        
+        if trainer is not None:
+            trainer.epoch_ce_loss_sum = 0.0
+            trainer.epoch_kl_loss_sum = 0.0
+            trainer.epoch_total_loss_sum = 0.0
+            trainer.epoch_step_count = 0
+    
     def on_epoch_end(self, args, state, control, **kwargs):
         """Compute and log evaluation loss components at the end of each epoch."""
         model = kwargs["model"]
@@ -932,27 +959,37 @@ class EvalLossComponentsCallback(TrainerCallback):
         
         print(f"\n📊 [EVAL] Logging metrics for epoch {state.epoch}")
         
+        # Compute epoch averages
+        if trainer.epoch_step_count > 0:
+            avg_ce_loss = trainer.epoch_ce_loss_sum / trainer.epoch_step_count
+            avg_kl_loss = trainer.epoch_kl_loss_sum / trainer.epoch_step_count
+            avg_total_loss = trainer.epoch_total_loss_sum / trainer.epoch_step_count
+        else:
+            avg_ce_loss = trainer.last_ce_loss
+            avg_kl_loss = trainer.last_kl_loss
+            avg_total_loss = trainer.last_total_loss
+        
         # Log training loss components to TensorBoard
         if trainer.args.report_to and 'tensorboard' in trainer.args.report_to:
             training_metrics = {
-                'train/ce_loss': trainer.last_ce_loss,
-                'train/total_loss': trainer.last_total_loss,
+                'train/ce_loss_epoch': avg_ce_loss,
+                'train/total_loss_epoch': avg_total_loss,
             }
             
             # Only log KL loss if use_kl is enabled
             if trainer.use_kl:
-                training_metrics['train/kl_loss'] = trainer.last_kl_loss
+                training_metrics['train/kl_loss_epoch'] = avg_kl_loss
                 training_metrics['train/kl_beta'] = trainer.beta
             
             trainer.log(training_metrics)
-            print(f"📊 Training Loss Components (Epoch {state.epoch}):")
-            print(f"   CE Loss: {trainer.last_ce_loss:.4f}")
+            print(f"📊 Training Loss Components - Epoch {state.epoch} Average (over {trainer.epoch_step_count} steps):")
+            print(f"   CE Loss: {avg_ce_loss:.4f}")
             if trainer.use_kl:
-                print(f"   KL Loss: {trainer.last_kl_loss:.4f}")
-                print(f"   Total Loss: {trainer.last_total_loss:.4f}")
+                print(f"   KL Loss: {avg_kl_loss:.4f}")
+                print(f"   Total Loss: {avg_total_loss:.4f}")
                 print(f"   KL Beta: {trainer.beta:.4f}")
             else:
-                print(f"   Total Loss: {trainer.last_total_loss:.4f}")
+                print(f"   Total Loss: {avg_total_loss:.4f}")
                 print(f"   (KL loss disabled)")
         
         # Run evaluation and log eval losses
