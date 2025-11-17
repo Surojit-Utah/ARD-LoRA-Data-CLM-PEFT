@@ -676,16 +676,20 @@ class ARDClassificationTrainer(ResamplingTrainer):
     def evaluate(self, eval_dataset=None, ignore_keys=None, metric_key_prefix="eval"):
         """
         Enhanced evaluation with classification metrics.
-        """        
-        # Temporarily disable progress bar and logging for evaluation
+        """
+        # Save original args
         original_disable_tqdm = self.args.disable_tqdm
         original_logging_steps = self.args.logging_steps
-        original_tqdm_env = os.environ.get('TQDM_DISABLE', None)
         
-        # Aggressively suppress all evaluation output
+        # Disable progress bar and logging
         self.args.disable_tqdm = True
-        self.args.logging_steps = 999999  # Effectively disable logging during eval
-        os.environ['TQDM_DISABLE'] = '1'  # Environment variable to disable tqdm globally
+        self.args.logging_steps = 999999
+        
+        # Remove ProgressCallback temporarily
+        from transformers.trainer_callback import ProgressCallback
+        progress_callbacks = [cb for cb in self.callback_handler.callbacks if isinstance(cb, ProgressCallback)]
+        for cb in progress_callbacks:
+            self.callback_handler.remove_callback(cb)
         
         try:
             # Call parent evaluate
@@ -695,20 +699,15 @@ class ARDClassificationTrainer(ResamplingTrainer):
                 metric_key_prefix=metric_key_prefix
             )
             
-            # Add classification-specific metrics if needed
-            # (accuracy, F1, etc. can be added here)
-            
             return metrics
         finally:
             # Restore original settings
             self.args.disable_tqdm = original_disable_tqdm
             self.args.logging_steps = original_logging_steps
             
-            # Restore tqdm environment variable
-            if original_tqdm_env is None:
-                os.environ.pop('TQDM_DISABLE', None)
-            else:
-                os.environ['TQDM_DISABLE'] = original_tqdm_env
+            # Re-add ProgressCallback
+            for cb in progress_callbacks:
+                self.callback_handler.add_callback(cb)
     
     def evaluate_uncertainty(self) -> Optional[Dict[str, float]]:
         """
