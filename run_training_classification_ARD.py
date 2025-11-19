@@ -256,9 +256,9 @@ def load_model_with_problora(config, verbose=False):
 
     print("\n[CHECK] ProbLoRA params and requires_grad:")
     for mod_name, mod in model.named_modules():
-        if not isinstance(mod, ProbLoRALayer):
+        if isinstance(mod, ProbLoRALayer):
             for p_name, p in mod.named_parameters(recurse=False):
-                if "mu_A" in p_name or "A" in p_name or ".B" in p_name:
+                if "mu_A" in p_name or "A" in p_name or "B" in p_name:
                     print(f"  {p_name:60s} requires_grad={p.requires_grad}")
     input()
 
