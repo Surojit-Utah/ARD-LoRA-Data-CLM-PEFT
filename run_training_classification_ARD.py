@@ -149,6 +149,27 @@ def load_model_with_problora(config, verbose=False):
     model = AutoModelForCausalLM.from_pretrained(model_name_or_path, **model_kwargs)
     tokenizer = AutoTokenizer.from_pretrained(tokenizer_name)
     
+    # Disable dropout for deterministic training
+    print(f"[DROPOUT] Checking and disabling dropout in model configuration...")
+    dropout_params = ['attention_dropout', 'hidden_dropout', 'dropout']
+    dropout_disabled = []
+    for param in dropout_params:
+        if hasattr(model.config, param):
+            original_value = getattr(model.config, param)
+            if original_value > 0:
+                setattr(model.config, param, 0.0)
+                print(f"[DROPOUT] Disabled {param}: {original_value} -> 0.0")
+                dropout_disabled.append(f"{param}={original_value}")
+            else:
+                print(f"[DROPOUT] {param} already disabled: {original_value}")
+        else:
+            print(f"[DROPOUT] {param} not found in model config (not applicable)")
+    
+    if dropout_disabled:
+        print(f"[DROPOUT] Summary: Disabled dropout parameters: {', '.join(dropout_disabled)}")
+    else:
+        print(f"[DROPOUT] Summary: All dropout parameters already disabled or not present")
+    
     # Configure pad token for CLM training
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
@@ -422,6 +443,7 @@ def create_trainer(model, tokenizer, train_ds, val_ds, config, output_dir, targe
         print(f"[TOKENIZER] Trainer tokenizer consistency verified")
     
     return trainer
+
 def main():
     """Main training function for classification on ARC-Easy"""
     print("=" * 80)
@@ -593,6 +615,10 @@ def main():
     print(f"       Debug logs: {debug_log_dir}")
 
     trainer = create_trainer(model, tokenizer, train_ds, val_ds, config, model_ckpt_dir, target_ids, tb_log_dir, predictions_dir, output_dir, debug_log_dir)
+    # Dropout and grad norm settings of Llama2
+    print("TrainingArguments weight_decay:", trainer.args.weight_decay)
+    print("max_grad_norm:", trainer.args.max_grad_norm)
+    input()
 
     # Final tokenizer consistency validation before training
     print(f"\n[TOKENIZER] Final Pre-Training Validation:")

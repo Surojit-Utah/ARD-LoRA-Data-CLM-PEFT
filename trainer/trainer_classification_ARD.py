@@ -29,10 +29,6 @@ import traceback
 import gc
 import os
 
-from transformers import Trainer
-from torch.utils.data import DataLoader
-
-
 class ResamplingTrainer(Trainer):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -339,7 +335,7 @@ class ARDClassificationTrainer(ResamplingTrainer):
                 print(f"[KL] batch KL={kl.detach().item():.6f} (beta={self.beta})")
 
         # Prove CE vs KL gradients separately (one-time probes to check gradient flow)
-        if getattr(self, "_grad_probe_done", False) is False:
+        if getattr(self, "_grad_probe_done") is False:
             self._grad_probe_done = True  # run once
 
             # Collect a small stable set of adapter params (works for both modes)
@@ -354,18 +350,54 @@ class ARDClassificationTrainer(ResamplingTrainer):
                     break
             print(f"[GRAD-PROBE] monitoring {len(probe_params)} adapter params")
 
-            # CE-only
+            # # CE-only
+            # model.zero_grad(set_to_none=True)
+            # ce_loss.backward(retain_graph=True)
+            # ce_g = [(None if p.grad is None else p.grad.detach().norm().item()) for p in probe_params]
+            # print(f"[GRAD-PROBE] CE-only grad norms: {ce_g}")
+
+            # # KL-only (only if KL is enabled and has grad path)
+            # if self.use_kl and isinstance(kl, torch.Tensor) and kl.requires_grad:
+            #     model.zero_grad(set_to_none=True)
+            #     (self.beta * kl).backward(retain_graph=True)
+            #     kl_g = [(None if p.grad is None else p.grad.detach().norm().item()) for p in probe_params]
+            #     print(f"[GRAD-PROBE] KL-only grad norms (beta={self.beta}): {kl_g}")
+
+            print(f"[GRAD-PROBE] monitoring {len(probe_params)} adapter params:")
+            for i, (name, p) in enumerate(probe_params):
+                print(f"  [{i}] {name}  shape={tuple(p.shape)}")
+
+            # ---------- CE-only gradients ----------
             model.zero_grad(set_to_none=True)
             ce_loss.backward(retain_graph=True)
-            ce_g = [(None if p.grad is None else p.grad.detach().norm().item()) for p in probe_params]
-            print(f"[GRAD-PROBE] CE-only grad norms: {ce_g}")
 
-            # KL-only (only if KL is enabled and has grad path)
-            if self.use_kl and isinstance(kl, torch.Tensor) and kl.requires_grad:
+            ce_grad_norms = []
+            for name, p in probe_params:
+                if p.grad is None:
+                    ce_grad_norms.append(None)
+                else:
+                    ce_grad_norms.append(p.grad.detach().norm().item())
+
+            print("[GRAD-PROBE] CE-only grad norms (by param):")
+            for i, ((name, _), g) in enumerate(zip(probe_params, ce_grad_norms)):
+                print(f"  [{i}] {name}: CE_grad_norm = {g}")
+
+            # ---------- KL-only gradients ----------
+            kl_grad_norms = None
+            if getattr(self, "use_kl", False) and isinstance(kl, torch.Tensor) and kl.requires_grad:
                 model.zero_grad(set_to_none=True)
                 (self.beta * kl).backward(retain_graph=True)
-                kl_g = [(None if p.grad is None else p.grad.detach().norm().item()) for p in probe_params]
-                print(f"[GRAD-PROBE] KL-only grad norms (beta={self.beta}): {kl_g}")
+
+                kl_grad_norms = []
+                for name, p in probe_params:
+                    if p.grad is None:
+                        kl_grad_norms.append(None)
+                    else:
+                        kl_grad_norms.append(p.grad.detach().norm().item())
+
+                print(f"[GRAD-PROBE] KL-only grad norms (beta={self.beta}):")
+                for i, ((name, _), g) in enumerate(zip(probe_params, kl_grad_norms)):
+                    print(f"  [{i}] {name}: KL_grad_norm = {g}")
 
             model.zero_grad(set_to_none=True)  # clean for Trainer's backward
 
