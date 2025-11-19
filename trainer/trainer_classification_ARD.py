@@ -409,16 +409,19 @@ class ARDClassificationTrainer(ResamplingTrainer):
         
         # Store for logging
         ce_loss_val = ce_loss.item()
-        kl_loss_val = kl.item() if torch.is_tensor(kl) else float(kl) if self.use_kl else 0.0
+        if self.use_kl:
+            kl_loss_val = kl.item() if torch.is_tensor(kl) else float(kl) if self.use_kl else 0.0
         total_loss_val = total_loss.item()
         
         self.last_ce_loss = ce_loss_val
-        self.last_kl_loss = kl_loss_val
+        if self.use_kl:
+            self.last_kl_loss = kl_loss_val
         self.last_total_loss = total_loss_val
         
         # Accumulate for epoch average
         self.epoch_ce_loss_sum += ce_loss_val
-        self.epoch_kl_loss_sum += kl_loss_val
+        if self.use_kl:
+            self.epoch_kl_loss_sum += kl_loss_val
         self.epoch_total_loss_sum += total_loss_val
         self.epoch_step_count += 1
         
