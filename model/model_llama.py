@@ -87,7 +87,7 @@ class ProbLoRALayer(nn.Module):
 
     def forward(self, x):
         """Forward pass - works with any sequence length and masking strategy"""
-        print("[DEBUG] ProbLoRALayer forward called:", self)
+        # print("[DEBUG] ProbLoRALayer forward called:", self)
         base_out = self.base_proj(x)            # shape: [B, S, out_dim]
 
         with _fp32_ctx(x):  # do sensitive math in FP32
