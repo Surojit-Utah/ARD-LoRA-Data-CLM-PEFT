@@ -340,15 +340,34 @@ class ARDClassificationTrainer(ResamplingTrainer):
 
             # Collect a small stable set of adapter params (works for both modes)
             probe_params = []
-            for n, p in model.named_parameters():
-                if not p.requires_grad:
+            for mod_name, mod in model.named_modules():
+                if not isinstance(mod, ProbLoRALayer):
                     continue
-                # ProbLoRA/LoRA adapters to monitor
-                if n.endswith(".A") or n.endswith(".mu_A") or n.endswith(".B"):
-                    probe_params.append((n, p))  # Store (name, param) tuple
+                
+                # Only parameters directly on this module (no recursion)
+                for p_name, p in mod.named_parameters(recurse=False):
+                    if not p.requires_grad:
+                        continue
+                    
+                    # ProbLoRA/LoRA adapters to monitor (mode-specific)
+                    full_name = f"{mod_name}.{p_name}" if mod_name else p_name
+                    if self.use_kl:
+                        # Probabilistic mode: monitor A (contains mu and logvar) and B
+                        if p_name in ["A", "B"]:
+                            probe_params.append((full_name, p))
+                    else:
+                        # Deterministic mode: monitor mu_A and B
+                        if p_name in ["mu_A", "B"]:
+                            probe_params.append((full_name, p))
+                    
+                    if len(probe_params) >= 12:
+                        break
+                
                 if len(probe_params) >= 12:
                     break
-            print(f"[GRAD-PROBE] monitoring {len(probe_params)} adapter params")
+            
+            mode_str = "probabilistic" if self.use_kl else "deterministic"
+            print(f"[GRAD-PROBE] monitoring {len(probe_params)} adapter params ({mode_str} mode)")
             print(model.model.layers[0].self_attn.q_proj)
             print(type(model.model.layers[0].self_attn.q_proj))
 
@@ -400,6 +419,25 @@ class ARDClassificationTrainer(ResamplingTrainer):
                 print(f"[GRAD-PROBE] KL-only grad norms (beta={self.beta}):")
                 for i, ((name, _), g) in enumerate(zip(probe_params, kl_grad_norms)):
                     print(f"  [{i}] {name}: KL_grad_norm = {g}")
+
+            # ---------- Total loss gradients ----------
+            model.zero_grad(set_to_none=True)
+            if self.use_kl:
+                total_loss_probe = ce_loss + self.beta * kl
+            else:
+                total_loss_probe = ce_loss
+            total_loss_probe.backward(retain_graph=True)
+
+            total_grad_norms = []
+            for name, p in probe_params:
+                if p.grad is None:
+                    total_grad_norms.append(None)
+                else:
+                    total_grad_norms.append(p.grad.detach().norm().item())
+
+            print(f"[GRAD-PROBE] Total loss grad norms (CE + beta*KL):")
+            for i, ((name, _), g) in enumerate(zip(probe_params, total_grad_norms)):
+                print(f"  [{i}] {name}: Total_grad_norm = {g}")
 
             model.zero_grad(set_to_none=True)  # clean for Trainer's backward
 

@@ -253,7 +253,15 @@ def load_model_with_problora(config, verbose=False):
             for p_name, p in mod.named_parameters(recurse=False):
                 if p.is_floating_point():
                     p.requires_grad_(False)
-    
+
+    print("\n[CHECK] ProbLoRA params and requires_grad:")
+    for mod_name, mod in model.named_modules():
+        if not isinstance(mod, ProbLoRALayer):
+            for p_name, p in mod.named_parameters(recurse=False):
+                if "mu_A" in p_name or "A" in p_name or ".B" in p_name:
+                    print(f"  {p_name:60s} requires_grad={p.requires_grad}")
+    input()
+
     # LEGACY APPROACH (commented out - kept for reference)
     # lora_patterns = ['lora_a', 'lora_b', '.a.', '.b.', 'lora', 'adapter']
     # 

@@ -209,83 +209,6 @@ class ProbLoRALayer(nn.Module):
 
         # return in model dtype to avoid dtype mismatches upstream
         return out.to(x.dtype)
-    
-    # def beta_get_sample(self, x):
-    #     """Sample from latent distribution for ARD prior estimation with numerical stability"""
-    #     if self.deterministic:
-    #         # Deterministic mode: Return mean output (no sampling)
-    #         mu_A = self.mu_A.to(dtype=x.dtype, device=x.device)
-            
-    #         # Apply variance mask if it exists - DISABLED
-    #         # if hasattr(self, 'variance_mask') and self.variance_mask is not None:
-    #         #     mask = self.variance_mask.unsqueeze(1).to(dtype=x.dtype, device=x.device)  # Shape: [rank, 1]
-    #         #     mu_A_masked = mu_A * mask
-    #         # else:
-    #         #     mu_A_masked = mu_A
-    #         mu_A_masked = mu_A
-                
-    #         x_flat = x.view(-1, x.size(-1))
-    #         mu = (mu_A_masked @ x_flat.T).T      # [B*S, rank]
-            
-    #         # Apply latent masking - DISABLED
-    #         # if hasattr(self, 'variance_mask') and self.variance_mask is not None:
-    #         #     mask_latent = self.variance_mask.unsqueeze(0).to(dtype=x.dtype, device=x.device)  # [1, rank]
-    #         #     mu = mu * mask_latent
-            
-    #         # For deterministic mode, return mean as "samples"
-    #         samples_float = mu.float().cpu().detach()
-    #         return samples_float.numpy()
-        
-    #     # Probabilistic mode: Original sampling behavior
-    #     mu_A, logvar_A = torch.split(self.A, self.rank, dim=0)
-        
-    #     # Convert to input dtype and device for computation consistency
-    #     mu_A = mu_A.to(dtype=x.dtype, device=x.device)
-    #     logvar_A = logvar_A.to(dtype=x.dtype, device=x.device)
-        
-    #     # Apply variance mask if it exists - DISABLED
-    #     # if hasattr(self, 'variance_mask') and self.variance_mask is not None:
-    #     #     # Mask the latent dimensions (output dims of A matrices)
-    #     #     mask = self.variance_mask.unsqueeze(1).to(dtype=x.dtype, device=x.device)  # Shape: [rank, 1]
-    #     #     mu_A_masked = mu_A * mask
-    #     #     logvar_A_masked = logvar_A * mask
-    #     # else:
-    #     #     mu_A_masked = mu_A
-    #     #     logvar_A_masked = logvar_A
-    #     mu_A_masked = mu_A
-    #     logvar_A_masked = logvar_A
-            
-    #     x_flat = x.view(-1, x.size(-1))
-    #     mu = (mu_A_masked @ x_flat.T).T      # [B*S, rank]
-    #     logvar = (logvar_A_masked @ x_flat.T).T  # [B*S, rank]
-        
-    #     # Apply additional masking to latent outputs - DISABLED
-    #     # if hasattr(self, 'variance_mask') and self.variance_mask is not None:
-    #     #     mask_latent = self.variance_mask.unsqueeze(0).to(dtype=x.dtype, device=x.device)  # [1, rank]
-    #     #     mu = mu * mask_latent
-    #     #     logvar = logvar * mask_latent
-        
-    #     # NUMERICAL STABILITY: Clamp logvar to prevent extreme values (only if enabled)
-    #     if self.enable_clamps:
-    #         logvar = torch.clamp(logvar, min=self.beta_logvar_clamp_min, max=self.beta_logvar_clamp_max)  # Prevents exp() overflow/underflow
-        
-    #     eps = torch.randn_like(mu)
-    #     samples = mu + eps * torch.exp(0.5 * logvar)  # [B*S, rank]
-        
-    #     # NUMERICAL STABILITY: Clamp samples to prevent overflow in beta accumulation (only if enabled)
-    #     if self.enable_clamps:
-    #         samples = torch.clamp(samples, min=self.sample_clamp_min, max=self.sample_clamp_max)  # Prevents overflow in square operation
-        
-    #     # Convert to float32 before numpy conversion (BFloat16 not supported by numpy)
-    #     samples_float = samples.float().cpu().detach()
-        
-    #     # NUMERICAL STABILITY: Check for inf/nan before returning
-    #     if torch.isnan(samples_float).any() or torch.isinf(samples_float).any():
-    #         print(f"[WARNING] NaN/Inf detected in beta samples, using zeros for stability")
-    #         return np.zeros_like(samples_float.numpy())
-        
-    #     return samples_float.numpy()
-
 
     def beta_get_sample(self, x):
         """Sample from latent distribution for ARD prior estimation with numerical stability."""
@@ -368,7 +291,6 @@ class ProbLoRALayer(nn.Module):
 
             return samples_float.numpy()
 
-
     def plot_get_sample(self, x):
         """
         Deterministic latent encoding for visualization only.
@@ -416,6 +338,82 @@ class ProbLoRALayer(nn.Module):
 
         return mu_samples
 
+    # def beta_get_sample(self, x):
+    #     """Sample from latent distribution for ARD prior estimation with numerical stability"""
+    #     if self.deterministic:
+    #         # Deterministic mode: Return mean output (no sampling)
+    #         mu_A = self.mu_A.to(dtype=x.dtype, device=x.device)
+            
+    #         # Apply variance mask if it exists - DISABLED
+    #         # if hasattr(self, 'variance_mask') and self.variance_mask is not None:
+    #         #     mask = self.variance_mask.unsqueeze(1).to(dtype=x.dtype, device=x.device)  # Shape: [rank, 1]
+    #         #     mu_A_masked = mu_A * mask
+    #         # else:
+    #         #     mu_A_masked = mu_A
+    #         mu_A_masked = mu_A
+                
+    #         x_flat = x.view(-1, x.size(-1))
+    #         mu = (mu_A_masked @ x_flat.T).T      # [B*S, rank]
+            
+    #         # Apply latent masking - DISABLED
+    #         # if hasattr(self, 'variance_mask') and self.variance_mask is not None:
+    #         #     mask_latent = self.variance_mask.unsqueeze(0).to(dtype=x.dtype, device=x.device)  # [1, rank]
+    #         #     mu = mu * mask_latent
+            
+    #         # For deterministic mode, return mean as "samples"
+    #         samples_float = mu.float().cpu().detach()
+    #         return samples_float.numpy()
+        
+    #     # Probabilistic mode: Original sampling behavior
+    #     mu_A, logvar_A = torch.split(self.A, self.rank, dim=0)
+        
+    #     # Convert to input dtype and device for computation consistency
+    #     mu_A = mu_A.to(dtype=x.dtype, device=x.device)
+    #     logvar_A = logvar_A.to(dtype=x.dtype, device=x.device)
+        
+    #     # Apply variance mask if it exists - DISABLED
+    #     # if hasattr(self, 'variance_mask') and self.variance_mask is not None:
+    #     #     # Mask the latent dimensions (output dims of A matrices)
+    #     #     mask = self.variance_mask.unsqueeze(1).to(dtype=x.dtype, device=x.device)  # Shape: [rank, 1]
+    #     #     mu_A_masked = mu_A * mask
+    #     #     logvar_A_masked = logvar_A * mask
+    #     # else:
+    #     #     mu_A_masked = mu_A
+    #     #     logvar_A_masked = logvar_A
+    #     mu_A_masked = mu_A
+    #     logvar_A_masked = logvar_A
+            
+    #     x_flat = x.view(-1, x.size(-1))
+    #     mu = (mu_A_masked @ x_flat.T).T      # [B*S, rank]
+    #     logvar = (logvar_A_masked @ x_flat.T).T  # [B*S, rank]
+        
+    #     # Apply additional masking to latent outputs - DISABLED
+    #     # if hasattr(self, 'variance_mask') and self.variance_mask is not None:
+    #     #     mask_latent = self.variance_mask.unsqueeze(0).to(dtype=x.dtype, device=x.device)  # [1, rank]
+    #     #     mu = mu * mask_latent
+    #     #     logvar = logvar * mask_latent
+        
+    #     # NUMERICAL STABILITY: Clamp logvar to prevent extreme values (only if enabled)
+    #     if self.enable_clamps:
+    #         logvar = torch.clamp(logvar, min=self.beta_logvar_clamp_min, max=self.beta_logvar_clamp_max)  # Prevents exp() overflow/underflow
+        
+    #     eps = torch.randn_like(mu)
+    #     samples = mu + eps * torch.exp(0.5 * logvar)  # [B*S, rank]
+        
+    #     # NUMERICAL STABILITY: Clamp samples to prevent overflow in beta accumulation (only if enabled)
+    #     if self.enable_clamps:
+    #         samples = torch.clamp(samples, min=self.sample_clamp_min, max=self.sample_clamp_max)  # Prevents overflow in square operation
+        
+    #     # Convert to float32 before numpy conversion (BFloat16 not supported by numpy)
+    #     samples_float = samples.float().cpu().detach()
+        
+    #     # NUMERICAL STABILITY: Check for inf/nan before returning
+    #     if torch.isnan(samples_float).any() or torch.isinf(samples_float).any():
+    #         print(f"[WARNING] NaN/Inf detected in beta samples, using zeros for stability")
+    #         return np.zeros_like(samples_float.numpy())
+        
+    #     return samples_float.numpy()
+
 
 def inject_problora_llama(model, rank, scaling, num_tokens, ard_prior_samples,
                          logvar_clamp_min, logvar_clamp_max,
@@ -432,18 +430,17 @@ def inject_problora_llama(model, rank, scaling, num_tokens, ard_prior_samples,
         enable_clamps: If True, applies numerical stability clamps (default: True)
         lora_alpha: LoRA alpha parameter for computing scaling = alpha/rank (standard LoRA)
     """
-    # Compute effective scaling
-    if lora_alpha is not None:
-        effective_scaling = lora_alpha / rank
-        scaling_info = f"α/r = {lora_alpha}/{rank} = {effective_scaling:.3f}"
-    else:
-        effective_scaling = scaling
-        scaling_info = f"manual = {scaling}"
+    # # Compute effective scaling
+    # if lora_alpha is not None:
+    #     effective_scaling = lora_alpha / rank
+    #     scaling_info = f"α/r = {lora_alpha}/{rank} = {effective_scaling:.3f}"
+    # else:
+    #     effective_scaling = scaling
+    #     scaling_info = f"manual = {scaling}"
         
     mode_str = "deterministic LoRA" if deterministic else "probabilistic LoRA (ProbLoRA)"
     clamp_str = "with clamps" if enable_clamps else "without clamps"
     print(f"[INFO] Injecting {mode_str} into LLaMA2 model with rank={rank} ({clamp_str})")
-    print(f"[INFO] LoRA scaling: {scaling_info}")
     
     # Validate required parameters
     if target_attention_layers is None:
