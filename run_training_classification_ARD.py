@@ -618,7 +618,6 @@ def main():
     # Dropout and grad norm settings of Llama2
     print("TrainingArguments weight_decay:", trainer.args.weight_decay)
     print("max_grad_norm:", trainer.args.max_grad_norm)
-    input()
 
     # Final tokenizer consistency validation before training
     print(f"\n[TOKENIZER] Final Pre-Training Validation:")
