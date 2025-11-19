@@ -67,7 +67,7 @@ defaults:
   # max_lora_rank_threshold: 8
   
   # LoRA Mode Configuration
-  deterministic_lora: False  # Set to true for deterministic LoRA (MLE baseline, no KL loss)
+  deterministic_lora: True  # Set to true for deterministic LoRA (MLE baseline, no KL loss)
   
   # Target Layer Configuration - REQUIRED
   # BayesianPEFT targets: q_proj, v_proj (and optionally lm_head for classification)
