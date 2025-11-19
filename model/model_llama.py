@@ -87,6 +87,7 @@ class ProbLoRALayer(nn.Module):
 
     def forward(self, x):
         """Forward pass - works with any sequence length and masking strategy"""
+        print("[DEBUG] ProbLoRALayer forward called:", self)
         base_out = self.base_proj(x)            # shape: [B, S, out_dim]
 
         with _fp32_ctx(x):  # do sensitive math in FP32
@@ -109,11 +110,11 @@ class ProbLoRALayer(nn.Module):
 
                 # Only compute mean output (no variance/sampling)
                 z = x_flat @ mu_A.T
-                del x_flat
+                # del x_flat
 
                 lora_out32 = z @ B_mat.T
                 out32 = lora_out32.reshape(x32.size(0), x32.size(1), -1)
-                del z, B_mat, lora_out32, x32
+                # del z, B_mat, lora_out32, x32
                 
             else:
                 # PROBABILISTIC MODE: Original ProbLoRA behavior
@@ -139,22 +140,22 @@ class ProbLoRALayer(nn.Module):
                 logvar = x_flat @ logvar_A.T
                 if self.enable_clamps:
                     logvar = logvar.clamp(self.logvar_clamp_min, self.logvar_clamp_max)
-                del x_flat
+                # del x_flat
 
                 if self.training:
                     eps = torch.randn_like(mu)
                     sigma = torch.exp(0.5 * logvar)
                     z = mu + eps * sigma
-                    del eps, sigma
+                    # del eps, sigma
                     if self.enable_clamps and self.sample_clamp_min is not None and self.sample_clamp_max is not None:
                         z = z.clamp(self.sample_clamp_min, self.sample_clamp_max)
                 else:
                     z = mu  # deterministic eval
-                del mu, logvar
+                # del mu, logvar
 
                 lora_out32 = z @ B_mat.T
                 out32 = lora_out32.reshape(x32.size(0), x32.size(1), -1)
-                del z, B_mat, lora_out32, x32
+                # del z, B_mat, lora_out32, x32
 
         out = out32.to(x.dtype)  # single downcast
         return base_out + self.scaling * out

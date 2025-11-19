@@ -349,6 +349,8 @@ class ARDClassificationTrainer(ResamplingTrainer):
                 if len(probe_params) >= 12:
                     break
             print(f"[GRAD-PROBE] monitoring {len(probe_params)} adapter params")
+            print(model.layers[0].self_attn.q_proj)
+            print(type(model.layers[0].self_attn.q_proj))
 
             # # CE-only
             # model.zero_grad(set_to_none=True)
