@@ -335,7 +335,7 @@ class ARDClassificationTrainer(ResamplingTrainer):
                 print(f"[KL] batch KL={kl.detach().item():.6f} (beta={self.beta})")
 
         # Prove CE vs KL gradients separately (one-time probes to check gradient flow)
-        if getattr(self, "_grad_probe_done") is False:
+        if getattr(self, "_grad_probe_done", False) is False:
             self._grad_probe_done = True  # run once
 
             # Collect a small stable set of adapter params (works for both modes)
