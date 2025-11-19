@@ -345,7 +345,7 @@ class ARDClassificationTrainer(ResamplingTrainer):
                     continue
                 # ProbLoRA/LoRA adapters to monitor
                 if n.endswith(".A") or n.endswith(".mu_A") or n.endswith(".B"):
-                    probe_params.append(p)
+                    probe_params.append((n, p))  # Store (name, param) tuple
                 if len(probe_params) >= 12:
                     break
             print(f"[GRAD-PROBE] monitoring {len(probe_params)} adapter params")
