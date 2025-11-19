@@ -261,7 +261,6 @@ def load_model_with_problora(config, verbose=False):
                 if "mu_A" in p_name or "A" in p_name or "B" in p_name:
                     full_param_name = f"{mod_name}.{p_name}" if mod_name else p_name
                     print(f"  {full_param_name:80s} requires_grad={p.requires_grad}")
-    input()
 
     # LEGACY APPROACH (commented out - kept for reference)
     # lora_patterns = ['lora_a', 'lora_b', '.a.', '.b.', 'lora', 'adapter']
