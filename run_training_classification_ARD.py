@@ -259,7 +259,8 @@ def load_model_with_problora(config, verbose=False):
         if isinstance(mod, ProbLoRALayer):
             for p_name, p in mod.named_parameters(recurse=False):
                 if "mu_A" in p_name or "A" in p_name or "B" in p_name:
-                    print(f"  {p_name:60s} requires_grad={p.requires_grad}")
+                    full_param_name = f"{mod_name}.{p_name}" if mod_name else p_name
+                    print(f"  {full_param_name:80s} requires_grad={p.requires_grad}")
     input()
 
     # LEGACY APPROACH (commented out - kept for reference)
