@@ -334,9 +334,13 @@ class ARDClassificationTrainer(ResamplingTrainer):
             if getattr(self.args, "local_rank", -1) in (-1, 0) and current_step % 100 == 0:
                 print(f"[KL] batch KL={kl.detach().item():.6f} (beta={self.beta})")
 
-        # Prove CE vs KL gradients separately (one-time probes to check gradient flow)
-        if getattr(self, "_grad_probe_done", False) is False:
-            self._grad_probe_done = True  # run once
+        # Prove CE vs KL gradients separately (probes to check gradient flow)
+        # Run at start of each epoch after epoch 0 to track gradient evolution
+        current_epoch = int(self.state.epoch) if hasattr(self, 'state') else 0
+        current_step_in_epoch = self.state.global_step - (self.state.global_step // len(self.get_train_dataloader())) * len(self.get_train_dataloader()) if hasattr(self, 'state') else 0
+        
+        # Run GRAD-PROBE once per epoch: at first step of each epoch after epoch 0
+        if current_epoch >= 0 and current_step_in_epoch == 0:
 
             # Collect a small stable set of adapter params (works for both modes)
             probe_params = []
@@ -440,6 +444,7 @@ class ARDClassificationTrainer(ResamplingTrainer):
                 print(f"  [{i}] {name}: Total_grad_norm = {g}")
 
             model.zero_grad(set_to_none=True)  # clean for Trainer's backward
+
 
         # Combine losses
         if self.use_kl:

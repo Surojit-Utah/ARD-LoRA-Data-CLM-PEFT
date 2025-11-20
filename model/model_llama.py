@@ -78,7 +78,10 @@ class ProbLoRALayer(nn.Module):
             self.A = nn.Parameter(A_tensor)
 
         # B matrix is always created (shared between deterministic and probabilistic)
-        self.B = nn.Parameter(torch.zeros(self.out_features, self.rank)) 
+        # self.B = nn.Parameter(torch.zeros(self.out_features, self.rank)) 
+        B_tensor = torch.empty(self.out_features, self.rank)
+        nn.init.xavier_uniform_(B_tensor)
+        self.B = nn.Parameter(B_tensor) 
 
         # ARD prior parameters (only needed for probabilistic mode, but kept for compatibility)
         self.alpha = (self.num_tokens*self.ard_prior_samples) / 2.0
