@@ -342,8 +342,9 @@ class ARDClassificationTrainer(ResamplingTrainer):
         # Run GRAD-PROBE once per epoch: at first step of each epoch after epoch 0
         if current_epoch >= 0 and current_step_in_epoch == 0:
 
-            # Collect a small stable set of adapter params (works for both modes)
-            probe_params = []
+            # Collect ALL adapter params, then take LAST 12 to validate gradient flow theory
+            # (Last layer B should have zero KL gradient, earlier layers should have non-zero)
+            all_probe_params = []
             for mod_name, mod in model.named_modules():
                 if not isinstance(mod, ProbLoRALayer):
                     continue
@@ -358,17 +359,14 @@ class ARDClassificationTrainer(ResamplingTrainer):
                     if self.use_kl:
                         # Probabilistic mode: monitor A (contains mu and logvar) and B
                         if p_name in ["A", "B"]:
-                            probe_params.append((full_name, p))
+                            all_probe_params.append((full_name, p))
                     else:
                         # Deterministic mode: monitor mu_A and B
                         if p_name in ["mu_A", "B"]:
-                            probe_params.append((full_name, p))
-                    
-                    if len(probe_params) >= 12:
-                        break
-                
-                if len(probe_params) >= 12:
-                    break
+                            all_probe_params.append((full_name, p))
+            
+            # Take LAST 12 parameters (from highest layers)
+            probe_params = all_probe_params[-12:] if len(all_probe_params) >= 12 else all_probe_params
             
             mode_str = "probabilistic" if self.use_kl else "deterministic"
             print(f"[GRAD-PROBE] monitoring {len(probe_params)} adapter params ({mode_str} mode)")
