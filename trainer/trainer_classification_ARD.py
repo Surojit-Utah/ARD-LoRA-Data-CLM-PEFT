@@ -295,7 +295,9 @@ class ARDClassificationTrainer(ResamplingTrainer):
                                     proj = getattr(attn, proj_name)
                                     if hasattr(proj, 'kl_divergence_latent'):
                                         try:
-                                            proj_kl = proj.kl_divergence_latent(layer_input)
+                                            # Detach layer_input to prevent KL gradients from flowing to B matrices
+                                            # KL loss should only affect A (distribution params), not B (output projection)
+                                            proj_kl = proj.kl_divergence_latent(layer_input.detach())
 
                                             # ---- NEW: append the *Tensor* (no .item(), no .detach())
                                             kl_terms.append(proj_kl)
@@ -342,7 +344,7 @@ class ARDClassificationTrainer(ResamplingTrainer):
         # Run GRAD-PROBE once per epoch: at first step of each epoch after epoch 0
         if current_epoch >= 0 and current_step_in_epoch == 0:
 
-            # Collect ALL adapter params, then take LAST 12 to validate gradient flow theory
+            # Collect ALL adapter params, then take FIRST 12 and LAST 12 to validate gradient flow theory
             # (Last layer B should have zero KL gradient, earlier layers should have non-zero)
             all_probe_params = []
             for mod_name, mod in model.named_modules():
@@ -365,8 +367,11 @@ class ARDClassificationTrainer(ResamplingTrainer):
                         if p_name in ["mu_A", "B"]:
                             all_probe_params.append((full_name, p))
             
-            # Take LAST 12 parameters (from highest layers)
-            probe_params = all_probe_params[-12:] if len(all_probe_params) >= 12 else all_probe_params
+            # Take FIRST 12 and LAST 12 parameters (lowest and highest layers)
+            if len(all_probe_params) >= 24:
+                probe_params = all_probe_params[:12] + all_probe_params[-12:]
+            else:
+                probe_params = all_probe_params
             
             mode_str = "probabilistic" if self.use_kl else "deterministic"
             print(f"[GRAD-PROBE] monitoring {len(probe_params)} adapter params ({mode_str} mode)")
