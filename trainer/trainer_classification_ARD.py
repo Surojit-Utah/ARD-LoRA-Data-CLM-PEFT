@@ -136,6 +136,16 @@ class ARDClassificationTrainer(ResamplingTrainer):
         # Store layer configuration
         self.target_attention_layers = target_attention_layers
         
+        # KL Warmup Configuration
+        self.kl_loss_beta_max = self.beta  # Store target β_max
+        self.enable_kl_warmup = config.get('enable_kl_warmup', False) if config is not None else False
+        self.kl_warmup_epochs = config.get('kl_warmup_epochs', 2) if config is not None else 2
+        self.kl_warmup_steps = config.get('kl_warmup_steps', None) if config is not None else None
+        
+        # Total warmup steps will be calculated after first dataloader is created
+        self.total_warmup_steps = None
+        self._warmup_steps_calculated = False
+        
         # Set trainer reference on model for callbacks
         self.model.trainer = self
         
@@ -156,10 +166,72 @@ class ARDClassificationTrainer(ResamplingTrainer):
         print(f"[CLASSIFICATION] ARDClassificationTrainer initialized:")
         print(f"[CLASSIFICATION]   Num classes: {self.num_classes}")
         print(f"[CLASSIFICATION]   Target IDs: {self.target_ids.tolist()}")
-        print(f"[CLASSIFICATION]   KL beta: {self.beta}")
+        print(f"[CLASSIFICATION]   KL beta (max): {self.beta}")
         print(f"[CLASSIFICATION]   Use KL loss: {self.use_kl}")
+        print(f"[CLASSIFICATION]   KL warmup enabled: {self.enable_kl_warmup}")
+        if self.enable_kl_warmup:
+            if self.kl_warmup_steps is not None:
+                print(f"[CLASSIFICATION]   KL warmup steps: {self.kl_warmup_steps}")
+            else:
+                print(f"[CLASSIFICATION]   KL warmup epochs: {self.kl_warmup_epochs}")
         print(f"[CLASSIFICATION]   Data collator type: {type(self.data_collator).__name__ if self.data_collator else 'None'}")
         print(f"[CLASSIFICATION]   Data collator: {self.data_collator}")
+    
+    def _calculate_total_warmup_steps(self):
+        """Calculate total warmup steps based on dataset size and training config.
+        
+        This is called lazily on first compute_loss call, after dataloader is created.
+        """
+        if self._warmup_steps_calculated:
+            return
+        
+        if not self.enable_kl_warmup:
+            self._warmup_steps_calculated = True
+            return
+        
+        if self.kl_warmup_steps is not None:
+            # Use explicit step count
+            self.total_warmup_steps = self.kl_warmup_steps
+        else:
+            # Calculate from epochs
+            try:
+                steps_per_epoch = len(self.get_train_dataloader())
+                self.total_warmup_steps = steps_per_epoch * self.kl_warmup_epochs
+            except Exception as e:
+                print(f"[WARNING] Could not calculate warmup steps from epochs: {e}")
+                print(f"[WARNING] Falling back to 1000 warmup steps")
+                self.total_warmup_steps = 1000
+        
+        self._warmup_steps_calculated = True
+        print(f"[KL WARMUP] Total warmup steps calculated: {self.total_warmup_steps}")
+        print(f"[KL WARMUP] Beta schedule: 0.0 -> {self.kl_loss_beta_max:.4f} over {self.total_warmup_steps} steps")
+    
+    def get_current_kl_beta(self, current_step):
+        """
+        Compute current KL loss weight using linear warmup schedule.
+        β(t) = min(1, t/T_warmup) * β_max
+        
+        Args:
+            current_step: Current training step (0-indexed)
+        
+        Returns:
+            Current β value
+        """
+        # Lazy calculation of total warmup steps
+        if not self._warmup_steps_calculated:
+            self._calculate_total_warmup_steps()
+        
+        if not self.enable_kl_warmup:
+            return self.kl_loss_beta_max
+        
+        if current_step >= self.total_warmup_steps:
+            return self.kl_loss_beta_max
+        
+        # Linear warmup: β(t) = (t / T_warmup) * β_max
+        warmup_progress = current_step / self.total_warmup_steps
+        current_beta = warmup_progress * self.kl_loss_beta_max
+        
+        return current_beta
 
     def compute_loss(
         self,
@@ -178,6 +250,10 @@ class ARDClassificationTrainer(ResamplingTrainer):
         4. Compute CE loss over K classes
         5. Compute KL divergence over hidden states (same as CLM)
         """
+        # Get current KL beta based on warmup schedule
+        current_step = self.state.global_step if hasattr(self, 'state') else 0
+        current_beta = self.get_current_kl_beta(current_step)
+        
         # Extract gold classes (class indices)
         # S2ClassDataset uses 'labels', our custom datasets might use 'classes'
         # Support both for compatibility
@@ -332,9 +408,10 @@ class ARDClassificationTrainer(ResamplingTrainer):
         if self.use_kl and isinstance(kl, torch.Tensor) and kl.requires_grad:
             # (optional) only print on main rank to avoid DDP spam
             # Only log every 100 steps to reduce verbosity
-            current_step = self.state.global_step if hasattr(self, 'state') else 0
-            if getattr(self.args, "local_rank", -1) in (-1, 0) and current_step % 100 == 0:
-                print(f"[KL] batch KL={kl.detach().item():.6f} (beta={self.beta})")
+            step_for_log = self.state.global_step if hasattr(self, 'state') else 0
+            if getattr(self.args, "local_rank", -1) in (-1, 0) and step_for_log % 100 == 0:
+                warmup_status = f" (warmup: {current_beta:.6f} / {self.kl_loss_beta_max:.4f})" if self.enable_kl_warmup and current_beta < self.kl_loss_beta_max else ""
+                print(f"[KL] batch KL={kl.detach().item():.6f} (beta={current_beta:.6f}){warmup_status}")
 
         # Prove CE vs KL gradients separately (probes to check gradient flow)
         # Run at start of each epoch after epoch 0 to track gradient evolution
@@ -449,9 +526,9 @@ class ARDClassificationTrainer(ResamplingTrainer):
             model.zero_grad(set_to_none=True)  # clean for Trainer's backward
 
 
-        # Combine losses
+        # Combine losses (use current_beta for warmup)
         if self.use_kl:
-            total_loss = ce_loss + self.beta * kl
+            total_loss = ce_loss + current_beta * kl
         else:
             total_loss = ce_loss  # Keep tensor, don't add scalar 0.0
         
@@ -472,6 +549,11 @@ class ARDClassificationTrainer(ResamplingTrainer):
             self.epoch_kl_loss_sum += kl_loss_val
         self.epoch_total_loss_sum += total_loss_val
         self.epoch_step_count += 1
+        
+        # Log current beta periodically (every 50 steps)
+        if self.enable_kl_warmup and current_step % 50 == 0:
+            if hasattr(self.args, 'report_to') and 'tensorboard' in self.args.report_to:
+                self.log({"train/kl_beta_current": current_beta})
         
         return (total_loss, outputs) if return_outputs else total_loss
     
@@ -1062,7 +1144,11 @@ class EvalLossComponentsCallback(TrainerCallback):
             # Only log KL loss if use_kl is enabled
             if trainer.use_kl:
                 training_metrics['train/kl_loss_epoch'] = avg_kl_loss
-                training_metrics['train/kl_beta'] = trainer.beta
+                # Log the current (or max) beta depending on warmup status
+                current_beta = trainer.get_current_kl_beta(state.global_step)
+                training_metrics['train/kl_beta'] = current_beta
+                if trainer.enable_kl_warmup:
+                    training_metrics['train/kl_beta_max'] = trainer.kl_loss_beta_max
             
             trainer.log(training_metrics)
             print(f"📊 Training Loss Components - Epoch {state.epoch} Average (over {trainer.epoch_step_count} steps):")
@@ -1070,7 +1156,12 @@ class EvalLossComponentsCallback(TrainerCallback):
             if trainer.use_kl:
                 print(f"   KL Loss: {avg_kl_loss:.4f}")
                 print(f"   Total Loss: {avg_total_loss:.4f}")
-                print(f"   KL Beta: {trainer.beta:.4f}")
+                current_beta = trainer.get_current_kl_beta(state.global_step)
+                if trainer.enable_kl_warmup:
+                    warmup_pct = min(100, 100 * current_beta / trainer.kl_loss_beta_max)
+                    print(f"   [INFO] KL Beta (current): {current_beta:.6f} ({warmup_pct:.1f}% of max={trainer.kl_loss_beta_max:.4f})")
+                else:
+                    print(f"   [INFO] KL Beta: {current_beta:.4f}")
             else:
                 print(f"   Total Loss: {avg_total_loss:.4f}")
                 print(f"   (KL loss disabled)")
